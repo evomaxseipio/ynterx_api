@@ -15,6 +15,8 @@ class CustomBaseSettings(BaseSettings):
 class Config(CustomBaseSettings):
     DATABASE_URL: PostgresDsn
     DATABASE_ASYNC_URL: PostgresDsn
+    DB_POOL_MIN_SIZE: int = 10
+    DB_POOL_MAX_SIZE: int = 10
     DATABASE_POOL_SIZE: int = 16
     DATABASE_POOL_TTL: int = 60 * 20  # 20 minutes
     DATABASE_POOL_PRE_PING: bool = True

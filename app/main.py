@@ -1,18 +1,45 @@
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+import asyncpg
 import sentry_sdk
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from app.config import app_configs, settings
+from app.api import register_routers
+
+log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator:
-    # Startup
-    yield
-    # Shutdown
+    """
+    Lifespan event handler for the FastAPI application.
+    This function is used to manage startup and shutdown events for the application.
+    It can be used to initialize resources like database connections or external services.
+    """
+    # Initialize resources here, e.g., database connections
+    try:
+        _app.state.db_pool = await asyncpg.create_pool(
+            dsn=str(settings.DATABASE_URL),
+            max_size=settings.DATABASE_POOL_SIZE,
+            max_inactive_connection_lifetime=settings.DATABASE_POOL_TTL,
+            server_settings={"application_name": "GCapital API"},
+            command_timeout=60,  # Set a command timeout for database operations
+        )
+
+        log.info("Application is starting up...")
+        # Startup
+        yield
+        # Shutdown
+    except Exception:
+        log.error("Error during application startup", exc_info=True)
+    finally:
+        log.info("Application is shutting down...")
+        if hasattr(_app.state, "db_pool"):
+            await _app.state.db_pool.close()
 
 
 app = FastAPI(**app_configs, lifespan=lifespan)
@@ -31,6 +58,8 @@ if settings.ENVIRONMENT.is_deployed:
         dsn=settings.SENTRY_DSN,
         environment=settings.ENVIRONMENT,
     )
+
+register_routers(app)
 
 
 @app.get("/healthcheck", include_in_schema=False)
