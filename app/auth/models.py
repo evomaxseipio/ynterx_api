@@ -1,17 +1,10 @@
 from __future__ import annotations
 
-import enum
 import json
 from dataclasses import dataclass
 from typing import Any
 
-
-class ErrorCodeEnum(enum.Enum):
-    SUCCESSFULLY_OPERATION = "SUCCESSFULLY_OPERATION"
-    INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
-    ACCOUNT_BLOCKED = "ACCOUNT_BLOCKED"
-    ACCOUNT_INACTIVE = "ACCOUNT_INACTIVE"
-    TOO_MANY_FAILED_ATTEMPS = "TOO_MANY_FAILED_ATTEMPTS"
+from app.enums import ErrorCodeEnum
 
 
 @dataclass
@@ -111,9 +104,9 @@ class LoginUserQueryResult:
 
     message: str
     success: bool
+    error_code: ErrorCodeEnum
     user: dict[str, Any]
     session: Session | None = None
-    error_code: ErrorCodeEnum | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "LoginUserQueryResult":
@@ -122,8 +115,7 @@ class LoginUserQueryResult:
         """
         user_data = data.get("user", {})
         session_data = data.get("session")
-        user = User.from_dict(user_data) if user_data else None
-        print("user =>", user)
+        # user = User.from_dict(user_data) if user_data else None
         session = Session.from_dict(session_data) if session_data else None
         return cls(
             message=data.get("message", ""),
@@ -131,7 +123,9 @@ class LoginUserQueryResult:
             user=user_data,
             session=session,
             error_code=(
-                ErrorCodeEnum(data["error_code"]) if "error_code" in data else None
+                ErrorCodeEnum(data["error_code"])
+                if "error_code" in data
+                else ErrorCodeEnum.UNDEFINED
             ),
         )
 
@@ -142,3 +136,11 @@ class LoginUserQueryResult:
         """
         data = json.loads(json_data)
         return cls.from_dict(data)
+
+    def get_user(self) -> User | None:
+        """
+        Get the User instance from the query result.
+        """
+        if self.user:
+            return User.from_dict(self.user)
+        return None

@@ -31,6 +31,9 @@ class Config(CustomBaseSettings):
 
     APP_VERSION: str = "0.1"
 
+    CACHE_EXPIRE_SECONDS: int = 60 * 60 * 24  # 24 hours
+    AUTH_SESSION_TTL_SECONDS: int = 60 * 2  # 2 minutes
+
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":
         if self.ENVIRONMENT.is_deployed and not self.SENTRY_DSN:

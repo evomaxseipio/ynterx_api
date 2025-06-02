@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from app.schemas import CustomSchema
+
 
 class AuthLoginRequest(BaseModel):
     """
@@ -12,11 +14,15 @@ class AuthLoginRequest(BaseModel):
     password: str
 
 
-class AuthLoginResponse(BaseModel):
+class _AuthLoginDataResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: Any
+
+
+class AuthLoginResponse(CustomSchema):
     """
     Schema for the login response.
     """
 
-    access_token: str
-    token_type: str
-    user: dict[str, Any]
+    data: _AuthLoginDataResponse
