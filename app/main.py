@@ -10,22 +10,16 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from starlette.middleware.cors import CORSMiddleware
 
-from app.api import register_routers
-from app.config import app_configs, settings
-from app.enums import ErrorCodeEnum
-from app.exceptions import GenericHTTPException
+from app.api import register_routers  # make sure this exists
+from app.config import app_configs, settings  # make sure this exists
+from app.enums import ErrorCodeEnum  # make sure this exists
+from app.exceptions import GenericHTTPException  # make sure this exists
 
 log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator:
-    """
-    Lifespan event handler for the FastAPI application.
-    This function is used to manage startup and shutdown events for the application.
-    It can be used to initialize resources like database connections or external services.
-    """
-    # Initialize resources here, e.g., database connections
     try:
         FastAPICache.init(InMemoryBackend())
 
@@ -33,14 +27,12 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator:
             dsn=str(settings.DATABASE_URL),
             max_size=settings.DATABASE_POOL_SIZE,
             max_inactive_connection_lifetime=settings.DATABASE_POOL_TTL,
-            server_settings={"application_name": "GCapital API"},
-            command_timeout=60,  # Set a command timeout for database operations
+            server_settings={"application_name": "YnterX API"},
+            command_timeout=60,
         )
 
         log.info("Application is starting up...")
-        # Startup
         yield
-        # Shutdown
     except Exception:
         log.error("Error during application startup", exc_info=True)
     finally:
@@ -58,10 +50,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"),
     allow_headers=settings.CORS_HEADERS,
-
-
-
-
 )
 
 if settings.ENVIRONMENT.is_deployed:
@@ -112,3 +100,10 @@ async def generic_exception_handler(request: Request, exc: Exception):
             "success": False,
         },
     )
+
+
+# Entry point for Docker
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=False)
