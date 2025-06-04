@@ -1,21 +1,28 @@
+
+
 # Use a Python base image
 FROM python:3.11-slim
 
-# Set working directory
-WORKDIR /code
+
+# Set the working directory in the container
+WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y build-essential
 
-# Copy requirements and install
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the requirements file into the container at /app
+COPY ./requirements.txt /app/requirements.txt
 
-# Copy application code
-COPY . .
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Expose port
+# Copy the rest of the application code into the container at /app
+COPY . /app
+
+# Expose the port the app runs on
 EXPOSE 8000
 
-# Run the app with uvicorn
-CMD ["python", "app/main.py"]
+# Command to run the application using Uvicorn
+# Adjust 'main:app' to your_module:your_fastapi_instance
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
