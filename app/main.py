@@ -1,10 +1,12 @@
+import asyncio
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import asyncpg
 import sentry_sdk
-from fastapi import FastAPI, HTTPException as FastAPIHTTPException, Request
+from fastapi import FastAPI, Request
+from fastapi import HTTPException as FastAPIHTTPException
 from fastapi.responses import JSONResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
@@ -35,7 +37,15 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator:
             max_inactive_connection_lifetime=settings.DATABASE_POOL_TTL,
             server_settings={"application_name": "GCapital API"},
             command_timeout=60,  # Set a command timeout for database operations
+            min_size=10,  # Mantener al menos 10 conexiones vivas
+            max_queries=50000,  # Reciclar conexiones después de 50k queries
         )
+
+        # Configurar auto-login para desarrollo local
+        if settings.ENVIRONMENT.is_debug:
+            from app.auth.local_dev import setup_local_dev_auth
+            await setup_local_dev_auth()
+            log.info("Local development auto-login configured")
 
         log.info("Application is starting up...")
         # Startup
@@ -44,9 +54,15 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator:
     except Exception:
         log.error("Error during application startup", exc_info=True)
     finally:
-        log.info("Application is shutting down...")
         if hasattr(_app.state, "db_pool"):
-            await _app.state.db_pool.close()
+            try:
+                # Establecer un timeout de 10 segundos para el cierre del pool
+                await asyncio.wait_for(_app.state.db_pool.close(), timeout=10.0)
+            except TimeoutError:
+                log.error("Timeout while closing database pool")
+            except Exception as e:
+                log.error(f"Error closing database pool: {e}", exc_info=True)
+        log.info("Application is shutting down...")
 
 
 app = FastAPI(**app_configs, lifespan=lifespan)

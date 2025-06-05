@@ -50,7 +50,7 @@ class User:
             raise TypeError("role must be an instance of UserRole")
 
     @classmethod
-    def from_dict(cls, data: dict) -> "User":
+    def from_dict(cls, data: dict) -> User:
         """
         Create a User instance from a dictionary.
         """
@@ -86,7 +86,7 @@ class Session:
     session_token: str
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Session":
+    def from_dict(cls, data: dict) -> Session:
         """
         Create a Session instance from a dictionary.
         """
@@ -109,7 +109,7 @@ class LoginUserQueryResult:
     session: Session | None = None
 
     @classmethod
-    def from_dict(cls, data: dict) -> "LoginUserQueryResult":
+    def from_dict(cls, data: dict) -> LoginUserQueryResult:
         """
         Create a LoginUserQueryResult instance from a dictionary.
         """
@@ -130,7 +130,7 @@ class LoginUserQueryResult:
         )
 
     @classmethod
-    def from_json(cls, json_data: str) -> "LoginUserQueryResult":
+    def from_json(cls, json_data: str) -> LoginUserQueryResult:
         """
         Create a LoginUserQueryResult instance from a JSON string.
         """

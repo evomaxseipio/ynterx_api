@@ -15,5 +15,6 @@
     "files.insertFinalNewline": true,
     "pythonIndent.keepHangingBracketOnLine": true,
     "pythonIndent.trimLinesWithOnlyWhitespace": true,
-    "pythonIndent.useTabOnHangingIndent": true
+    "pythonIndent.useTabOnHangingIndent": true,
+    "files.saveConflictResolution": "overwriteFileOnDisk"
 }
