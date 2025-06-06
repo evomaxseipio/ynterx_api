@@ -26,11 +26,19 @@ router = APIRouter(prefix="/persons", tags=["persons"])
 async def list_persons(
     _: DepCurrentUser,
     request: Request,
+    skip: int = 0,
+    limit: int = 100,
+    is_active: bool | None = None,
 ) -> list[dict]:
     """List all persons."""
-    pool = request.app.state.db_pool
-    async with pool.acquire() as connection:
-        return await PersonService.list_persons(connection=connection)
+    async with request.app.state.db_pool.acquire() as connection:
+        query = """
+            SELECT * FROM public.person
+            WHERE ($3::boolean IS NULL OR is_active = $3::boolean)
+            OFFSET $1 LIMIT $2;
+        """
+        persons = await connection.fetch(query, skip, limit, is_active)
+        return [dict(person) for person in persons]
 
 
 ######################################################################################################
@@ -42,12 +50,15 @@ async def list_persons(
 async def list_genders(
     _: DepCurrentUser,
     request: Request,
+    is_active: bool | None = None,
 ) -> list[dict]:
     """List all genders."""
-    query = "SELECT * FROM gender WHERE is_active = true"
-    pool = request.app.state.db_pool
-    async with pool.acquire() as connection:
-        genders = await connection.fetch(query)
+    async with request.app.state.db_pool.acquire() as connection:
+        query = """
+            SELECT * FROM gender
+            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
+        """
+        genders = await connection.fetch(query, is_active)
     return [dict(gender) for gender in genders]
 
 
@@ -55,12 +66,15 @@ async def list_genders(
 async def list_marital_statuses(
     _: DepCurrentUser,
     request: Request,
+    is_active: bool | None = None,
 ) -> list[dict]:
     """List all marital statuses."""
-    query = "SELECT * FROM marital_status WHERE is_active = true"
-    pool = request.app.state.db_pool
-    async with pool.acquire() as connection:
-        marital_statuses = await connection.fetch(query)
+    async with request.app.state.db_pool.acquire() as connection:
+        query = """
+            SELECT * FROM marital_status
+            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
+        """
+        marital_statuses = await connection.fetch(query, is_active)
     return [dict(marital_status) for marital_status in marital_statuses]
 
 
@@ -68,12 +82,15 @@ async def list_marital_statuses(
 async def list_education_levels(
     _: DepCurrentUser,
     request: Request,
+    is_active: bool | None = None,
 ) -> list[dict]:
     """List all education levels."""
-    query = "SELECT * FROM education_level WHERE is_active = true"
-    pool = request.app.state.db_pool
-    async with pool.acquire() as connection:
-        education_levels = await connection.fetch(query)
+    async with request.app.state.db_pool.acquire() as connection:
+        query = """
+            SELECT * FROM education_level
+            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
+        """
+        education_levels = await connection.fetch(query, is_active)
     return [dict(education_level) for education_level in education_levels]
 
 
@@ -81,12 +98,15 @@ async def list_education_levels(
 async def list_countries(
     _: DepCurrentUser,
     request: Request,
+    is_active: bool | None = None,
 ) -> list[dict]:
     """List all countries."""
-    query = "SELECT * FROM country WHERE is_active = true"
-    pool = request.app.state.db_pool
-    async with pool.acquire() as connection:
-        countries = await connection.fetch(query)
+    async with request.app.state.db_pool.acquire() as connection:
+        query = """
+            SELECT * FROM country
+            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
+        """
+        countries = await connection.fetch(query, is_active)
     return [dict(country) for country in countries]
 
 
@@ -116,9 +136,10 @@ async def get_person(
     request: Request,
 ) -> dict | None:
     """Get a person by ID."""
-    pool = request.app.state.db_pool
-    async with pool.acquire() as connection:
-        return await PersonService.get_person(person_id, connection=connection)
+    async with request.app.state.db_pool.acquire() as connection:
+        query = "SELECT * FROM person WHERE person_id = $1"
+        person = await connection.fetchrow(query, person_id)
+        return dict(person) if person else None
 
 
 @router.put("/{person_id}", response_model=PersonResponse)
