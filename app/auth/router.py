@@ -11,6 +11,7 @@ from app.exceptions import BadRequest, GenericHTTPException
 from app.session_cache import create_session, remove_session
 from app.utils.alphanum import generate_random_alphanum
 
+from .dependencies import DepCurrentUser
 from .models import ErrorCodeEnum, LoginUserQueryResult
 from .schemas import (
     AuthLoginRequest,
@@ -155,7 +156,8 @@ async def recover_password(
         subject="Recuperación de Contraseña",
         body=(
             f"Tu contraseña temporal es: {temp_password}\n\n"
-            "Por favor, cambia tu contraseña después de iniciar sesión."
+            "Por favor, cambia tu contraseña después de iniciar sesión.\n\n"
+            "Gracias por usar GCapital"
         ),
     )
 
@@ -166,7 +168,11 @@ async def recover_password(
 
 
 @router.post("/change-password")
-async def change_password(request: Request, password_data: PasswordChangeRequest) -> Any:
+async def change_password(
+    request: Request,
+    password_data: PasswordChangeRequest,
+    current_user: DepCurrentUser,
+) -> Any:
     raise_error = BadRequest("Error inesperado al cambiar la contraseña")
 
     pool: Pool = request.app.state.db_pool
@@ -175,7 +181,8 @@ async def change_password(request: Request, password_data: PasswordChangeRequest
         conn: asyncpg.Connection
 
         result: asyncpg.Record | None = await conn.fetchrow(
-            "SELECT sp_change_password($1, $2);",
+            "SELECT sp_change_password($1, $2, $3);",
+            current_user,
             password_data.current_password,
             password_data.new_password,
         )
@@ -188,6 +195,14 @@ async def change_password(request: Request, password_data: PasswordChangeRequest
         result["success"]
         and result["error_code"] is ErrorCodeEnum.SUCCESSFULLY_OPERATION
     ):
+        await send_email(
+            to_email=result["email"],
+            subject="Cambio de Contraseña",
+            body=(
+                "Cambio de Contraseña exitoso\n\n"
+                "Gracias por usar GCapital"
+            ),
+        )
         return {"message": "Contraseña cambiada exitosamente", "success": True}
 
     raise GenericHTTPException(
