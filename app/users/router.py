@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Request, status
 
 from app.auth.dependencies import DepCurrentUser
-from app.database import DepDatabase, use_pool_connection
+from app.database import DepDatabase
 from app.exceptions import BadRequest, NotFound
 from app.users.schemas import UserCreate, UserResponse, UserUpdate
 from app.users.service import UserService
@@ -22,9 +22,10 @@ async def create_user(
     current_user: DepCurrentUser,
 ) -> dict:
     # Check if username already exists
-    async with use_pool_connection(request.app.state.db_pool) as connection:
-        existing_user = await UserService.get_user_by_username(
-            user_data.username, connection=connection
+    async with request.app.state.db_pool.acquire() as connection:
+        existing_user = await connection.fetchrow(
+            "SELECT * FROM users WHERE username = $1",
+            user_data.username,
         )
     if existing_user:
         raise BadRequest("Username already registered")
