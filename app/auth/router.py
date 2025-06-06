@@ -97,7 +97,11 @@ async def logout(authorization: str = Header(...)) -> Any:
     """
     token = authorization.replace("Bearer ", "")
     await remove_session(token)
-    return {"message": "Logout successful", "success": True}
+    return {
+        "message": "Logout successful",
+        "success": True,
+        "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
+    }
 
 
 @router.post("/recover-password")
@@ -164,6 +168,7 @@ async def recover_password(
     return {
         "message": "Si el correo existe, recibirás instrucciones para recuperar tu contraseña",
         "success": True,
+        "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
     }
 
 
@@ -198,12 +203,13 @@ async def change_password(
         await send_email(
             to_email=result["email"],
             subject="Cambio de Contraseña",
-            body=(
-                "Cambio de Contraseña exitoso\n\n"
-                "Gracias por usar GCapital"
-            ),
+            body=("Cambio de Contraseña exitoso\n\n" "Gracias por usar GCapital"),
         )
-        return {"message": "Contraseña cambiada exitosamente", "success": True}
+        return {
+            "message": "Contraseña cambiada exitosamente",
+            "success": True,
+            "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
+        }
 
     raise GenericHTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
