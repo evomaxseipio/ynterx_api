@@ -1,10 +1,11 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Request, status
 
 from app.auth.dependencies import DepCurrentUser
 from app.database import DepDatabase, use_pool_connection
+from app.exceptions import BadRequest, NotFound
 from app.users.schemas import UserCreate, UserResponse, UserUpdate
 from app.users.service import UserService
 
@@ -26,10 +27,7 @@ async def create_user(
             user_data.username, connection=connection
         )
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered",
-        )
+        raise BadRequest("Username already registered")
 
     return await UserService.create_user(
         user_data,
@@ -45,10 +43,15 @@ async def get_users(
     skip: int = 0,
     limit: int = 100,
 ) -> list[dict]:
-    async with use_pool_connection(request.app.state.db_pool) as connection:
-        return await UserService.get_users(
-            skip=skip, limit=limit, connection=connection
-        )
+    async with request.app.state.db_pool.acquire() as connection:
+        query = """
+            SELECT
+                users.*
+            FROM users
+            OFFSET $1 LIMIT $2
+        """
+        users = await connection.fetch(query, skip, limit)
+        return [dict(user) for user in users]
 
 
 @router.get("/me", response_model=UserResponse)
@@ -67,10 +70,7 @@ async def get_current_user_info(
         user = await connection.fetchrow(query, current_user)
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
+        raise NotFound("User not found")
 
     return dict(user)
 
@@ -81,15 +81,13 @@ async def get_user(
     user_id: UUID,
     request: Request,
 ) -> dict:
+    query = "SELECT * FROM users WHERE user_id = $1"
     # Usar el pool para lectura para priorizar la velocidad
-    async with use_pool_connection(request.app.state.db_pool) as connection:
-        user = await UserService.get_user(user_id, connection=connection)
+    async with request.app.state.db_pool.acquire() as connection:
+        user = await connection.fetchrow(query, user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    return user
+        raise NotFound("User not found")
+    return dict(user)
 
 
 @router.patch("/{user_id}", response_model=UserResponse)
@@ -101,25 +99,22 @@ async def update_user(
     current_user: DepCurrentUser,
 ) -> dict:
     try:
-        # Verify user exists - usando el pool para lectura
-        async with use_pool_connection(request.app.state.db_pool) as connection:
-            existing_user = await UserService.get_user(user_id, connection=connection)
+        async with request.app.state.db_pool.acquire() as connection:
+            existing_user = await connection.fetchrow(
+                "SELECT * FROM users WHERE user_id = $1",
+                user_id,
+            )
             if not existing_user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found",
-                )
+                raise NotFound("User not found")
 
             # If updating username, check it's not taken
             if user_data.username and user_data.username != existing_user["username"]:
-                username_exists = await UserService.get_user_by_username(
-                    user_data.username, connection=connection
+                username_exists = await connection.fetchrow(
+                    "SELECT * FROM users WHERE username = $1",
+                    user_data.username,
                 )
                 if username_exists:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Username already taken",
-                    )
+                    raise BadRequest("Username already taken")
 
         # Usar la conexión de transacción para la actualización
         updated_user = await UserService.update_user(
@@ -132,7 +127,7 @@ async def update_user(
     except Exception as e:
         # Log any unexpected errors
         log.error(f"Error updating user {user_id}: {e!s}")
-        raise
+        raise BadRequest(f"Error updating user {user_id}: {e!s}") from e
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -143,14 +138,8 @@ async def delete_user(
 ) -> None:
     user = await UserService.get_user(user_id, connection=db)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
+        raise NotFound("User not found")
 
     success = await UserService.delete_user(user_id, connection=db)
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not delete user",
-        )
+        raise BadRequest("Could not delete user")
