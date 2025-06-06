@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, root_validator
 
 from app.schemas import CustomSchema
 
@@ -32,5 +32,21 @@ class PasswordRecoveryRequest(BaseModel):
     """
     Schema for the password recovery request.
     """
-    
+
     email: str
+
+
+class PasswordChangeRequest(BaseModel):
+    """
+    Schema for the password change request.
+    """
+
+    current_password: str
+    new_password: str
+    confirm_password: str
+
+    @root_validator
+    def check_password_match(cls, values):
+        if values["new_password"] != values["confirm_password"]:
+            raise ValueError("Las contraseñas no coinciden")
+        return values

@@ -12,7 +12,12 @@ from app.session_cache import create_session, remove_session
 from app.utils.alphanum import generate_random_alphanum
 
 from .models import ErrorCodeEnum, LoginUserQueryResult
-from .schemas import AuthLoginRequest, AuthLoginResponse, PasswordRecoveryRequest
+from .schemas import (
+    AuthLoginRequest,
+    AuthLoginResponse,
+    PasswordChangeRequest,
+    PasswordRecoveryRequest,
+)
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -158,3 +163,37 @@ async def recover_password(
         "message": "Si el correo existe, recibirás instrucciones para recuperar tu contraseña",
         "success": True,
     }
+
+
+@router.post("/change-password")
+async def change_password(request: Request, password_data: PasswordChangeRequest) -> Any:
+    raise_error = BadRequest("Error inesperado al cambiar la contraseña")
+
+    pool: Pool = request.app.state.db_pool
+    # Take a connection from the pool
+    async with pool.acquire() as conn:
+        conn: asyncpg.Connection
+
+        result: asyncpg.Record | None = await conn.fetchrow(
+            "SELECT sp_change_password($1, $2, $3);",
+            password_data.current_password,
+            password_data.new_password,
+            password_data.confirm_password,
+        )
+
+    if not result or not result[0] or not result["sp_change_password"]:
+        log.error("Unable to get the result of the password change query")
+        raise raise_error
+
+    if (
+        result["success"]
+        and result["error_code"] is ErrorCodeEnum.SUCCESSFULLY_OPERATION
+    ):
+        return {"message": "Contraseña cambiada exitosamente", "success": True}
+
+    raise GenericHTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        error_code=result["error_code"],
+        message=result["message"],
+        success=result["success"],
+    )
