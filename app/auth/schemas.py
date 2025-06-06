@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel, model_validator
 
 from app.schemas import CustomSchema
 
@@ -45,8 +45,8 @@ class PasswordChangeRequest(BaseModel):
     new_password: str
     confirm_password: str
 
-    @root_validator
-    def check_password_match(cls, values):
-        if values["new_password"] != values["confirm_password"]:
+    @model_validator(mode='after')
+    def check_password_match(self) -> 'PasswordChangeRequest':
+        if self.new_password != self.confirm_password:
             raise ValueError("Las contraseñas no coinciden")
-        return values
+        return self
