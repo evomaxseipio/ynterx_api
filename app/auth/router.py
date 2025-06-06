@@ -7,12 +7,13 @@ from asyncpg import Pool
 from fastapi import APIRouter, Header, Request, status
 
 from app.email import send_email
+from app.enums import ErrorCodeEnum
 from app.exceptions import BadRequest, GenericHTTPException
 from app.session_cache import create_session, remove_session
 from app.utils.alphanum import generate_random_alphanum
 
 from .dependencies import DepCurrentUser
-from .models import ErrorCodeEnum, LoginUserQueryResult
+from .models import LoginUserQueryResult
 from .schemas import (
     AuthLoginRequest,
     AuthLoginResponse,
@@ -185,23 +186,35 @@ async def change_password(
     async with pool.acquire() as conn:
         conn: asyncpg.Connection
 
-        result: asyncpg.Record | None = await conn.fetchrow(
-            "SELECT sp_change_password($1, $2, $3);",
-            current_user,
-            password_data.current_password,
-            password_data.new_password,
-        )
+        async with conn.transaction():
+            result: asyncpg.Record | None = await conn.fetchrow(
+                "SELECT sp_change_password($1, $2, $3);",
+                current_user,
+                password_data.current_password,
+                password_data.new_password,
+            )
 
     if not result or not result[0] or not result["sp_change_password"]:
         log.error("Unable to get the result of the password change query")
         raise raise_error
 
+    data = json.loads(result["sp_change_password"] or "{}")
+    if "success" not in data or "error_code" not in data or "email" not in data:
+        log.error("Data from password change query is invalid")
+        raise raise_error
+
+    error_code = (
+        ErrorCodeEnum(data["error_code"])
+        if data.get("error_code", None) and data["error_code"] in ErrorCodeEnum
+        else ErrorCodeEnum.UNDEFINED
+    )
+
     if (
-        result["success"]
-        and result["error_code"] is ErrorCodeEnum.SUCCESSFULLY_OPERATION
+        data.get("success", False)
+        and error_code is ErrorCodeEnum.SUCCESSFULLY_OPERATION
     ):
         await send_email(
-            to_email=result["email"],
+            to_email=data.get("email"),
             subject="Cambio de Contraseña",
             body=("Cambio de Contraseña exitoso\n\n" "Gracias por usar GCapital"),
         )
@@ -213,7 +226,7 @@ async def change_password(
 
     raise GenericHTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        error_code=result["error_code"],
-        message=result["message"],
-        success=result["success"],
+        error_code=error_code,
+        message=data.get("message", ""),
+        success=data.get("success", False),
     )

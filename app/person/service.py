@@ -5,14 +5,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from app.database import execute, fetch_all, fetch_one
-from app.person.models import (
-    country,
-    education_level,
-    gender,
-    marital_status,
-    person,
-)
+from app.database import execute, fetch_one
+from app.person.models import person
 from app.person.schemas import PersonCreate, PersonUpdate
 
 
@@ -86,48 +80,76 @@ class PersonService:
 
     @staticmethod
     async def list_persons(
-        connection: AsyncConnection | None = None,
+        connection,
+        skip: int = 0,
+        limit: int = 100,
+        is_active: bool | None = None,
     ) -> list[dict]:
-        """List all persons."""
-        query = select(person)
-        return await fetch_all(query, connection=connection)
+        """List all persons with pagination and active filter."""
+        query = """
+            SELECT * FROM public.person
+            WHERE ($3::boolean IS NULL OR is_active = $3::boolean)
+            OFFSET $1 LIMIT $2;
+        """
+        persons = await connection.fetch(query, skip, limit, is_active)
+        return [dict(person) for person in persons]
 
 
 class GenderService:
     @staticmethod
     async def list_genders(
-        connection: AsyncConnection | None = None,
+        connection,
+        is_active: bool | None = None,
     ) -> list[dict]:
         """List all genders."""
-        query = select(gender).where(gender.c.is_active)
-        return await fetch_all(query, connection=connection)
+        query = """
+            SELECT * FROM gender
+            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
+        """
+        genders = await connection.fetch(query, is_active)
+        return [dict(gender) for gender in genders]
 
 
 class MaritalStatusService:
     @staticmethod
     async def list_marital_statuses(
-        connection: AsyncConnection | None = None,
+        connection,
+        is_active: bool | None = None,
     ) -> list[dict]:
         """List all marital statuses."""
-        query = select(marital_status).where(marital_status.c.is_active)
-        return await fetch_all(query, connection=connection)
+        query = """
+            SELECT * FROM marital_status
+            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
+        """
+        statuses = await connection.fetch(query, is_active)
+        return [dict(status) for status in statuses]
 
 
 class EducationLevelService:
     @staticmethod
     async def list_education_levels(
-        connection: AsyncConnection | None = None,
+        connection,
+        is_active: bool | None = None,
     ) -> list[dict]:
         """List all education levels."""
-        query = select(education_level).where(education_level.c.is_active)
-        return await fetch_all(query, connection=connection)
+        query = """
+            SELECT * FROM education_level
+            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
+        """
+        levels = await connection.fetch(query, is_active)
+        return [dict(level) for level in levels]
 
 
 class CountryService:
     @staticmethod
     async def list_countries(
-        connection: AsyncConnection | None = None,
+        connection,
+        is_active: bool | None = None,
     ) -> list[dict]:
         """List all countries."""
-        query = select(country).where(country.c.is_active)
-        return await fetch_all(query, connection=connection)
+        query = """
+            SELECT * FROM country
+            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
+        """
+        countries = await connection.fetch(query, is_active)
+        return [dict(country) for country in countries]

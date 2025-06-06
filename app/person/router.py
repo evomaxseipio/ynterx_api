@@ -13,7 +13,13 @@ from app.person.schemas import (
     PersonResponse,
     PersonUpdate,
 )
-from app.person.service import PersonService
+from app.person.service import (
+    CountryService,
+    EducationLevelService,
+    GenderService,
+    MaritalStatusService,
+    PersonService,
+)
 
 router = APIRouter(prefix="/persons", tags=["persons"])
 
@@ -32,13 +38,12 @@ async def list_persons(
 ) -> list[dict]:
     """List all persons."""
     async with request.app.state.db_pool.acquire() as connection:
-        query = """
-            SELECT * FROM public.person
-            WHERE ($3::boolean IS NULL OR is_active = $3::boolean)
-            OFFSET $1 LIMIT $2;
-        """
-        persons = await connection.fetch(query, skip, limit, is_active)
-        return [dict(person) for person in persons]
+        return await PersonService.list_persons(
+            connection=connection,
+            skip=skip,
+            limit=limit,
+            is_active=is_active
+        )
 
 
 ######################################################################################################
@@ -54,12 +59,10 @@ async def list_genders(
 ) -> list[dict]:
     """List all genders."""
     async with request.app.state.db_pool.acquire() as connection:
-        query = """
-            SELECT * FROM gender
-            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
-        """
-        genders = await connection.fetch(query, is_active)
-    return [dict(gender) for gender in genders]
+        return await GenderService.list_genders(
+            connection=connection,
+            is_active=is_active
+        )
 
 
 @router.get("/marital-statuses", response_model=list[MaritalStatusResponse])
@@ -70,12 +73,10 @@ async def list_marital_statuses(
 ) -> list[dict]:
     """List all marital statuses."""
     async with request.app.state.db_pool.acquire() as connection:
-        query = """
-            SELECT * FROM marital_status
-            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
-        """
-        marital_statuses = await connection.fetch(query, is_active)
-    return [dict(marital_status) for marital_status in marital_statuses]
+        return await MaritalStatusService.list_marital_statuses(
+            connection=connection,
+            is_active=is_active
+        )
 
 
 @router.get("/education-levels", response_model=list[EducationLevelResponse])
@@ -86,12 +87,10 @@ async def list_education_levels(
 ) -> list[dict]:
     """List all education levels."""
     async with request.app.state.db_pool.acquire() as connection:
-        query = """
-            SELECT * FROM education_level
-            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
-        """
-        education_levels = await connection.fetch(query, is_active)
-    return [dict(education_level) for education_level in education_levels]
+        return await EducationLevelService.list_education_levels(
+            connection=connection,
+            is_active=is_active
+        )
 
 
 @router.get("/countries", response_model=list[CountryResponse])
@@ -102,12 +101,10 @@ async def list_countries(
 ) -> list[dict]:
     """List all countries."""
     async with request.app.state.db_pool.acquire() as connection:
-        query = """
-            SELECT * FROM country
-            WHERE ($1::boolean IS NULL OR is_active = $1::boolean)
-        """
-        countries = await connection.fetch(query, is_active)
-    return [dict(country) for country in countries]
+        return await CountryService.list_countries(
+            connection=connection,
+            is_active=is_active
+        )
 
 
 ######################################################################################################
