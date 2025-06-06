@@ -123,7 +123,6 @@ async def recover_password(
 
     # Generate temporary password
     temp_password = generate_random_alphanum(12)
-    password_hash, password_salt = get_password_hash(temp_password)
 
     # Update user's password and preferences
     json_preferences = user["preferences"] or "{}"
@@ -134,13 +133,14 @@ async def recover_password(
     async with pool.acquire() as conn:
         conn: asyncpg.Connection
         await conn.execute(
-            """UPDATE users
-            SET password_hash = $1,
-                password_salt = $2,
-                preferences = $3
-            WHERE user_id = $4;""",
-            password_hash,
-            password_salt,
+            """
+            UPDATE users
+            SET password_hash = crypt($1, gen_salt('bf', 12)),
+                password_salt = encode(gen_random_bytes(16), 'hex'),
+                preferences = $2
+            WHERE user_id = $3;
+            """,
+            temp_password,
             json_preferences,
             user["user_id"],
         )
