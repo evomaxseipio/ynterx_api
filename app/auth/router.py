@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any
 
@@ -5,11 +6,14 @@ import asyncpg
 from asyncpg import Pool
 from fastapi import APIRouter, Header, Request, status
 
+from app.email import send_email
 from app.exceptions import BadRequest, GenericHTTPException
 from app.session_cache import create_session, remove_session
+from app.utils.alphanum import generate_random_alphanum
+from app.utils.security import get_password_hash
 
 from .models import ErrorCodeEnum, LoginUserQueryResult
-from .schemas import AuthLoginRequest, AuthLoginResponse
+from .schemas import AuthLoginRequest, AuthLoginResponse, PasswordRecoveryRequest
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -89,3 +93,69 @@ async def logout(authorization: str = Header(...)) -> Any:
     token = authorization.replace("Bearer ", "")
     await remove_session(token)
     return {"message": "Logout successful", "success": True}
+
+
+@router.post("/recover-password")
+async def recover_password(
+    request: Request, recovery_data: PasswordRecoveryRequest
+) -> Any:
+    """
+    Endpoint to request a password recovery.
+    This endpoint validates the email, generates a temporary password and sends it via email.
+    """
+    pool: Pool = request.app.state.db_pool
+
+    # Check if user exists
+    async with pool.acquire() as conn:
+        conn: asyncpg.Connection
+        user = await conn.fetchrow(
+            "SELECT user_id, preferences FROM users WHERE email = $1 AND is_active = true;",
+            recovery_data.email,
+        )
+
+    if not user:
+        raise GenericHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code=ErrorCodeEnum.NOT_FOUND,
+            message="El correo no existe",
+            success=False,
+        )
+
+    # Generate temporary password
+    temp_password = generate_random_alphanum(12)
+    password_hash, password_salt = get_password_hash(temp_password)
+
+    # Update user's password and preferences
+    json_preferences = user["preferences"] or "{}"
+    preferences = json.loads(json_preferences)
+    preferences["temp_password"] = "true"
+    json_preferences = json.dumps(preferences)
+
+    async with pool.acquire() as conn:
+        conn: asyncpg.Connection
+        await conn.execute(
+            """UPDATE users
+            SET password_hash = $1,
+                password_salt = $2,
+                preferences = $3
+            WHERE user_id = $4;""",
+            password_hash,
+            password_salt,
+            json_preferences,
+            user["user_id"],
+        )
+
+    # Send email with temporary password
+    await send_email(
+        to_email=recovery_data.email,
+        subject="Recuperación de Contraseña",
+        body=(
+            f"Tu contraseña temporal es: {temp_password}\n\n"
+            "Por favor, cambia tu contraseña después de iniciar sesión."
+        ),
+    )
+
+    return {
+        "message": "Si el correo existe, recibirás instrucciones para recuperar tu contraseña",
+        "success": True,
+    }

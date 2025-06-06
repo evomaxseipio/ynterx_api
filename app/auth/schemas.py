@@ -26,3 +26,11 @@ class AuthLoginResponse(CustomSchema):
     """
 
     data: _AuthLoginDataResponse
+
+
+class PasswordRecoveryRequest(BaseModel):
+    """
+    Schema for the password recovery request.
+    """
+    
+    email: str
