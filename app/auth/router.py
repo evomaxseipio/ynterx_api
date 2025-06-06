@@ -10,7 +10,6 @@ from app.email import send_email
 from app.exceptions import BadRequest, GenericHTTPException
 from app.session_cache import create_session, remove_session
 from app.utils.alphanum import generate_random_alphanum
-from app.utils.security import get_password_hash
 
 from .models import ErrorCodeEnum, LoginUserQueryResult
 from .schemas import AuthLoginRequest, AuthLoginResponse, PasswordRecoveryRequest
