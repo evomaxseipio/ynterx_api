@@ -175,10 +175,9 @@ async def change_password(request: Request, password_data: PasswordChangeRequest
         conn: asyncpg.Connection
 
         result: asyncpg.Record | None = await conn.fetchrow(
-            "SELECT sp_change_password($1, $2, $3);",
+            "SELECT sp_change_password($1, $2);",
             password_data.current_password,
             password_data.new_password,
-            password_data.confirm_password,
         )
 
     if not result or not result[0] or not result["sp_change_password"]:
