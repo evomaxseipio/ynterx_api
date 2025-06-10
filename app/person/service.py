@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from app.database import execute, fetch_one
+from app.database import fetch_one
 from app.person.models import person
 from app.person.schemas import PersonCreate, PersonUpdate
 
@@ -28,9 +28,9 @@ class PersonService:
             marital_status_id=person_data.marital_status_id,
             education_level_id=person_data.education_level_id,
             is_active=person_data.is_active,
-        )
+        ).returning(person)
 
-        result = await execute(query, connection=connection, commit_after=True)
+        result = await fetch_one(query, connection=connection, commit_after=True)
         return result
 
     @staticmethod
