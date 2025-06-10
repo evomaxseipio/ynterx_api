@@ -1,12 +1,14 @@
+import json
 import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Request, status
+from fastapi.responses import JSONResponse
 
 from app.auth.dependencies import DepCurrentUser
 from app.database import DepDatabase
 from app.exceptions import BadRequest, NotFound
-from app.users.schemas import UserCreate, UserResponse, UserUpdate
+from app.users.schemas import UserCreate, UserListResponse, UserResponse, UserUpdate
 from app.users.service import UserService
 
 log = logging.getLogger(__name__)
@@ -37,22 +39,32 @@ async def create_user(
     )
 
 
-@router.get("/", response_model=list[UserResponse])
-async def get_users(
-    _: DepCurrentUser,
-    request: Request,
-    skip: int = 0,
-    limit: int = 100,
-) -> list[dict]:
+# @router.get("/", response_model=list[UserResponse])
+# async def get_users(
+#     _: DepCurrentUser,
+#     request: Request,
+#     skip: int = 0,
+#     limit: int = 100,
+# ) -> list[dict]:
+#     async with request.app.state.db_pool.acquire() as connection:
+#         query = """
+#             SELECT
+#                 users.*
+#             FROM users
+#             OFFSET $1 LIMIT $2
+#         """
+#         users = await connection.fetch(query, skip, limit)
+#         return [dict(user) for user in users]
+
+
+@router.get("/", response_model=UserListResponse)
+async def get_users(request: Request):
     async with request.app.state.db_pool.acquire() as connection:
-        query = """
-            SELECT
-                users.*
-            FROM users
-            OFFSET $1 LIMIT $2
-        """
-        users = await connection.fetch(query, skip, limit)
-        return [dict(user) for user in users]
+        result = await connection.fetchrow("SELECT sp_get_all_users() LIMIT 1")
+        if not result or not result[0] or not result["sp_get_all_users"]:
+            raise BadRequest()
+        users = result["sp_get_all_users"]
+        return JSONResponse(content=json.loads(users))
 
 
 @router.get("/me", response_model=UserResponse)
