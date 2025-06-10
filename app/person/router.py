@@ -10,7 +10,7 @@ from app.person.schemas import (
     GenderResponse,
     MaritalStatusResponse,
     PersonCreate,
-    PersonResponse,
+    PersonSchema,
     PersonUpdate,
 )
 from app.person.service import (
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/persons", tags=["persons"])
 ######################################################################################################
 
 
-@router.get("", response_model=list[PersonResponse])
+@router.get("", response_model=list[PersonSchema])
 async def list_persons(
     _: DepCurrentUser,
     request: Request,
@@ -112,7 +112,7 @@ async def list_countries(
 ######################################################################################################
 
 
-@router.post("", response_model=PersonResponse)
+@router.post("", response_model=PersonSchema)
 async def create_person(
     person_data: PersonCreate,
     db: DepDatabase,
@@ -126,7 +126,7 @@ async def create_person(
     )
 
 
-@router.get("/{person_id}", response_model=PersonResponse)
+@router.get("/{person_id}", response_model=PersonSchema)
 async def get_person(
     _: DepCurrentUser,
     person_id: UUID,
@@ -139,7 +139,7 @@ async def get_person(
         return dict(person) if person else None
 
 
-@router.put("/{person_id}", response_model=PersonResponse)
+@router.put("/{person_id}", response_model=PersonSchema)
 async def update_person(
     person_id: UUID,
     person_data: PersonUpdate,
@@ -155,7 +155,7 @@ async def update_person(
     )
 
 
-@router.delete("/{person_id}", response_model=PersonResponse)
+@router.delete("/{person_id}", response_model=PersonSchema)
 async def delete_person(
     person_id: UUID,
     db: DepDatabase,

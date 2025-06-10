@@ -85,7 +85,7 @@ class PersonUpdate(BaseModel):
     is_active: bool | None = None
 
 
-class PersonResponse(PersonBase):
+class PersonSchema(PersonBase):
     model_config = ConfigDict(from_attributes=True)
 
     person_id: UUID

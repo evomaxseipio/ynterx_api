@@ -5,7 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, constr
 
-from app.enums import ErrorCodeEnum
+from app.person.schemas import PersonSchema
+from app.schemas import CustomSchema
 
 
 class UserBase(BaseModel):
@@ -14,19 +15,6 @@ class UserBase(BaseModel):
     language: str | None = Field(default="en", max_length=10)
     user_role_id: int
     is_active: bool = True
-
-
-class UserResponse(UserBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    user_id: UUID
-    person_id: UUID
-    is_active: bool
-    email_verified: bool
-    two_factor_enabled: bool
-    last_login: datetime | None = None
-    created_at: datetime
-    updated_at: datetime
 
 
 ###
@@ -45,21 +33,25 @@ class RolePermissionsSchema(BaseModel):
 class RoleSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    role_id: int
-    role_description: str
+    user_role_id: int
     role_name: str
+    role_description: str
     permissions: RolePermissionsSchema
 
 
-class PersonSchema(BaseModel):
-    person_id: UUID
-    first_name: str
-    last_name: str
-    full_name: str
-    date_of_birth: datetime
+# class PersonSchema(BaseModel):
+#     model_config = ConfigDict(from_attributes=True)
+
+#     person_id: UUID
+#     first_name: str
+#     last_name: str
+#     middle_name: str
+#     date_of_birth: datetime
 
 
 class UserPreferencesSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     temp_password: str | None = None
     theme: str | None = None
 
@@ -77,11 +69,12 @@ class UserSchema(UserBase):
     preferences: UserPreferencesSchema | None = None
 
 
-class UserListResponse(BaseModel):
+class UserRead(CustomSchema):
+    data: UserSchema
+
+
+class UserListResponse(CustomSchema):
     data: list[UserSchema]
-    error: ErrorCodeEnum | None = None
-    message: str | None = None
-    success: bool = False
 
 
 ###

@@ -1,24 +1,37 @@
+import json
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import and_, select, text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.pool import Pool
 
-from app.database import execute, fetch_all, fetch_one
+from app.database import execute, fetch_one
 from app.users.models import users
 from app.users.schemas import UserCreate, UserUpdate
 
 
 class UserService:
-    @staticmethod
-    async def create_user(
-        user_data: UserCreate,
-        created_by: str,
-        connection: AsyncConnection,
-    ) -> dict:
+    def __init__(self, db: AsyncConnection, pool: Pool):
+        self.db = db
+        self.pool = pool
+
+    async def create_user(self, user_data: UserCreate, created_by: str) -> dict:
         """Create a new user."""
 
-        # Prepare parameters with named parameters
+        # Validate username and person_id
+        async with self.pool.acquire() as conn:
+            if await self._exists_user_by_username(user_data.username, conn):
+                raise Exception("User already registered")
+            if await self._exists_user_by_email(user_data.email, conn):
+                raise Exception("Email already registered")
+            if not await self._exists_person_by_person_id(user_data.person_id, conn):
+                raise Exception("Person not found")
+
+            p_created_by = await self._get_person_id_by_current_user(created_by, conn)
+            if not p_created_by:
+                raise Exception("Current user not found")
+
         params = {
             "p_person_id": user_data.person_id,
             "p_username": user_data.username,
@@ -29,7 +42,7 @@ class UserService:
             "p_preferences": user_data.preferences.model_dump_json(
                 exclude_none=True, exclude_defaults=True
             ),
-            "p_created_by": created_by,
+            "p_created_by": p_created_by,
         }
 
         stmt = text(
@@ -47,51 +60,96 @@ class UserService:
             """
         )
 
-        result = await connection.execute(stmt, params)
+        result = await self.db.execute(stmt, params)
         user_data = result.scalar_one()
-        await connection.commit()
+        await self.db.commit()
 
         return user_data
 
-    @staticmethod
-    async def get_user(
-        user_id: UUID,
-        connection: AsyncConnection | None = None,
-    ) -> dict | None:
+    async def get_user(self, user_id: UUID) -> dict | None:
         """Get a user by ID."""
-        query = select(users).where(users.c.user_id == user_id)
-        return await fetch_one(query, connection=connection, compile_query=True)
+        query = """
+            SELECT
+                json_build_object(
+                    'user_id', u.user_id,
+                    'username', u.username,
+                    'email', u.email,
+                    'language', u.language,
+                    'is_active', u.is_active,
+                    'created_at', u.created_at,
+                    'updated_at', u.updated_at,
+                    'created_by', u.created_by,
+                    'updated_by', u.updated_by,
+                    'user_role_id', u.user_role_id,
+                    'person', row_to_json(p),
+                    'role', row_to_json(ur)
+                ) as user
+            FROM users u
+            JOIN person p ON u.person_id = p.person_id
+            JOIN user_roles ur ON u.user_role_id = ur.user_role_id
+            WHERE u.user_id = $1 AND u.is_active = true
+        """
 
-    @staticmethod
-    async def get_user_by_username(
-        username: str,
-        connection: AsyncConnection | None = None,
-    ) -> dict | None:
+        async with self.pool.acquire() as connection:
+            result = await connection.fetchrow(query, user_id)
+        return json.loads(result['user']) if result and result['user'] else None
+
+    async def get_user_by_username(self, username: str) -> dict | None:
         """Get a user by username."""
-        query = select(users).where(users.c.username == username)
-        return await fetch_one(query, connection=connection)
+        query = """
+            SELECT
+                json_build_object(
+                    'user_id', u.user_id,
+                    'username', u.username,
+                    'email', u.email,
+                    'language', u.language,
+                    'is_active', u.is_active,
+                    'created_at', u.created_at,
+                    'updated_at', u.updated_at,
+                    'created_by', u.created_by,
+                    'updated_by', u.updated_by,
+                    'user_role_id', u.user_role_id,
+                    'person', row_to_json(p),
+                    'role', row_to_json(ur)
+                ) as user
+            FROM users u
+            JOIN person p ON u.person_id = p.person_id
+            JOIN user_roles ur ON u.user_role_id = ur.user_role_id
+            WHERE u.username = $1 AND u.is_active = true
+        """
 
-    @staticmethod
-    async def get_users(
-        skip: int = 0,
-        limit: int = 100,
-        connection: AsyncConnection | None = None,
-    ) -> list[dict]:
+        async with self.pool.acquire() as connection:
+            result = await connection.fetchrow(query, username)
+        return json.loads(result['user']) if result and result['user'] else None
+
+    async def get_users(self, skip: int = 0, limit: int = 100) -> dict:
         """Get a list of users with pagination."""
-        query = select(users).offset(skip).limit(limit)
-        return await fetch_all(query, connection=connection)
+        async with self.pool.acquire() as connection:
+            result = await connection.fetchrow("SELECT sp_get_all_users() LIMIT 1")
+            if not result or not result[0] or not result["sp_get_all_users"]:
+                raise Exception("No users found")
+            users = result["sp_get_all_users"]
+            return json.loads(users)
 
-    @staticmethod
-    async def update_user(
-        user_id: UUID,
-        user_data: UserUpdate,
-        updated_by: UUID,
-        connection: AsyncConnection | None = None,
-    ) -> dict | None:
+    async def update_user(self, user_id: UUID, user_data: UserUpdate, updated_by: UUID) -> dict | None:
         """Update a user."""
+        async with self.pool.acquire() as connection:
+            existing_user = await connection.fetchrow("SELECT * FROM users WHERE user_id = $1", user_id)
+            if not existing_user:
+                return None
+
+            # If updating username, check it's not taken
+            if user_data.username and user_data.username != existing_user["username"]:
+                if await self._exists_user_by_username(user_data.username, connection):
+                    raise Exception("Username already exists")
+
+            p_updated_by = await self._get_person_id_by_current_user(updated_by, connection)
+            if not p_updated_by:
+                raise Exception("Current user not found")
+
         update_data = user_data.model_dump(exclude_unset=True)
         if update_data:
-            update_data["updated_by"] = updated_by
+            update_data["updated_by"] = p_updated_by
             update_data["updated_at"] = datetime.utcnow()
 
             query = (
@@ -100,20 +158,59 @@ class UserService:
                 .values(**update_data)
                 .returning(users)
             )
-            result = await fetch_one(query, connection=connection, commit_after=True)
+            result = await fetch_one(query, connection=self.db, commit_after=True)
             return result
         return None
 
-    @staticmethod
-    async def delete_user(
-        user_id: UUID,
-        connection: AsyncConnection | None = None,
-    ) -> bool:
+    async def delete_user(self, user_id: UUID) -> bool | None:
         """Delete a user (soft delete by setting is_active to False)."""
-        query = (
-            users.update()
-            .where(users.c.user_id == user_id)
-            .values(is_active=False)
-        )
-        await execute(query, connection=connection, commit_after=True)
+        async with self.pool.acquire() as connection:
+            if not await self._exists_user_by_user_id(user_id, connection):
+                return None
+
+        query = users.update().where(users.c.user_id == user_id).values(is_active=False)
+        await execute(query, connection=self.db, commit_after=True)
+
         return True
+
+    async def _exists_user_by_username(self, username: str, connection) -> bool:
+        return (
+            await connection.fetchrow(
+                "SELECT EXISTS (SELECT 1 FROM users WHERE username = $1)",
+                username,
+            )
+        )[0]
+
+    async def _exists_user_by_email(self, email: str, connection) -> bool:
+        return (
+            await connection.fetchrow(
+                "SELECT EXISTS (SELECT 1 FROM users WHERE email = $1)",
+                email,
+            )
+        )[0]
+
+    async def _exists_user_by_user_id(self, user_id: UUID, connection) -> bool:
+        return (
+            await connection.fetchrow(
+                "SELECT EXISTS (SELECT 1 FROM users WHERE user_id = $1)",
+                user_id,
+            )
+        )[0]
+
+    async def _exists_person_by_person_id(self, person_id: UUID, connection) -> bool:
+        return (
+            await connection.fetchrow(
+                "SELECT EXISTS (SELECT 1 FROM person WHERE person_id = $1)",
+                person_id,
+            )
+        )[0]
+
+    async def _get_person_id_by_current_user(
+        self, current_user: UUID, connection
+    ) -> UUID | None:
+        return (
+            await connection.fetchrow(
+                "SELECT person_id FROM users WHERE user_id = $1",
+                current_user,
+            )
+        )["person_id"]
