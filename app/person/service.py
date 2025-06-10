@@ -54,21 +54,19 @@ class PersonService:
         if not values:
             return await PersonService.get_person(person_id, connection=connection)
 
-        if updated_by:
-            values["updated_by"] = updated_by
-
         query = (
             person.update()
             .where(person.c.person_id == person_id)
             .values(**values)
             .returning(*person.c)
         )
-        return await fetch_one(query, connection=connection)
+        return await fetch_one(query, connection=connection, commit_after=True)
 
     @staticmethod
     async def delete_person(
         person_id: UUID,
         connection: AsyncConnection | None = None,
+        deleted_by: UUID | None = None,
     ) -> dict | None:
         """Delete a person."""
         query = (
@@ -76,7 +74,7 @@ class PersonService:
             .where(person.c.person_id == person_id)
             .returning(*person.c)
         )
-        return await fetch_one(query, connection=connection)
+        return await fetch_one(query, connection=connection, commit_after=True)
 
     @staticmethod
     async def list_persons(

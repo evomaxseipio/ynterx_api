@@ -62,7 +62,7 @@ class PersonBase(BaseModel):
     last_name: constr(min_length=1, max_length=255)
     middle_name: str | None = Field(None, max_length=255)
     date_of_birth: date | None = None
-    gender_id: int | None = None
+    gender_id: int
     nationality_country_id: int | None = None
     marital_status_id: int | None = None
     education_level_id: int | None = None

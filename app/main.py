@@ -7,6 +7,7 @@ import asyncpg
 import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi import HTTPException as FastAPIHTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
@@ -99,9 +100,32 @@ async def custom_http_exception_handler(request: Request, exc: GenericHTTPExcept
     )
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for error in exc.errors():
+        errors.append({
+            "field": ".".join(str(x) for x in error["loc"]) if error["loc"] else None,
+            "message": error["msg"],
+            "code": "VALIDATION_ERROR"
+        })
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "success": False,
+            "message": "Validation error",
+            "errors": errors,
+            "error_code": ErrorCodeEnum.VALIDATION_ERROR.value,
+
+        }
+    )
+
+
 @app.exception_handler(FastAPIHTTPException)
 async def fastapi_http_exception_handler(request: Request, exc: FastAPIHTTPException):
     log.error("FastAPI HTTP exception occurred", exc_info=exc)
+    print(exc)
     return JSONResponse(
         status_code=exc.status_code,
         headers=exc.headers,
