@@ -43,6 +43,15 @@ class PersonService:
         return await fetch_one(query, connection=connection)
 
     @staticmethod
+    async def get_person_by_user_id(
+        user_id: UUID,
+        connection: AsyncConnection | None = None,
+    ) -> dict | None:
+        """Get a person by user ID."""
+        query = select(person).where(person.c.user_id == user_id)
+        return await fetch_one(query, connection=connection)
+
+    @staticmethod
     async def update_person(
         person_id: UUID,
         person_data: PersonUpdate,

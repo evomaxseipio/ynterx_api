@@ -39,4 +39,5 @@ async def get_current_user(credentials: dep_security):
 
 
 # Dependencia tipada para el usuario actual
-DepCurrentUser = Annotated[str, Depends(get_current_user)]
+DepCurrentUserFn = Depends(get_current_user, use_cache=True)
+DepCurrentUser = Annotated[str, DepCurrentUserFn]

@@ -1,49 +1,57 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, select, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from app.database import execute, fetch_all, fetch_one
-from app.person.service import PersonService
 from app.users.models import users
 from app.users.schemas import UserCreate, UserUpdate
-from app.utils.security import get_password_hash
 
 
 class UserService:
     @staticmethod
     async def create_user(
         user_data: UserCreate,
-        created_by: str | None = None,
-        connection: AsyncConnection | None = None,
+        created_by: str,
+        connection: AsyncConnection,
     ) -> dict:
         """Create a new user."""
-        # Verify person exists
-        person = await PersonService.get_person(
-            person_id=user_data.person_id,
-            connection=connection,
+
+        # Prepare parameters with named parameters
+        params = {
+            "p_person_id": user_data.person_id,
+            "p_username": user_data.username,
+            "p_email": user_data.email,
+            "p_password": user_data.password,
+            "p_user_role_id": user_data.user_role_id,
+            "p_language": user_data.language,
+            "p_preferences": user_data.preferences.model_dump_json(
+                exclude_none=True, exclude_defaults=True
+            ),
+            "p_created_by": created_by,
+        }
+
+        stmt = text(
+            """
+            SELECT create_user(
+                :p_person_id,
+                :p_username,
+                :p_email,
+                :p_password,
+                :p_user_role_id,
+                :p_language,
+                :p_preferences,
+                :p_created_by
+            )
+            """
         )
-        if not person:
-            raise ValueError(f"Person with ID {user_data.person_id} not found")
 
-        # Create the user
-        password_hash, password_salt = get_password_hash(user_data.password)
+        result = await connection.execute(stmt, params)
+        user_data = result.scalar_one()
+        await connection.commit()
 
-        user_query = users.insert().values(
-            person_id=user_data.person_id,
-            username=user_data.username,
-            email=user_data.email,
-            password_hash=password_hash,
-            password_salt=password_salt,
-            user_role_id=user_data.user_role_id,
-            language=user_data.language,
-            is_active=user_data.is_active,
-            created_by=created_by,
-        )
-
-        user_result = await execute(user_query, connection=connection, commit_after=True)
-        return {**user_result, "person_id": user_data.person_id}
+        return user_data
 
     @staticmethod
     async def get_user(

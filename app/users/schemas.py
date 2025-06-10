@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from uuid import UUID
 
@@ -12,11 +14,6 @@ class UserBase(BaseModel):
     language: str | None = Field(default="en", max_length=10)
     user_role_id: int
     is_active: bool = True
-
-
-class UserCreate(UserBase):
-    password: constr(min_length=8)
-    person_id: UUID
 
 
 class UserUpdate(BaseModel):
@@ -93,3 +90,15 @@ class UserListResponse(BaseModel):
     error: ErrorCodeEnum | None = None
     message: str | None = None
     success: bool = False
+
+
+###
+
+class UserCreate(BaseModel):
+    username: constr(min_length=3, max_length=50)
+    email: EmailStr
+    language: str | None = Field(default="en", max_length=10)
+    user_role_id: int
+    password: constr(min_length=8)
+    person_id: UUID
+    preferences: UserPreferencesSchema | None = None

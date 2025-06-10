@@ -5,56 +5,79 @@ from uuid import UUID
 from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
 
-from app.auth.dependencies import DepCurrentUser
+from app.auth.dependencies import DepCurrentUser, DepCurrentUserFn
 from app.database import DepDatabase
+from app.enums import ErrorCodeEnum
 from app.exceptions import BadRequest, NotFound
 from app.users.schemas import UserCreate, UserListResponse, UserResponse, UserUpdate
 from app.users.service import UserService
 
 log = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"], dependencies=[DepCurrentUserFn])
 
 
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+###
+### Routes - Roles
+###
+
+
+@router.get("/roles")
+async def get_roles(request: Request) -> dict:
+    async with request.app.state.db_pool.acquire() as connection:
+        query = "SELECT * FROM user_roles"
+        roles = await connection.fetch(query)
+        return {
+            "data": [
+                {**dict(role), "permissions": json.loads(role.get("permissions", "[]"))}
+                for role in roles
+            ],
+            "success": True,
+            "message": "Roles retrieved successfully",
+            "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
+        }
+
+
+###
+### Routes - Users
+###
+
+
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_user(
     user_data: UserCreate,
     request: Request,
     db: DepDatabase,
-    current_user: DepCurrentUser,
+    current_user_uuid: DepCurrentUser,
 ) -> dict:
     # Check if username already exists
     async with request.app.state.db_pool.acquire() as connection:
         existing_user = await connection.fetchrow(
-            "SELECT * FROM users WHERE username = $1",
+            "SELECT EXISTS (SELECT 1 FROM users WHERE username = $1) AS exists",
             user_data.username,
         )
-    if existing_user:
-        raise BadRequest("Username already registered")
+        if existing_user["exists"]:
+            raise BadRequest("User already registered")
+
+        existing_person = await connection.fetchrow(
+            "SELECT EXISTS (SELECT 1 FROM person WHERE person_id = $1) AS exists",
+            user_data.person_id,
+        )
+        if not existing_person["exists"]:
+            raise BadRequest("Person not found")
+
+        current_user = await connection.fetchrow(
+            "SELECT person_id FROM users WHERE user_id = $1",
+            current_user_uuid,
+        )
+        if not current_user["person_id"]:
+            raise BadRequest("Current user not found")
 
     return await UserService.create_user(
         user_data,
-        created_by=current_user,
+        created_by=current_user["person_id"],
         connection=db,
     )
-
-
-# @router.get("/", response_model=list[UserResponse])
-# async def get_users(
-#     _: DepCurrentUser,
-#     request: Request,
-#     skip: int = 0,
-#     limit: int = 100,
-# ) -> list[dict]:
-#     async with request.app.state.db_pool.acquire() as connection:
-#         query = """
-#             SELECT
-#                 users.*
-#             FROM users
-#             OFFSET $1 LIMIT $2
-#         """
-#         users = await connection.fetch(query, skip, limit)
-#         return [dict(user) for user in users]
 
 
 @router.get("/", response_model=UserListResponse)
@@ -89,11 +112,7 @@ async def get_current_user_info(
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-async def get_user(
-    _: DepCurrentUser,
-    user_id: UUID,
-    request: Request,
-) -> dict:
+async def get_user(user_id: UUID, request: Request) -> dict:
     query = "SELECT * FROM users WHERE user_id = $1"
     # Usar el pool para lectura para priorizar la velocidad
     async with request.app.state.db_pool.acquire() as connection:
