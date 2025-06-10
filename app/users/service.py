@@ -85,7 +85,7 @@ class UserService:
     async def update_user(
         user_id: UUID,
         user_data: UserUpdate,
-        updated_by: UUID | None = None,
+        updated_by: UUID,
         connection: AsyncConnection | None = None,
     ) -> dict | None:
         """Update a user."""
@@ -95,11 +95,14 @@ class UserService:
             update_data["updated_at"] = datetime.utcnow()
 
             query = (
-                users.update().where(users.c.user_id == user_id).values(**update_data)
+                users.update()
+                .where(users.c.user_id == user_id)
+                .values(**update_data)
+                .returning(users)
             )
-            await execute(query, connection=connection, commit_after=True)
-
-        return await UserService.get_user(user_id, connection=connection)
+            result = await fetch_one(query, connection=connection, commit_after=True)
+            return result
+        return None
 
     @staticmethod
     async def delete_user(
@@ -109,8 +112,8 @@ class UserService:
         """Delete a user (soft delete by setting is_active to False)."""
         query = (
             users.update()
-            .where(and_(users.c.user_id == user_id, users.c.is_active))
+            .where(users.c.user_id == user_id)
             .values(is_active=False)
         )
-        result = await execute(query, connection=connection, commit_after=True)
-        return bool(result)
+        await execute(query, connection=connection, commit_after=True)
+        return True

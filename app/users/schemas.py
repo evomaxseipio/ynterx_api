@@ -16,14 +16,6 @@ class UserBase(BaseModel):
     is_active: bool = True
 
 
-class UserUpdate(BaseModel):
-    username: constr(min_length=3, max_length=50) | None = None
-    email: EmailStr | None = None
-    language: str | None = None
-    is_active: bool | None = None
-    user_role_id: int | None = None
-
-
 class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -94,6 +86,7 @@ class UserListResponse(BaseModel):
 
 ###
 
+
 class UserCreate(BaseModel):
     username: constr(min_length=3, max_length=50)
     email: EmailStr
@@ -101,4 +94,13 @@ class UserCreate(BaseModel):
     user_role_id: int
     password: constr(min_length=8)
     person_id: UUID
+    preferences: UserPreferencesSchema | None = None
+
+
+class UserUpdate(BaseModel):
+    username: constr(min_length=3, max_length=50) | None = None
+    email: EmailStr | None = None
+    language: str | None = None
+    is_active: bool | None = None
+    user_role_id: int | None = None
     preferences: UserPreferencesSchema | None = None

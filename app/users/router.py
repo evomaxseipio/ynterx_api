@@ -122,13 +122,13 @@ async def get_user(user_id: UUID, request: Request) -> dict:
     return dict(user)
 
 
-@router.patch("/{user_id}", response_model=UserResponse)
+@router.put("/{user_id}")
 async def update_user(
     user_id: UUID,
     user_data: UserUpdate,
     request: Request,
     db: DepDatabase,  # Usar inyección de dependencias para transacciones
-    current_user: DepCurrentUser,
+    current_user_uuid: DepCurrentUser,
 ) -> dict:
     try:
         async with request.app.state.db_pool.acquire() as connection:
@@ -148,14 +148,26 @@ async def update_user(
                 if username_exists:
                     raise BadRequest("Username already taken")
 
+            current_user = await connection.fetchrow(
+                "SELECT person_id FROM users WHERE user_id = $1",
+                current_user_uuid,
+            )
+            if not current_user["person_id"]:
+                raise BadRequest("Current user not found")
+
         # Usar la conexión de transacción para la actualización
         updated_user = await UserService.update_user(
             user_id,
             user_data,
-            updated_by=current_user,
+            updated_by=current_user["person_id"],
             connection=db,  # Usar la conexión transaccional
         )
-        return updated_user
+        return {
+            "data": updated_user,
+            "success": True,
+            "message": "User updated successfully",
+            "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
+        }
     except Exception as e:
         # Log any unexpected errors
         log.error(f"Error updating user {user_id}: {e!s}")
@@ -165,12 +177,17 @@ async def update_user(
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: UUID,
+    request: Request,
     db: DepDatabase,
     current_user: DepCurrentUser,
 ) -> None:
-    user = await UserService.get_user(user_id, connection=db)
-    if not user:
-        raise NotFound("User not found")
+    async with request.app.state.db_pool.acquire() as connection:
+        existing_user = await connection.fetchrow(
+            "SELECT EXISTS (SELECT 1 FROM users WHERE user_id = $1) AS exists",
+            user_id,
+        )
+        if not existing_user["exists"]:
+            raise NotFound("User not found")
 
     success = await UserService.delete_user(user_id, connection=db)
     if not success:
