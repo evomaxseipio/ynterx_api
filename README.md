@@ -1,4 +1,4 @@
-# GCapital - API
+# YnterX - API
 
 ## Requisitos
 
