@@ -20,6 +20,14 @@ class PermissionDenied(DetailedHTTPException):
     DETAIL = "Permission denied"
 
 
+class NotFound(DetailedHTTPException):
+    STATUS_CODE = status.HTTP_404_NOT_FOUND
+    DETAIL = "Not Found"
+
+    def __init__(self, message: str = "Not Found", **kwargs: Any) -> None:
+        super().__init__(status_code=self.STATUS_CODE, detail=self.DETAIL, **kwargs)
+
+
 class GenericHTTPException(HTTPException):
     """
     Exception for general HTTP errors with custom error codes and messages.
@@ -113,17 +121,6 @@ class BadRequest(GenericHTTPException):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
             error_code=ErrorCodeEnum.UNDEFINED,
-            message=message,
-            success=False,
-            **kwargs,
-        )
-
-
-class NotFound(GenericHTTPException):
-    def __init__(self, message: str = "Not Found", **kwargs: Any) -> None:
-        super().__init__(
-            status_code=status.HTTP_404_NOT_FOUND,
-            error_code=ErrorCodeEnum.NOT_FOUND,
             message=message,
             success=False,
             **kwargs,
