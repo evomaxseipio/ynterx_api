@@ -42,6 +42,8 @@ class Config(CustomBaseSettings):
     SMTP_FROM_EMAIL: str
     SMTP_TLS: bool = True
 
+    USE_GOOGLE_DRIVE: bool = False
+
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":
         if self.ENVIRONMENT.is_deployed and not self.SENTRY_DSN:

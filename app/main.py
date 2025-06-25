@@ -13,12 +13,16 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from starlette.middleware.cors import CORSMiddleware
 
+from dotenv import load_dotenv
+
+
 from app.api import register_routers
 from app.config import app_configs, settings
 from app.enums import ErrorCodeEnum
 from app.exceptions import GenericHTTPException
 
 log = logging.getLogger(__name__)
+load_dotenv()
 
 
 @asynccontextmanager
