@@ -22,6 +22,10 @@ class PermissionDenied(DetailedHTTPException):
 
 class NotFound(DetailedHTTPException):
     STATUS_CODE = status.HTTP_404_NOT_FOUND
+    DETAIL = "Not Found"
+
+    def __init__(self, message: str = "Not Found", **kwargs: Any) -> None:
+        super().__init__(status_code=self.STATUS_CODE, detail=self.DETAIL, **kwargs)
 
 
 class GenericHTTPException(HTTPException):
