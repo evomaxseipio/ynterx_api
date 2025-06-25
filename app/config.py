@@ -34,6 +34,16 @@ class Config(CustomBaseSettings):
     CACHE_EXPIRE_SECONDS: int = 60 * 60 * 24  # 24 hours
     AUTH_SESSION_TTL_SECONDS: int = 60 * 2  # 2 minutes
 
+    # SMTP Configuration
+    SMTP_HOST: str
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str
+    SMTP_PASSWORD: str
+    SMTP_FROM_EMAIL: str
+    SMTP_TLS: bool = True
+
+    USE_GOOGLE_DRIVE: bool = False
+
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":
         if self.ENVIRONMENT.is_deployed and not self.SENTRY_DSN:

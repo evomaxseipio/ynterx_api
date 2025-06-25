@@ -45,3 +45,11 @@ uv==0.7.8
 uvicorn==0.34.2
 watchfiles==1.0.5
 websockets==15.0.1
+docxtpl==0.20.0
+python-docx==1.2.0
+
+# Dependencias para Google Drive
+google-api-python-client==2.102.0
+google-auth==2.23.3
+google-auth-oauthlib==1.1.0
+google-auth-httplib2==0.1.1

@@ -1,45 +1,59 @@
+import asyncio
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import asyncpg
 import sentry_sdk
-from fastapi import FastAPI, HTTPException as FastAPIHTTPException, Request
+from fastapi import FastAPI, Request
+from fastapi import HTTPException as FastAPIHTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from starlette.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
-from app.api import register_routers  # make sure this exists
-from app.config import app_configs, settings  # make sure this exists
-from app.enums import ErrorCodeEnum  # make sure this exists
-from app.exceptions import GenericHTTPException  # make sure this exists
+from app.api import register_routers
+from app.config import app_configs, settings
+from app.enums import ErrorCodeEnum
+from app.exceptions import GenericHTTPException
 
 log = logging.getLogger(__name__)
-
+load_dotenv()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator:
     try:
         FastAPICache.init(InMemoryBackend())
-
         _app.state.db_pool = await asyncpg.create_pool(
             dsn=str(settings.DATABASE_URL),
             max_size=settings.DATABASE_POOL_SIZE,
             max_inactive_connection_lifetime=settings.DATABASE_POOL_TTL,
-            server_settings={"application_name": "YnterX API"},
-            command_timeout=60,
+            server_settings={"application_name": "GCapital API"},
+            command_timeout=60,  # Set a command timeout for database operations
+            min_size=10,  # Mantener al menos 10 conexiones vivas
+            max_queries=50000,  # Reciclar conexiones después de 50k queries
         )
-
+        # Configurar auto-login para desarrollo local
+        if settings.ENVIRONMENT.is_debug:
+            from app.auth.local_dev import setup_local_dev_auth
+            await setup_local_dev_auth()
+            log.info("Local development auto-login configured")
         log.info("Application is starting up...")
         yield
     except Exception:
         log.error("Error during application startup", exc_info=True)
     finally:
-        log.info("Application is shutting down...")
         if hasattr(_app.state, "db_pool"):
-            await _app.state.db_pool.close()
-
+            try:
+                # Establecer un timeout de 10 segundos para el cierre del pool
+                await asyncio.wait_for(_app.state.db_pool.close(), timeout=10.0)
+            except TimeoutError:
+                log.error("Timeout while closing database pool")
+            except Exception as e:
+                log.error(f"Error closing database pool: {e}", exc_info=True)
+        log.info("Application is shutting down...")
 
 app = FastAPI(**app_configs, lifespan=lifespan)
 
@@ -60,11 +74,9 @@ if settings.ENVIRONMENT.is_deployed:
 
 register_routers(app)
 
-
 @app.get("/healthcheck", include_in_schema=False)
 async def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
-
 
 @app.exception_handler(GenericHTTPException)
 async def custom_http_exception_handler(request: Request, exc: GenericHTTPException):
@@ -74,10 +86,29 @@ async def custom_http_exception_handler(request: Request, exc: GenericHTTPExcept
         content=exc.to_dict(),
     )
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for error in exc.errors():
+        errors.append({
+            "field": ".".join(str(x) for x in error["loc"]) if error["loc"] else None,
+            "message": error["msg"],
+            "code": "VALIDATION_ERROR"
+        })
+    return JSONResponse(
+        status_code=422,
+        content={
+            "success": False,
+            "message": "Validation error",
+            "errors": errors,
+            "error_code": ErrorCodeEnum.VALIDATION_ERROR.value,
+        }
+    )
 
 @app.exception_handler(FastAPIHTTPException)
 async def fastapi_http_exception_handler(request: Request, exc: FastAPIHTTPException):
     log.error("FastAPI HTTP exception occurred", exc_info=exc)
+    print(exc)
     return JSONResponse(
         status_code=exc.status_code,
         headers=exc.headers,
@@ -87,7 +118,6 @@ async def fastapi_http_exception_handler(request: Request, exc: FastAPIHTTPExcep
             "success": False,
         },
     )
-
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
@@ -100,10 +130,3 @@ async def generic_exception_handler(request: Request, exc: Exception):
             "success": False,
         },
     )
-
-
-# Entry point for Docker
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=False)

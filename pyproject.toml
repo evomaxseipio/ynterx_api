@@ -1,0 +1,61 @@
+[project]
+authors = [
+  {name = "Santos J. Marte M.", email = "santosjmarte@gmail.com"},
+]
+description = "API moderna con FastAPI, gestionada con uv"
+name = "gcapital-api"
+requires-python = ">=3.12"
+version = "0.1.0"
+
+dependencies = [
+  "fastapi[standard]",
+  "uvicorn[standard]",
+  "sqlalchemy>=2.0", # Si usas SQLAlchemy, opcional
+  "asyncpg", # Si usas PostgreSQL, opcional
+  "pydantic>=2.0", # FastAPI 0.104+ usa Pydantic 2
+  "python-dotenv", # Para variables de entorno
+  "sentry-sdk",
+  "fastapi-cache2",
+  "pydantic-settings",
+  "bcrypt", # Para el hash de contraseñas
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff",
+  "isort",
+  "black",
+  "pytest",
+  "httpx",
+  "pytest-asyncio",
+  "mypy",
+  "pytest-cov",
+]
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools", "wheel"]
+
+# Configuración de Ruff (linter/formateador)
+[tool.ruff]
+exclude = ["migrations", ".venv", "tests"]
+line-length = 100
+select = ["E", "F", "I", "UP", "C4", "B", "PT", "RUF"]
+target-version = "py312"
+
+[tool.ruff.format]
+# (Opcional) Puedes activar el formateador automático de Ruff
+indent-style = "space"
+quote-style = "double"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+unfixable = []
+
+# Configuración de isort (orden de imports)
+[tool.isort]
+known_first_party = ["gcapital_api"]
+line_length = 100
+profile = "black"
+skip = [".venv", "migrations", "tests"]

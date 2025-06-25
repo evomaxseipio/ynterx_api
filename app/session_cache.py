@@ -32,6 +32,17 @@ async def get_user_by_token(token: str) -> str | None:
     return None
 
 
+async def set_user_by_token(token: str, user_id: str) -> str:
+    # Setea en cache: key = session:<token>, value = user_id, TTL
+    backend = FastAPICache.get_backend()
+    await backend.set(
+        get_session_key(token),
+        user_id.encode("utf-8"),
+        expire=SESSION_TTL,
+    )
+    return token
+
+
 async def remove_session(token: str):
     key = get_session_key(token)
     backend = FastAPICache.get_backend()

@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any
 
@@ -5,11 +6,20 @@ import asyncpg
 from asyncpg import Pool
 from fastapi import APIRouter, Header, Request, status
 
+from app.email import send_email
+from app.enums import ErrorCodeEnum
 from app.exceptions import BadRequest, GenericHTTPException
 from app.session_cache import create_session, remove_session
+from app.utils.alphanum import generate_random_alphanum
 
-from .models import ErrorCodeEnum, LoginUserQueryResult
-from .schemas import AuthLoginRequest, AuthLoginResponse
+from .dependencies import DepCurrentUser
+from .models import LoginUserQueryResult
+from .schemas import (
+    AuthLoginRequest,
+    AuthLoginResponse,
+    PasswordChangeRequest,
+    PasswordRecoveryRequest,
+)
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -88,4 +98,119 @@ async def logout(authorization: str = Header(...)) -> Any:
     """
     token = authorization.replace("Bearer ", "")
     await remove_session(token)
-    return {"message": "Logout successful", "success": True}
+    return {
+        "message": "Logout successful",
+        "success": True,
+        "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
+    }
+
+
+@router.post("/recover-password")
+async def recover_password(
+    request: Request, recovery_data: PasswordRecoveryRequest
+) -> Any:
+    """
+    Endpoint to request a password recovery.
+    This endpoint validates the email, generates a temporary password and sends it via email.
+    """
+    pool: Pool = request.app.state.db_pool
+
+    # Check if user exists
+    async with pool.acquire() as conn:
+        conn: asyncpg.Connection
+        user = await conn.fetchrow(
+            "SELECT user_id, preferences FROM users WHERE email = $1 AND is_active = true;",
+            recovery_data.email,
+        )
+
+    if not user:
+        raise GenericHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code=ErrorCodeEnum.NOT_FOUND,
+            message="El correo no existe",
+            success=False,
+        )
+
+    # Generate temporary password
+    temp_password = generate_random_alphanum(12)
+
+    # Update user's password and preferences
+    json_preferences = user["preferences"] or "{}"
+    preferences = json.loads(json_preferences)
+    preferences["temp_password"] = "true"
+    json_preferences = json.dumps(preferences)
+
+    async with pool.acquire() as conn:
+        conn: asyncpg.Connection
+        await conn.execute(
+            """
+            UPDATE users
+            SET password_hash = crypt($1, gen_salt('bf', 12)),
+                password_salt = encode(gen_random_bytes(16), 'hex'),
+                preferences = $2
+            WHERE user_id = $3;
+            """,
+            temp_password,
+            json_preferences,
+            user["user_id"],
+        )
+
+    # Send email with temporary password
+    await send_email(
+        to_email=recovery_data.email,
+        subject="Recuperación de Contraseña",
+        body=(
+            f"Tu contraseña temporal es: {temp_password}\n\n"
+            "Por favor, cambia tu contraseña después de iniciar sesión.\n\n"
+            "Gracias por usar GCapital"
+        ),
+    )
+
+    return {
+        "message": "Si el correo existe, recibirás instrucciones para recuperar tu contraseña",
+        "success": True,
+        "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
+    }
+
+
+@router.post("/change-password")
+async def change_password(
+    request: Request,
+    password_data: PasswordChangeRequest,
+    current_user: DepCurrentUser,
+) -> Any:
+    raise_error = BadRequest("Error inesperado al cambiar la contraseña")
+
+    pool: Pool = request.app.state.db_pool
+    # Take a connection from the pool
+    async with pool.acquire() as conn:
+        conn: asyncpg.Connection
+
+        result: asyncpg.Record | None = await conn.fetchrow(
+            "SELECT sp_change_password($1, $2, $3);",
+            current_user,
+            password_data.current_password,
+            password_data.new_password,
+        )
+
+    if not result or not result[0] or not result["sp_change_password"]:
+        log.error("Unable to get the result of the password change query")
+        raise raise_error
+
+    user_query_result = LoginUserQueryResult.from_json(result["sp_change_password"])
+    if (
+        user_query_result.success
+        and user_query_result.error_code is ErrorCodeEnum.SUCCESSFULLY_OPERATION
+    ):
+        return {
+            "message": user_query_result.message,
+            "success": user_query_result.success,
+            "error_code": user_query_result.error_code.value,
+        }
+
+    raise GenericHTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        error_code=user_query_result.error_code,
+        message=user_query_result.message,
+        success=user_query_result.success,
+    )
