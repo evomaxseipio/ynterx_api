@@ -1,0 +1,251 @@
+{
+  "contract_id": "mortgage_20250625_174116_06868f13",
+  "created_at": "2025-06-25T17:41:16.815223",
+  "modified_at": "2025-06-25T17:41:16.815229",
+  "original_data": {
+    "client_name": "Rafael Dolis",
+    "contract_date": "26 de abril de 2025",
+    "amount": "20,000.00",
+    "description": "Préstamo hipotecario por USD$20,000.00",
+    "company_name": "GRUPO REYSA, S.R.L.",
+    "company_tax_id": "1-3225325-6",
+    "company_address": "Calle Investor, Santo Domingo",
+    "company_email": "",
+    "company_phone": "",
+    "contractor_name": "Miguel Reyes",
+    "contractor_email": "",
+    "contractor_phone": "",
+    "project": "Préstamo Hipotecario - Propiedad 406463901881",
+    "duration": "12 meses",
+    "work_mode": "Presencial",
+    "start_date": "26 de abril de 2025",
+    "end_date": "26 de marzo de 2026",
+    "payment_method": "Transferencia bancaria",
+    "payment_terms": "11 cuotas mensuales",
+    "loan_amount": "20,000.00",
+    "loan_amount_words": "VEINTE MIL",
+    "loan_currency": "USD",
+    "interest_rate": "2.2",
+    "interest_rate_words": "DOS PUNTO DOS",
+    "term_months": "12",
+    "monthly_payment": "440.00",
+    "monthly_payment_words": "CUATROCIENTOS CUARENTA",
+    "final_payment": "20,440.00",
+    "final_payment_words": "VEINTE MIL CUATROCIENTOS CUARENTA",
+    "payment_quotes": "11",
+    "discount_rate": "0.2",
+    "penalty_rate": "0.2",
+    "bank_name": "Banco Popular",
+    "account_number": "1234567890",
+    "investor_company_name": "GRUPO REYSA, S.R.L.",
+    "investor_rnc": "1-3225325-6",
+    "investor_rm": "3187SPM",
+    "investor_full_name": "Miguel Reyes",
+    "investor_first_name": "Miguel",
+    "investor_last_name": "Reyes",
+    "investor_nationality": "",
+    "investor_marital_status": "",
+    "investor_document_number": "023-0089169-0",
+    "investor_address": "Calle Investor",
+    "investor_city": "Santo Domingo",
+    "client_full_name": "Rafael Dolis",
+    "client_first_name": "Rafael",
+    "client_last_name": "Dolis",
+    "client_nationality": "Dominicana",
+    "client_marital_status": "Soltero",
+    "client_document_number": "138-0005267-5",
+    "client_address": "Calle Test",
+    "client_city": "Santo Domingo",
+    "client_phone": "",
+    "client_email": "",
+    "property_cadastral_number": "406463901881",
+    "property_title_number": "4000277703",
+    "property_surface_area": "300.21",
+    "property_address": "Calle Propiedad",
+    "property_city": "Santo Domingo",
+    "property_description": "Casa de prueba",
+    "witness_full_name": "Carlos Witness",
+    "witness_document_number": "111222333",
+    "witness_address": "Calle Witness",
+    "notary_full_name": "Luis Notary",
+    "notary_number": "1178",
+    "notary_document_number": "444555666",
+    "contract_location": null,
+    "contract_year": "2025",
+    "authorized_lawyer": "Licda. Lady Marlene Pineda Ramírez",
+    "authorized_lawyer_cedula": "023-0142038-2",
+    "additional_data": {
+      "original_mortgage_data": {
+        "client_name": null,
+        "contract_date": null,
+        "amount": null,
+        "description": null,
+        "company_name": null,
+        "company_tax_id": null,
+        "company_address": null,
+        "company_email": null,
+        "company_phone": null,
+        "contractor_name": null,
+        "contractor_email": null,
+        "contractor_phone": null,
+        "project": null,
+        "duration": null,
+        "work_mode": null,
+        "start_date": null,
+        "end_date": null,
+        "payment_method": null,
+        "payment_terms": null,
+        "loan_amount": null,
+        "loan_amount_words": null,
+        "loan_currency": null,
+        "interest_rate": null,
+        "interest_rate_words": null,
+        "term_months": null,
+        "monthly_payment": null,
+        "monthly_payment_words": null,
+        "final_payment": null,
+        "final_payment_words": null,
+        "payment_quotes": null,
+        "discount_rate": null,
+        "penalty_rate": null,
+        "bank_name": null,
+        "account_number": null,
+        "investor_company_name": null,
+        "investor_rnc": null,
+        "investor_rm": null,
+        "investor_full_name": null,
+        "investor_first_name": null,
+        "investor_last_name": null,
+        "investor_nationality": null,
+        "investor_marital_status": null,
+        "investor_document_number": null,
+        "investor_address": null,
+        "investor_city": null,
+        "client_full_name": null,
+        "client_first_name": null,
+        "client_last_name": null,
+        "client_nationality": null,
+        "client_marital_status": null,
+        "client_document_number": null,
+        "client_address": null,
+        "client_city": null,
+        "client_phone": null,
+        "client_email": null,
+        "property_cadastral_number": null,
+        "property_title_number": null,
+        "property_surface_area": null,
+        "property_address": null,
+        "property_city": null,
+        "property_description": null,
+        "witness_full_name": null,
+        "witness_document_number": null,
+        "witness_address": null,
+        "notary_full_name": null,
+        "notary_number": null,
+        "notary_document_number": null,
+        "contract_location": null,
+        "contract_year": null,
+        "authorized_lawyer": null,
+        "authorized_lawyer_cedula": null,
+        "additional_data": {},
+        "loan": {
+          "amount": 20000,
+          "currency": "USD",
+          "interest_rate": 2.2,
+          "term_months": 12,
+          "start_date": "2025-04-26",
+          "end_date": "2026-03-26",
+          "bank_deposit_account": {
+            "account_number": "1234567890",
+            "bank_name": "Banco Popular"
+          },
+          "loan_payments_details": {
+            "monthly_payment": 440.0,
+            "final_payment": 20440.0,
+            "discount_rate": 0.2,
+            "payment_qty_quotes": 11,
+            "payment_qty_months": 12
+          }
+        },
+        "clients": [
+          {
+            "person": {
+              "first_name": "Rafael",
+              "last_name": "Dolis",
+              "nationality": "Dominicana",
+              "marital_status": "Soltero"
+            },
+            "person_document": {
+              "document_number": "138-0005267-5"
+            },
+            "address": {
+              "address_line1": "Calle Test",
+              "city": "Santo Domingo"
+            }
+          }
+        ],
+        "investors": [
+          {
+            "person": {
+              "first_name": "Miguel",
+              "last_name": "Reyes"
+            },
+            "person_document": {
+              "document_number": "023-0089169-0"
+            },
+            "address": {
+              "address_line1": "Calle Investor",
+              "city": "Santo Domingo"
+            }
+          }
+        ],
+        "witnesses": [
+          {
+            "person": {
+              "first_name": "Carlos",
+              "last_name": "Witness"
+            },
+            "person_document": {
+              "document_number": "111222333"
+            },
+            "address": {
+              "address_line1": "Calle Witness",
+              "city": "Santo Domingo"
+            }
+          }
+        ],
+        "notaries": [
+          {
+            "person": {
+              "first_name": "Luis",
+              "last_name": "Notary"
+            },
+            "notary_document": {
+              "notary_number": "1178",
+              "document_number": "444555666"
+            },
+            "address": {
+              "address_line1": "Calle Notary",
+              "city": "Santo Domingo"
+            }
+          }
+        ],
+        "properties": [
+          {
+            "cadastral_number": "406463901881",
+            "title_number": "4000277703",
+            "surface_area": 300.21,
+            "address_line1": "Calle Propiedad",
+            "city": "Santo Domingo",
+            "description": "Casa de prueba",
+            "owners": []
+          }
+        ]
+      },
+      "contract_type": "mortgage",
+      "processed_at": "2025-06-25T17:41:16.636650",
+      "fields_processed": true
+    }
+  },
+  "version": 1
+}
