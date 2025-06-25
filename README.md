@@ -2,9 +2,9 @@
 
 ## Requisitos
 
-* [Python 3.12](https://www.python.org/downloads/release/python-3120/) o superior
-* [uv](https://docs.astral.sh/uv/) para la gestión de paquetes y entornos de Python.
-* [PostgreSQL](https://www.postgresql.org/) para la base de datos.
+- [Python 3.12](https://www.python.org/downloads/release/python-3120/) o superior
+- [uv](https://docs.astral.sh/uv/) para la gestión de paquetes y entornos de Python.
+- [PostgreSQL](https://www.postgresql.org/) para la base de datos.
 
 ## Patrones de Conexión DB
 
@@ -36,9 +36,9 @@ async def create_item(data: ItemCreate, db: DepDatabase):
 
 ## Variables de Entorno
 
-* `DATABASE_URL`: URL de la base de datos.
-* `DATABASE_ASYNC_URL`: URL de la base de datos asincrónica.
-* `ENVIRONMENT`: Indica el entorno de ejecución (LOCAL, PRODUCTION).
-* `CORS_HEADERS`: Headers CORS.
-* `CORS_ORIGINS`: Orígenes CORS.
-* `AUTH_SESSION_TTL_SECONDS`: Tiempo de vida de la sesión de autenticación.
+- `DATABASE_URL`: URL de la base de datos.
+- `DATABASE_ASYNC_URL`: URL de la base de datos asincrónica.
+- `ENVIRONMENT`: Indica el entorno de ejecución (LOCAL, PRODUCTION).
+- `CORS_HEADERS`: Headers CORS.
+- `CORS_ORIGINS`: Orígenes CORS.
+- `AUTH_SESSION_TTL_SECONDS`: Tiempo de vida de la sesión de autenticación.

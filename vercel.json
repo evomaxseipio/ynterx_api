@@ -1,0 +1,23 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "app/main.py",
+            "use": "@vercel/python",
+            "config": {
+                "maxLambdaSize": "15mb",
+                "runtime": "python3.11"
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "app/main.py"
+        }
+    ],
+    "env": {
+        "DATABASE_URL": "postgresql://neondb_owner:npg_D4muM0PeOWVr@ep-fragrant-darkness-a8wyi48b-pooler.eastus2.azure.neon.tech/gcapitaldb?sslmode=require",
+        "DATABASE_ASYNC_URL": "postgresql+asyncpg://neondb_owner:npg_D4muM0PeOWVr@ep-fragrant-darkness-a8wyi48b-pooler.eastus2.azure.neon.tech/gcapitaldb?sslmode=require"
+    }
+}
