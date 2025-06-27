@@ -3,7 +3,7 @@ authors = [
   {name = "Santos J. Marte M.", email = "santosjmarte@gmail.com"},
 ]
 description = "API moderna con FastAPI, gestionada con uv"
-name = "gcapital-api"
+name = "yntex-api"
 requires-python = ">=3.12"
 version = "0.1.0"
 
@@ -55,7 +55,7 @@ unfixable = []
 
 # Configuración de isort (orden de imports)
 [tool.isort]
-known_first_party = ["gcapital_api"]
+known_first_party = ["ynterxal_api"]
 line_length = 100
 profile = "black"
 skip = [".venv", "migrations", "tests"]

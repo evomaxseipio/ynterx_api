@@ -162,7 +162,7 @@ async def recover_password(
         body=(
             f"Tu contraseña temporal es: {temp_password}\n\n"
             "Por favor, cambia tu contraseña después de iniciar sesión.\n\n"
-            "Gracias por usar GCapital"
+            "Gracias por usar ynterxal"
         ),
     )
 
@@ -186,31 +186,47 @@ async def change_password(
     async with pool.acquire() as conn:
         conn: asyncpg.Connection
 
-        result: asyncpg.Record | None = await conn.fetchrow(
-            "SELECT sp_change_password($1, $2, $3);",
-            current_user,
-            password_data.current_password,
-            password_data.new_password,
-        )
+        async with conn.transaction():
+            result: asyncpg.Record | None = await conn.fetchrow(
+                "SELECT sp_change_password($1, $2, $3);",
+                current_user,
+                password_data.current_password,
+                password_data.new_password,
+            )
 
     if not result or not result[0] or not result["sp_change_password"]:
         log.error("Unable to get the result of the password change query")
         raise raise_error
 
-    user_query_result = LoginUserQueryResult.from_json(result["sp_change_password"])
+    data = json.loads(result["sp_change_password"] or "{}")
+    if "success" not in data or "error_code" not in data or "email" not in data:
+        log.error("Data from password change query is invalid")
+        raise raise_error
+
+    error_code = (
+        ErrorCodeEnum(data["error_code"])
+        if data.get("error_code", None) and data["error_code"] in ErrorCodeEnum
+        else ErrorCodeEnum.UNDEFINED
+    )
+
     if (
-        user_query_result.success
-        and user_query_result.error_code is ErrorCodeEnum.SUCCESSFULLY_OPERATION
+        data.get("success", False)
+        and error_code is ErrorCodeEnum.SUCCESSFULLY_OPERATION
     ):
+        await send_email(
+            to_email=data.get("email"),
+            subject="Cambio de Contraseña",
+            body=("Cambio de Contraseña exitoso\n\n" "Gracias por usar ynterxal"),
+        )
         return {
-            "message": user_query_result.message,
-            "success": user_query_result.success,
-            "error_code": user_query_result.error_code.value,
+            "message": "Contraseña cambiada exitosamente",
+            "success": True,
+            "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
         }
 
     raise GenericHTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        error_code=user_query_result.error_code,
-        message=user_query_result.message,
-        success=user_query_result.success,
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        error_code=error_code,
+        message=data.get("message", ""),
+        success=data.get("success", False),
     )
