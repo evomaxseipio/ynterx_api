@@ -1,4 +1,4 @@
-# YnterX - API
+# ynterxal - API
 
 ## Requisitos
 

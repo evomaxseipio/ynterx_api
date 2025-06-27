@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import PostgresDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -26,7 +26,9 @@ class Config(CustomBaseSettings):
     SENTRY_DSN: str | None = None
 
     CORS_ORIGINS: list[str] = ["*"]
-    CORS_ORIGINS_REGEX: str | None = None
+    # CORS_ORIGINS_REGEX: str | None = None
+    CORS_ORIGINS_REGEX: ClassVar[str] = r"^https?://localhost(:\\d+)?$"
+
     CORS_HEADERS: list[str] = ["*"]
 
     APP_VERSION: str = "0.1"
@@ -54,7 +56,7 @@ class Config(CustomBaseSettings):
 
 settings = Config()  # type: ignore
 
-app_configs: dict[str, Any] = {"title": "GCapital API", "version": settings.APP_VERSION}
+app_configs: dict[str, Any] = {"title": "ynterxal API", "version": settings.APP_VERSION}
 if settings.ENVIRONMENT.is_deployed:
     app_configs["root_path"] = f"/v{settings.APP_VERSION}"
 
