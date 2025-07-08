@@ -34,7 +34,7 @@ class Config(CustomBaseSettings):
     APP_VERSION: str = "0.1"
 
     CACHE_EXPIRE_SECONDS: int = 60 * 60 * 24  # 24 hours
-    AUTH_SESSION_TTL_SECONDS: int = 60 * 2  # 2 minutes
+    AUTH_SESSION_TTL_SECONDS: int = 60 * 10  # 10 minutes
 
     # SMTP Configuration
     SMTP_HOST: str
@@ -44,7 +44,7 @@ class Config(CustomBaseSettings):
     SMTP_FROM_EMAIL: str
     SMTP_TLS: bool = True
 
-    USE_GOOGLE_DRIVE: bool = False
+    USE_GOOGLE_DRIVE: bool = True
 
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":

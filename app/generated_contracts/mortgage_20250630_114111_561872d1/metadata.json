@@ -1,18 +1,18 @@
 {
-  "contract_id": "mortgage_20250625_174116_06868f13",
-  "created_at": "2025-06-25T17:41:16.815223",
-  "modified_at": "2025-06-25T17:41:16.815229",
+  "contract_id": "mortgage_20250630_114111_561872d1",
+  "created_at": "2025-06-30T11:41:11.657038",
+  "modified_at": "2025-06-30T11:41:11.657047",
   "original_data": {
-    "client_name": "Rafael Dolis",
+    "client_name": "Rafael José Dolis",
     "contract_date": "26 de abril de 2025",
     "amount": "20,000.00",
     "description": "Préstamo hipotecario por USD$20,000.00",
     "company_name": "GRUPO REYSA, S.R.L.",
     "company_tax_id": "1-3225325-6",
-    "company_address": "Calle Investor, Santo Domingo",
+    "company_address": "Calle Altagracia No. 39, San Pedro de Macoris",
     "company_email": "",
     "company_phone": "",
-    "contractor_name": "Miguel Reyes",
+    "contractor_name": "Miguel Angel Reyes Pichardo",
     "contractor_email": "",
     "contractor_phone": "",
     "project": "Préstamo Hipotecario - Propiedad 406463901881",
@@ -40,36 +40,36 @@
     "investor_company_name": "GRUPO REYSA, S.R.L.",
     "investor_rnc": "1-3225325-6",
     "investor_rm": "3187SPM",
-    "investor_full_name": "Miguel Reyes",
-    "investor_first_name": "Miguel",
-    "investor_last_name": "Reyes",
-    "investor_nationality": "",
-    "investor_marital_status": "",
+    "investor_full_name": "Miguel Angel Reyes Pichardo",
+    "investor_first_name": "Miguel Angel",
+    "investor_last_name": "Reyes Pichardo",
+    "investor_nationality": "Dominicana",
+    "investor_marital_status": "Casado",
     "investor_document_number": "023-0089169-0",
-    "investor_address": "Calle Investor",
-    "investor_city": "Santo Domingo",
-    "client_full_name": "Rafael Dolis",
-    "client_first_name": "Rafael",
+    "investor_address": "Calle Altagracia No. 39",
+    "investor_city": "San Pedro de Macoris",
+    "client_full_name": "Rafael José Dolis",
+    "client_first_name": "Rafael José",
     "client_last_name": "Dolis",
     "client_nationality": "Dominicana",
     "client_marital_status": "Soltero",
     "client_document_number": "138-0005267-5",
-    "client_address": "Calle Test",
-    "client_city": "Santo Domingo",
-    "client_phone": "",
-    "client_email": "",
+    "client_address": "Calle José Hazim Azar",
+    "client_city": "San Pedro de Macoris",
+    "client_phone": "809-870-8956",
+    "client_email": "rafael.dolis@email.com",
     "property_cadastral_number": "406463901881",
     "property_title_number": "4000277703",
     "property_surface_area": "300.21",
-    "property_address": "Calle Propiedad",
-    "property_city": "Santo Domingo",
-    "property_description": "Casa de prueba",
-    "witness_full_name": "Carlos Witness",
-    "witness_document_number": "111222333",
-    "witness_address": "Calle Witness",
-    "notary_full_name": "Luis Notary",
+    "property_address": "Calle Altagracia No. 39",
+    "property_city": "San Pedro de Macoris",
+    "property_description": "Casa hipotecada como garantía",
+    "witness_full_name": "Carlos Reyes",
+    "witness_document_number": "00233445566",
+    "witness_address": "Calle El Sol #23",
+    "notary_full_name": "Luis Franklin Diaz Herrera",
     "notary_number": "1178",
-    "notary_document_number": "444555666",
+    "notary_document_number": "00233445566",
     "contract_location": null,
     "contract_year": "2025",
     "authorized_lawyer": "Licda. Lady Marlene Pineda Ramírez",
@@ -149,7 +149,7 @@
         "authorized_lawyer_cedula": null,
         "additional_data": {},
         "loan": {
-          "amount": 20000,
+          "amount": 20000.0,
           "currency": "USD",
           "interest_rate": 2.2,
           "term_months": 12,
@@ -167,35 +167,50 @@
             "payment_qty_months": 12
           }
         },
+        "properties": [
+          {
+            "cadastral_number": "406463901881",
+            "title_number": "4000277703",
+            "surface_area": 300.21,
+            "address_line1": "Calle Altagracia No. 39",
+            "city": "San Pedro de Macoris",
+            "description": "Casa hipotecada como garantía",
+            "owners": []
+          }
+        ],
         "clients": [
           {
             "person": {
-              "first_name": "Rafael",
+              "first_name": "Rafael José",
               "last_name": "Dolis",
               "nationality": "Dominicana",
-              "marital_status": "Soltero"
+              "marital_status": "Soltero",
+              "phone_number": "809-870-8956",
+              "email": "rafael.dolis@email.com"
             },
             "person_document": {
               "document_number": "138-0005267-5"
             },
             "address": {
-              "address_line1": "Calle Test",
-              "city": "Santo Domingo"
+              "address_line1": "Calle José Hazim Azar",
+              "city": "San Pedro de Macoris"
             }
           }
         ],
         "investors": [
           {
             "person": {
-              "first_name": "Miguel",
-              "last_name": "Reyes"
+              "first_name": "Miguel Angel",
+              "last_name": "Reyes Pichardo",
+              "nationality": "Dominicana",
+              "marital_status": "Casado"
             },
             "person_document": {
               "document_number": "023-0089169-0"
             },
             "address": {
-              "address_line1": "Calle Investor",
-              "city": "Santo Domingo"
+              "address_line1": "Calle Altagracia No. 39",
+              "city": "San Pedro de Macoris"
             }
           }
         ],
@@ -203,47 +218,36 @@
           {
             "person": {
               "first_name": "Carlos",
-              "last_name": "Witness"
+              "last_name": "Reyes"
             },
             "person_document": {
-              "document_number": "111222333"
+              "document_number": "00233445566"
             },
             "address": {
-              "address_line1": "Calle Witness",
-              "city": "Santo Domingo"
+              "address_line1": "Calle El Sol #23",
+              "city": "San Pedro de Macoris"
             }
           }
         ],
         "notaries": [
           {
             "person": {
-              "first_name": "Luis",
-              "last_name": "Notary"
+              "first_name": "Luis Franklin",
+              "last_name": "Diaz Herrera"
             },
             "notary_document": {
               "notary_number": "1178",
-              "document_number": "444555666"
+              "document_number": "00233445566"
             },
             "address": {
-              "address_line1": "Calle Notary",
-              "city": "Santo Domingo"
+              "address_line1": "Calle Valiente #36",
+              "city": "San Pedro de Macoris"
             }
-          }
-        ],
-        "properties": [
-          {
-            "cadastral_number": "406463901881",
-            "title_number": "4000277703",
-            "surface_area": 300.21,
-            "address_line1": "Calle Propiedad",
-            "city": "Santo Domingo",
-            "description": "Casa de prueba",
-            "owners": []
           }
         ]
       },
       "contract_type": "mortgage",
-      "processed_at": "2025-06-25T17:41:16.636650",
+      "processed_at": "2025-06-30T11:41:11.358811",
       "fields_processed": true
     }
   },
