@@ -1,6 +1,7 @@
 from sqlalchemy import (
     TIMESTAMP,
-    Table, Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Date, Numeric,    text,
+    Table, Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Date, Numeric,
+    BigInteger, text, CheckConstraint,
  UUID as SA_UUID
 )
 from sqlalchemy.ext.declarative import declarative_base
@@ -204,5 +205,42 @@ contract_property = Table(
         TIMESTAMP,
         server_default=text("CURRENT_TIMESTAMP"),
         nullable=False,
+    ),
+)
+
+# New contract_bank_account table
+contract_bank_account = Table(
+    "contract_bank_account",
+    metadata,
+    Column(
+        "bank_account_id",
+        BigInteger,
+        primary_key=True,
+        autoincrement=True,
+    ),
+    Column("contract_id", UUID, ForeignKey("contract.contract_id", ondelete="CASCADE"), nullable=False),
+    Column(
+        "client_person_id",
+        UUID,
+        ForeignKey("person.person_id"),
+        nullable=True,
+    ),
+    Column("holder_name", String(100), nullable=False),
+    Column("bank_name", String(100), nullable=False),
+    Column("account_number", String(50), nullable=False),
+    Column("account_type", String(20), nullable=False),
+    Column("bank_code", String(20), nullable=True),
+    Column("swift_code", String(20), nullable=True),
+    Column("iban", String(34), nullable=True),
+    Column("currency", String(3), nullable=False, server_default=text("'USD'")),
+    Column(
+        "created_at",
+        TIMESTAMP,
+        server_default=text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    ),
+    CheckConstraint(
+        "account_type IN ('corriente', 'ahorros', 'inversion', 'other')",
+        name="contract_bank_account_account_type_check",
     ),
 )

@@ -1,4 +1,3 @@
-
 # app/contracts/loan_property_service.py
 """
 Servicio para manejar la creación de loans y properties en contratos
@@ -8,6 +7,7 @@ from typing import Dict, Any, List
 from uuid import UUID
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy import text as sql_text  # ← AGREGAR ESTE IMPORT
 
 from app.database import fetch_one, execute
 from app.contracts.models import contract_loan, contract_property, property_table
@@ -164,7 +164,8 @@ class ContractLoanPropertyService:
         contract_id: UUID,
         loan_data: Dict[str, Any],
         properties_data: List[Dict[str, Any]],
-        connection: AsyncConnection
+        connection: AsyncConnection,
+        contract_context: Dict[str, Any] = None  # ← AGREGAR ESTE PARÁMETRO
     ) -> Dict[str, Any]:
         """
         Crear tanto loan como properties para un contrato (método conveniente)
@@ -175,6 +176,7 @@ class ContractLoanPropertyService:
             "contract_id": str(contract_id),
             "loan_result": None,
             "properties_result": None,
+            "bank_account_result": None,  # ← AGREGAR ESTA LÍNEA
             "overall_success": False
         }
 
@@ -185,6 +187,15 @@ class ContractLoanPropertyService:
             )
             results["loan_result"] = loan_result
             print(f"🏦 Loan: {'✅' if loan_result['success'] else '❌'} {loan_result['message']}")
+
+            # ← AGREGAR ESTA SECCIÓN COMPLETA
+            # Crear bank account si hay datos de cuenta bancaria en el loan
+            if "bank_account" in loan_data and contract_context:
+                bank_account_result = await ContractLoanPropertyService._create_bank_account_record(
+                    contract_id, loan_data["bank_account"], connection, contract_context
+                )
+                results["bank_account_result"] = bank_account_result
+                print(f"🏦 Bank Account: {'✅' if bank_account_result['success'] else '❌'} {bank_account_result.get('message', 'Created')}")
 
         # Crear properties
         if properties_data:
@@ -201,3 +212,105 @@ class ContractLoanPropertyService:
         results["overall_success"] = loan_ok and properties_ok
 
         return results
+
+    # ← AGREGAR ESTE MÉTODO COMPLETO AL FINAL DE LA CLASE
+    @staticmethod
+    async def _create_bank_account_record(
+        contract_id: UUID,
+        bank_account_data: Dict[str, Any],
+        connection: AsyncConnection,
+        contract_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Crear registro de cuenta bancaria en contract_bank_account"""
+
+        print(f"🏦 Iniciando creación de bank account para contrato {contract_id}")
+        print(f"🔍 Bank account data: {bank_account_data}")
+        print(f"🔍 Contract context keys: {list(contract_context.keys()) if contract_context else 'None'}")
+
+        # Obtener holder_name
+        holder_name = "Titular no especificado"
+
+        # Prioridad 1: Empresa del cliente
+        if "client_company" in contract_context and contract_context["client_company"].get("name"):
+            holder_name = contract_context["client_company"]["name"]
+            print(f"🏢 Usando client_company: {holder_name}")
+
+        # Prioridad 2: Empresa del inversionista
+        elif "investor_company" in contract_context and contract_context["investor_company"].get("name"):
+            holder_name = contract_context["investor_company"]["name"]
+            print(f"🏢 Usando investor_company: {holder_name}")
+
+        # Prioridad 3: Primer cliente
+        elif "clients" in contract_context and contract_context["clients"]:
+            client = contract_context["clients"][0]
+            person = client.get("person", {})
+            first_name = person.get("first_name", "")
+            last_name = person.get("last_name", "")
+            holder_name = f"{first_name} {last_name}".strip()
+            print(f"👤 Usando primer cliente: {holder_name}")
+
+        try:
+            print(f"🔍 Parámetros para INSERT: holder_name={holder_name}, bank_name={bank_account_data.get('bank_name', '')}")
+
+            # Usar connection.execute() directamente como en el router
+            result = await connection.execute(
+                sql_text("""
+                    INSERT INTO contract_bank_account (
+                        contract_id, client_person_id, holder_name, bank_name, account_number,
+                        account_type, bank_code, swift_code, iban, currency, created_at
+                    ) VALUES (
+                        :contract_id, :client_person_id, :holder_name, :bank_name, :account_number,
+                        :account_type, :bank_code, :swift_code, :iban, :currency, NOW()
+                    ) RETURNING bank_account_id
+                """),
+                {
+                    "contract_id": contract_id,
+                    "client_person_id": None,
+                    "holder_name": holder_name,
+                    "bank_name": bank_account_data.get("bank_name", ""),
+                    "account_number": bank_account_data.get("bank_account_number", ""),
+                    "account_type": bank_account_data.get("bank_account_type", "corriente"),
+                    "bank_code": bank_account_data.get("bank_code"),
+                    "swift_code": bank_account_data.get("swift_code"),
+                    "iban": bank_account_data.get("iban"),
+                    "currency": bank_account_data.get("bank_account_currency", "USD")
+                }
+            )
+
+            # Obtener el resultado
+            bank_result = result.fetchone()
+
+            # Commit manualmente
+            await connection.commit()
+
+            print(f"🔍 Bank result: {bank_result}")
+
+            # Convertir a dict si es necesario
+            if bank_result:
+                bank_account_id = bank_result[0] if hasattr(bank_result, '__getitem__') else bank_result.bank_account_id
+
+                print(f"✅ Bank Account creado con ID: {bank_account_id}")
+                return {
+                    "success": True,
+                    "bank_account_id": bank_account_id,
+                    "holder_name": holder_name,
+                    "bank_name": bank_account_data.get("bank_name", ""),
+                    "account_number": bank_account_data.get("bank_account_number", ""),
+                    "account_type": bank_account_data.get("bank_account_type", "corriente"),
+                    "currency": bank_account_data.get("bank_account_currency", "USD")
+                }
+            else:
+                print(f"❌ No se pudo crear bank account")
+                return {
+                    "success": False,
+                    "message": "No se pudo crear el bank account",
+                    "bank_account_id": None
+                }
+
+        except Exception as e:
+            print(f"❌ Error creando bank account: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Error creating bank account: {str(e)}",
+                "bank_account_id": None
+            }
