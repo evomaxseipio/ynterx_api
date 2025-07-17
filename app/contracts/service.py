@@ -126,6 +126,22 @@ class ContractService:
                 })
 
         # ========================================
+        # CUENTA BANCARIA DE LA BASE DE DATOS (NUEVO)
+        # ========================================
+        if "loan_property_result" in data and data["loan_property_result"]:
+            bank_result = data["loan_property_result"].get("bank_account_result")
+            if bank_result and bank_result.get("success"):
+                flattened.update({
+                    "bank_holder_name": bank_result.get("holder_name", ""),
+                    "bank_name": bank_result.get("bank_name", ""),
+                    "bank_account_number": bank_result.get("account_number", ""),
+                    "bank_account_type": bank_result.get("account_type", ""),
+                    "bank_currency": bank_result.get("currency", "USD"),
+                    "bank_account_id": bank_result.get("bank_account_id", ""),
+                })
+
+
+        # ========================================
         # PROPIEDADES
         # ========================================
         if "properties" in data and data["properties"]:
@@ -182,6 +198,10 @@ class ContractService:
                 document = client.get("person_document", {})
                 address = client.get("address", {})
 
+                # Mascara por defecto para email y teléfono
+                email = person.get("email", "") or "xxxxxx@xmail.com"
+                phone = person.get("phone_number", "") or "(XXX) XXX-XXXX"
+
                 client_flat = {
                     "first_name": person.get("first_name", ""),
                     "last_name": person.get("last_name", ""),
@@ -191,8 +211,8 @@ class ContractService:
                     "gender": person.get("gender", ""),
                     "nationality": person.get("nationality", ""),
                     "marital_status": person.get("marital_status", ""),
-                    "phone_number": person.get("phone_number", ""),
-                    "email": person.get("email", ""),
+                    "phone_number": phone,
+                    "email": email,
                     "document_type": document.get("document_type", ""),
                     "document_number": document.get("document_number", ""),
                     "issuing_country": document.get("issuing_country", ""),
@@ -224,8 +244,8 @@ class ContractService:
                     "client_gender": main_client["gender"],
                     "client_nationality": main_client["nationality"],
                     "client_marital_status": main_client["marital_status"],
-                    "client_phone": main_client["phone_number"],
-                    "client_email": main_client["email"],
+                    "client_phone": main_client["phone_number"] or "(XXX) XXX-XXXX",
+                    "client_email": main_client["email"] or "xxxxxx@xmail.com",
                     "client_document_type": main_client["document_type"],
                     "client_document_number": main_client["document_number"],
                     "client_issuing_country": main_client["issuing_country"],
@@ -246,6 +266,10 @@ class ContractService:
                 document = investor.get("person_document", {})
                 address = investor.get("address", {})
 
+                # Mascara por defecto para email y teléfono
+                email = person.get("email", "") or "xxxxxx@xmail.com"
+                phone = person.get("phone_number", "") or "(XXX) XXX-XXXX"
+
                 investor_flat = {
                     "first_name": person.get("first_name", ""),
                     "last_name": person.get("last_name", ""),
@@ -255,8 +279,8 @@ class ContractService:
                     "gender": person.get("gender", ""),
                     "nationality": person.get("nationality", ""),
                     "marital_status": person.get("marital_status", ""),
-                    "phone_number": person.get("phone_number", ""),
-                    "email": person.get("email", ""),
+                    "phone_number": phone,
+                    "email": email,
                     "document_type": document.get("document_type", ""),
                     "document_number": document.get("document_number", ""),
                     "address_line1": address.get("address_line1", ""),
@@ -278,8 +302,8 @@ class ContractService:
                     "investor_middle_name": main_investor["middle_name"],
                     "investor_document_number": main_investor["document_number"],
                     "investor_address": main_investor["address_line1"],
-                    "investor_phone": main_investor["phone_number"],
-                    "investor_email": main_investor["email"],
+                    "investor_phone": main_investor["phone_number"] or "(XXX) XXX-XXXX",
+                    "investor_email": main_investor["email"] or "xxxxxx@xmail.com",
                 })
 
         # ========================================
@@ -291,6 +315,10 @@ class ContractService:
             document = witness.get("person_document", {})
             address = witness.get("address", {})
 
+            # Mascara por defecto para email y teléfono
+            email = person.get("email", "") or "xxxxxx@xmail.com"
+            phone = person.get("phone_number", "") or "(XXX) XXX-XXXX"
+
             flattened.update({
                 "witness_name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
                 "witness_full_name": f"{person.get('first_name', '')} {person.get('middle_name', '') or ''} {person.get('last_name', '')}".strip(),
@@ -298,6 +326,8 @@ class ContractService:
                 "witness_last_name": person.get("last_name", ""),
                 "witness_document_number": document.get("document_number", ""),
                 "witness_address": address.get("address_line1", ""),
+                "witness_phone": phone,
+                "witness_email": email,
             })
 
             flattened["witnesses"] = data["witnesses"]
@@ -312,6 +342,10 @@ class ContractService:
             notary_doc = notary.get("notary_document", {})
             address = notary.get("address", {})
 
+            # Mascara por defecto para email y teléfono
+            email = person.get("email", "") or "xxxxxx@xmail.com"
+            phone = person.get("phone_number", "") or "(XXX) XXX-XXXX"
+
             flattened.update({
                 "notary_name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
                 "notary_full_name": f"{person.get('first_name', '')} {person.get('middle_name', '') or ''} {person.get('last_name', '')}".strip(),
@@ -320,6 +354,8 @@ class ContractService:
                 "notary_license_number": notary_doc.get("notary_number", ""),
                 "notary_document_number": notary_doc.get("document_number", ""),
                 "notary_address": address.get("address_line1", ""),
+                "notary_phone": phone,
+                "notary_email": email,
             })
 
             flattened["notaries"] = data["notaries"]

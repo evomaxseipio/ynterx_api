@@ -315,7 +315,8 @@ async def generate_contract_complete(
             contract_id=contract_id,
             loan_data=data.get("loan"),
             properties_data=data.get("properties", []),
-            connection=db
+            connection=db,
+            contract_context=data
         )
 
         if loan_property_result["overall_success"]:
@@ -330,8 +331,11 @@ async def generate_contract_complete(
     enhanced_data.update({
         "contract_id": str(contract_id),
         "contract_number": contract_number,
-        "generated_at": datetime.now().isoformat()
+        "generated_at": datetime.now().isoformat(),
+        "loan_property_result": loan_property_result
     })
+
+
 
     try:
         document_result = await service.generate_contract(enhanced_data, connection=db)
@@ -383,7 +387,7 @@ async def generate_contract_complete(
                 "total_successful": processed_persons_summary['successful']
             }
         },
-      
+
         warnings={
             "person_errors": participant_errors,
             "message": f"Se procesaron {processed_persons_summary['successful']} personas exitosamente ({processed_persons_summary['reused']} reutilizadas), {processed_persons_summary['errors']} errores reales"
