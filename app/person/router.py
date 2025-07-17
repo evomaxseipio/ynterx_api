@@ -242,9 +242,8 @@ async def create_person_complete(
     ```
     """
     async with request.app.state.db_pool.acquire() as connection:
-        # asyncpg maneja las transacciones automáticamente en stored procedures
-        # No necesitamos commit/rollback manual ya que el SP maneja sus propias transacciones
         try:
+            # Llamar al servicio
             result = await PersonService.create_person_complete(
                 person_data,
                 connection=connection,
@@ -252,26 +251,54 @@ async def create_person_complete(
                 updated_by=current_user
             )
 
-            # El stored procedure maneja sus propias transacciones internamente
-            # Solo necesitamos procesar la respuesta
+            print(f"DEBUG SERVICE RESULT: {result}")
+
+            # El servicio siempre devuelve un dict con la estructura correcta
+            # Solo necesitamos crear la respuesta
             if result.get("success", False):
-                return PersonCompleteResponse(**result)
-            else:
-                # Error del stored procedure - devolver respuesta estructurada
-                return PersonCompleteResponse(
-                    success=False,
-                    message=result.get("message", "Unknown error occurred"),
-                    errors=result.get("errors", ["Unknown error"]),
-                    status_code=result.get("status_code", 500),
+                # Caso exitoso
+                response = PersonCompleteResponse(
+                    success=result["success"],
+                    message=result["message"],
+                    person_id=result.get("person_id"),
+                    data=result.get("data"),
+                    errors=result.get("errors"),
+                    person_exists=result.get("person_exists"),
+                    status_code=result.get("status_code"),
+                    timestamp=result.get("timestamp"),
                     error_details=result.get("error_details")
                 )
+                return response
+            else:
+                # Error del stored procedure - devolver como respuesta, no como excepción
+                response = PersonCompleteResponse(
+                    success=result["success"],
+                    message=result["message"],
+                    person_id=result.get("person_id"),
+                    data=result.get("data"),
+                    errors=result.get("errors"),
+                    person_exists=result.get("person_exists"),
+                    status_code=result.get("status_code"),
+                    timestamp=result.get("timestamp"),
+                    error_details=result.get("error_details")
+                )
+                return response
 
         except Exception as e:
-            # En caso de excepción en la llamada del SP
-            raise HTTPException(
+            print(f"ERROR in router create_person_complete: {str(e)}")
+            # Error de ejecución - crear respuesta estructurada
+            error_response = PersonCompleteResponse(
+                success=False,
+                message=f"Router error: {str(e)}",
+                person_id=None,
+                data=None,
+                errors=[str(e)],
+                person_exists=False,
                 status_code=500,
-                detail=f"Error executing stored procedure: {str(e)}"
+                timestamp=None,
+                error_details={"router_error": str(e)}
             )
+            return error_response
 
 
 @router.get("/{person_id}", response_model=PersonSchema)

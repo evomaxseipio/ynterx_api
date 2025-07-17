@@ -44,7 +44,7 @@ class Config(CustomBaseSettings):
     SMTP_FROM_EMAIL: str
     SMTP_TLS: bool = True
 
-    USE_GOOGLE_DRIVE: bool = True
+    USE_GOOGLE_DRIVE: bool = False
 
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":

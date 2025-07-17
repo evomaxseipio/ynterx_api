@@ -3,6 +3,7 @@
 import json
 from uuid import UUID
 from typing import Dict, Any
+from datetime import datetime, date
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -78,80 +79,64 @@ class PersonService:
 
         # Preparar datos adicionales como JSON
         additional_data_json = None
-        if person_data.p_additional_data:
-            additional_data_json = json.dumps(person_data.p_additional_data)
-
-        # Preparar fecha de nacimiento
-        date_of_birth = person_data.p_date_of_birth
-
-        # Llamar al stored procedure con los nuevos parámetros
-        query = """
-            SELECT sp_insert_person_complete(
-                $1::VARCHAR,      -- p_first_name
-                $2::VARCHAR,      -- p_last_name
-                $3::VARCHAR,      -- p_middle_name
-                $4::DATE,         -- p_date_of_birth
-                $5::VARCHAR,      -- p_gender
-                $6::VARCHAR,      -- p_nationality_country
-                $7::VARCHAR,      -- p_marital_status
-                $8::VARCHAR,      -- p_occupation
-                $9::JSONB,        -- p_documents
-                $10::JSONB,       -- p_addresses
-                $11::JSONB,       -- p_additional_data
-                $12::INTEGER,     -- p_person_role_id
-                $13::UUID,        -- p_created_by
-                $14::UUID         -- p_updated_by
-            ) as result
-        """
+        if person_data.p_additional_data and person_data.p_additional_data:
+            # Convertir fechas en additional_data si existen
+            additional_data = person_data.p_additional_data.copy()
+            for key, value in additional_data.items():
+                if isinstance(value, (date, datetime)):
+                    additional_data[key] = value.isoformat()
+                elif key in ['issue_date', 'expiration_date'] and isinstance(value, str):
+                    # Mantener las fechas como string si ya vienen en formato string
+                    pass
+            additional_data_json = json.dumps(additional_data)
 
         try:
-            if connection:
-                # Usar la conexión existente
-                print('DEBUG PARAMS SP JSON:', json.dumps({
-                    'p_first_name': person_data.p_first_name,
-                    'p_last_name': person_data.p_last_name,
-                    'p_middle_name': person_data.p_middle_name,
-                    'p_date_of_birth': date_of_birth,
-                    'p_gender': person_data.p_gender,
-                    'p_nationality_country': person_data.p_nationality_country,
-                    'p_marital_status': person_data.p_marital_status,
-                    'p_occupation': person_data.p_occupation,
-                    'p_documents': documents_json,
-                    'p_addresses': addresses_json,
-                    'p_additional_data': additional_data_json,
-                    'p_person_role_id': person_data.p_person_role_id,
-                    'p_created_by': str(created_by) if created_by else None,
-                    'p_updated_by': str(updated_by) if updated_by else None
-                }, default=str, ensure_ascii=False, indent=2))
-                result = await connection.fetchrow(
-                    query,
-                    person_data.p_first_name,
-                    person_data.p_last_name,
-                    person_data.p_middle_name,
-                    date_of_birth,
-                    person_data.p_gender,
-                    person_data.p_nationality_country,
-                    person_data.p_marital_status,
-                    person_data.p_occupation,
-                    documents_json,
-                    addresses_json,
-                    additional_data_json,
-                    person_data.p_person_role_id,
-                    created_by,
-                    updated_by
-                )
-            else:
-                # Este caso no debería ocurrir en la práctica
+            if not connection:
                 raise ValueError("Connection is required")
 
-            if result and result['result']:
-                print('DEBUG STORED PROCEDURE RAW RESULT:', result['result'])
-                stored_proc_result = json.loads(result['result'])
+            print('DEBUG: Iniciando stored procedure...')
 
-                # Tu stored procedure devuelve una estructura más rica
-                # Adaptarla para compatibilidad con el schema de respuesta
+            # Usar asyncpg directamente sin SQLAlchemy text()
+            query_string = """
+                SELECT sp_insert_person_complete(
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+                ) as result
+            """
+
+            # Ejecutar directamente con asyncpg
+            row = await connection.fetchrow(
+                query_string,
+                person_data.p_first_name,
+                person_data.p_last_name,
+                person_data.p_middle_name,
+                person_data.p_date_of_birth,
+                person_data.p_gender,
+                person_data.p_nationality_country,
+                person_data.p_marital_status,
+                person_data.p_occupation,
+                documents_json,
+                addresses_json,
+                additional_data_json,
+                person_data.p_person_role_id,
+                str(created_by) if created_by else None,
+                str(updated_by) if updated_by else None
+            )
+            print('DEBUG: Stored procedure executed successfully')
+
+
+            if row and row[0]:
+                print('DEBUG STORED PROCEDURE RAW RESULT:', row[0])
+
+                # Parsear resultado del stored procedure
+                if isinstance(row[0], str):
+                    stored_proc_result = json.loads(row[0])
+                else:
+                    stored_proc_result = row[0]
+
+                print('DEBUG PARSED RESULT:', stored_proc_result)
+
+                # Procesar respuesta exitosa
                 if stored_proc_result.get('success', False):
-                    # Extraer person_id del stored procedure
                     person_id = None
                     if 'data' in stored_proc_result and stored_proc_result['data']:
                         person_id = stored_proc_result['data'].get('person_id')
@@ -163,35 +148,75 @@ class PersonService:
                         "data": stored_proc_result.get('data'),
                         "person_exists": stored_proc_result.get('person_exists', False),
                         "status_code": stored_proc_result.get('status_code', 200),
-                        "timestamp": stored_proc_result.get('timestamp')
+                        "timestamp": stored_proc_result.get('timestamp'),
+                        "errors": None,
+                        "error_details": None
                     }
                 else:
                     # Error del stored procedure
                     message = stored_proc_result.get('message') or 'Unknown error from stored procedure'
-                    errors = stored_proc_result.get('errors')
-                    if not errors:
-                        errors = [message]
-                    else:
-                        errors = [e or message for e in errors]
+                    errors = stored_proc_result.get('errors') or []
+
+                    # Asegurar que todos los elementos de errors sean strings válidos
+                    clean_errors = []
+                    if isinstance(errors, list):
+                        for error in errors:
+                            if error is not None and str(error).strip():
+                                clean_errors.append(str(error))
+
+                    # Si no hay errores válidos, usar el mensaje como error
+                    if not clean_errors:
+                        clean_errors = [message]
+
                     return {
                         "success": False,
                         "message": message,
-                        "errors": errors,
+                        "errors": clean_errors,
                         "status_code": stored_proc_result.get('status_code', 500),
-                        "error_details": stored_proc_result.get('error')
+                        "error_details": stored_proc_result.get('error_details'),
+                        "person_id": None,
+                        "data": stored_proc_result.get('data'),
+                        "person_exists": stored_proc_result.get('person_exists', False),
+                        "timestamp": stored_proc_result.get('timestamp')
                     }
             else:
                 return {
                     "success": False,
                     "message": "No result returned from stored procedure",
-                    "errors": ["Stored procedure returned empty result"]
+                    "errors": ["Stored procedure returned empty result"],
+                    "status_code": 500,
+                    "person_id": None,
+                    "data": None,
+                    "person_exists": False,
+                    "timestamp": None,
+                    "error_details": None
                 }
 
+        except json.JSONDecodeError as e:
+            print(f"JSON DECODE ERROR: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Error parsing stored procedure result: {str(e)}",
+                "errors": [f"JSON decode error: {str(e)}"],
+                "status_code": 500,
+                "person_id": None,
+                "data": None,
+                "person_exists": False,
+                "timestamp": None,
+                "error_details": None
+            }
         except Exception as e:
+            print(f"ERROR in create_person_complete: {str(e)}")
             return {
                 "success": False,
                 "message": f"Error executing stored procedure: {str(e)}",
-                "errors": [str(e)]
+                "errors": [str(e)],
+                "status_code": 500,
+                "person_id": None,
+                "data": None,
+                "person_exists": False,
+                "timestamp": None,
+                "error_details": None
             }
 
     @staticmethod
@@ -209,7 +234,6 @@ class PersonService:
         connection: AsyncConnection | None = None,
     ) -> dict | None:
         """Get a person by user ID - Note: user_id field doesn't exist in new structure"""
-        # Este método podría necesitar ser removido o adaptado según tu nueva estructura
         query = select(person).where(person.c.user_id == user_id)
         return await fetch_one(query, connection=connection)
 
@@ -239,10 +263,11 @@ class PersonService:
         connection: AsyncConnection | None = None,
         deleted_by: UUID | None = None,
     ) -> dict | None:
-        """Delete a person."""
+        """Soft delete a person (sets is_active = false)."""
         query = (
-            person.delete()
+            person.update()
             .where(person.c.person_id == person_id)
+            .values(is_active=False)
             .returning(*person.c)
         )
         return await fetch_one(query, connection=connection, commit_after=True)

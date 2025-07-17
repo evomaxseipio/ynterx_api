@@ -1,0 +1,181 @@
+{
+    "contract_type_id": 2,
+    "company": {
+        "company_name": "Grupo Inmobiliario Dolis",
+        "company_rnc": "001-2345678-9",
+        "company_address": {
+            "address_line1": "Calle José Hazim Azar, Edificio Paola III",
+            "address_line2": "Piso 1, Apto. A-101, urbanización Hazim",
+            "city": "San Pedro de Macorís",
+            "postal_code": "21000",
+            "address_type": "Residencial"
+        },
+        "company_phone": "(809) 870-8956",
+        "company_email": "grupoinmobiliariodolis@email.com"
+    },
+    "loan": {
+        "amount": 20000.00,
+        "currency": "USD",
+        "interest_rate": 2.2,
+        "term_months": 12,
+        "start_date": "2025-04-26",
+        "end_date": "2026-03-26",
+        "loan_type": "hipotecario",
+        "bank_deposit_account": {
+            "account_number": "XXXXXX",
+            "account_type": "corriente",
+            "bank_name": "Banco XXXXXX"
+        },
+        "loan_payments_details": {
+            "monthly_payment": 440.00,
+            "final_payment": 20440.00,
+            "discount_rate": 0.2,
+            "payment_qty_quotes": 11,
+            "payment_qty_months": 12,
+            "payment_type": "mensual"
+        }
+    },
+    "properties": [
+        {
+            "property_type": "casa",
+            "cadastral_number": "406463901881",
+            "title_number": "4000277703",
+            "surface_area": 300.21,
+            "covered_area": 220.00,
+            "address_line1": "Calle Altagracia No. 39",
+            "address_line2": "Villa Velásquez",
+            "city": "San Pedro de Macorís",
+            "postal_code": "21000",
+            "current_use": "residencial",
+            "property_value": 20000.00,
+            "currency": "USD",
+            "appraised_by": "Grupo Tasadores del Este",
+            "appraised_at": "2025-03-20",
+            "description": "Casa hipotecada como garantía de préstamo",
+            "owners": [
+                {
+                    "person_id": "uuid-cliente",
+                    "ownership_percentage": 100.00,
+                    "is_main_owner": true
+                }
+            ]
+        }
+    ],
+    "clients": [
+        {
+            "person": {
+                "first_name": "Rafael José",
+                "last_name": "Dolis",
+                "middle_name": "",
+                "date_of_birth": "1985-04-12",
+                "gender": "Masculino",
+                "nationality": "Dominicana",
+                "marital_status": "Soltero",
+                "phone_number": "(809) 870-8956",
+                "email": "rafael.dolis@email.com"
+            },
+            "person_document": {
+                "document_type": "Cédula",
+                "document_number": "138-0005267-5",
+                "issuing_country": "Dominicana",
+                "document_issue_date": "2010-01-01",
+                "document_expiry_date": "2030-01-01"
+            },
+            "address": {
+                "address_line1": "Calle José Hazim Azar, Edificio Paola III",
+                "address_line2": "Piso 1, Apto. A-101, urbanización Hazim",
+                "city": "San Pedro de Macorís",
+                "postal_code": "21000",
+                "address_type": "Residencial"
+            }
+        }
+    ],
+    "investors": [
+        {
+            "person": {
+                "first_name": "Miguel Angel",
+                "last_name": "Reyes Pichardo",
+                "middle_name": "",
+                "date_of_birth": "1978-11-05",
+                "gender": "Masculino",
+                "nationality": "Dominicana",
+                "marital_status": "Casado",
+                "phone_number": "(809) 555-1234",
+                "email": "miguel.reyes@gruporeyes.com"
+            },
+            "person_document": {
+                "document_type": "Cédula",
+                "document_number": "023-0089169-0",
+                "issuing_country": "Dominicana",
+                "document_issue_date": "2018-04-01",
+                "document_expiry_date": "2028-04-01"
+            },
+            "address": {
+                "address_line1": "Calle Altagracia No. 39",
+                "address_line2": "Villa Velásquez",
+                "city": "San Pedro de Macorís",
+                "postal_code": "21000",
+                "address_type": "Residencial"
+            }
+        }
+    ],
+    "witnesses": [
+        {
+            "person": {
+                "first_name": "Carlos",
+                "last_name": "Reyes",
+                "middle_name": "Antonio",
+                "date_of_birth": "1980-03-08",
+                "gender": "Masculino",
+                "nationality": "Dominicana",
+                "marital_status": "Soltero",
+                "phone_number": "(809) 555-5678",
+                "email": "carlos.reyes@email.com"
+            },
+            "person_document": {
+                "document_type": "Cédula",
+                "document_number": "001-2334455-6",
+                "issuing_country": "Dominicana",
+                "document_issue_date": "2005-06-01",
+                "document_expiry_date": "2025-06-01"
+            },
+            "address": {
+                "address_line1": "Calle El Sol #23",
+                "address_line2": "",
+                "city": "San Pedro de Macorís",
+                "postal_code": "21000",
+                "address_type": "Residencial"
+            }
+        }
+    ],
+    "notaries": [
+        {
+            "person": {
+                "first_name": "Luis Franklin",
+                "last_name": "Díaz Herrera",
+                "middle_name": "",
+                "date_of_birth": "1972-08-15",
+                "gender": "Masculino",
+                "nationality": "Dominicana",
+                "marital_status": "Casado",
+                "phone_number": "(809) 555-9999",
+                "email": "notario.diaz@email.com"
+            },
+            "notary_document": {
+                "document_type": "Cédula",
+                "document_number": "023-1234567-8",
+                "issuing_country": "Dominicana",
+                "document_issue_date": "2000-03-01",
+                "document_expiry_date": "2030-03-01",
+                "notary_number": "1178"
+            },
+            "address": {
+                "address_line1": "Calle Valiente #36",
+                "address_line2": "Apto. 5C, Villa Providencia",
+                "city": "San Pedro de Macorís",
+                "postal_code": "21000",
+                "address_type": "Residencial"
+            }
+        }
+    ]
+}
