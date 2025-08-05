@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.auth.local_dev import LOCAL_DEV_TOKEN
+from app.auth.local_dev import LOCAL_DEV_TOKEN, LOCAL_DEV_USER_ID
 from app.config import settings
 from app.exceptions import NotAuthenticated
 from app.session_cache import get_user_by_token
@@ -32,6 +32,12 @@ dep_security = Annotated[HTTPAuthorizationCredentials, Depends(security)]
 async def get_current_user(credentials: dep_security):
     """Obtiene el usuario actual a partir del token JWT."""
     token = credentials.credentials
+
+    # En modo debug, validar el token de desarrollo directamente
+    if settings.ENVIRONMENT.is_debug and token == LOCAL_DEV_TOKEN:
+        return str(LOCAL_DEV_USER_ID)
+
+    # Para otros tokens, validar contra la caché
     user_id = await get_user_by_token(token)
     if not user_id:
         raise NotAuthenticated()

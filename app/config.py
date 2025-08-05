@@ -34,7 +34,7 @@ class Config(CustomBaseSettings):
     APP_VERSION: str = "0.1"
 
     CACHE_EXPIRE_SECONDS: int = 60 * 60 * 24  # 24 hours
-    AUTH_SESSION_TTL_SECONDS: int = 60 * 2  # 2 minutes
+    AUTH_SESSION_TTL_SECONDS: int = 60 * 10  # 10 minutes
 
     # SMTP Configuration
     SMTP_HOST: str
