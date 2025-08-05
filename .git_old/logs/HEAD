@@ -1,0 +1,28 @@
+0000000000000000000000000000000000000000 66e9706f2cb8cea7708c4fc8f9c1aa8b06ed482d Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750800913 -0400	clone: from https://github.com/SantosJMM/gcapital-api.git
+66e9706f2cb8cea7708c4fc8f9c1aa8b06ed482d 66e9706f2cb8cea7708c4fc8f9c1aa8b06ed482d Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750802667 -0400	checkout: moving from master to contract
+66e9706f2cb8cea7708c4fc8f9c1aa8b06ed482d a2eae041d6b8d40fcce035e3321c17fb34740a56 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750805707 -0400	commit: add contracts process
+a2eae041d6b8d40fcce035e3321c17fb34740a56 66e9706f2cb8cea7708c4fc8f9c1aa8b06ed482d Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750806016 -0400	checkout: moving from contract to master
+66e9706f2cb8cea7708c4fc8f9c1aa8b06ed482d a2eae041d6b8d40fcce035e3321c17fb34740a56 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750806035 -0400	checkout: moving from master to contract
+a2eae041d6b8d40fcce035e3321c17fb34740a56 6d40f1c001d47ae26a554e3975a6a68cac74f9d5 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750886168 -0400	commit: adding google drive proccess
+6d40f1c001d47ae26a554e3975a6a68cac74f9d5 321d6b01479770ee6c30437a04878ebfc1f679b3 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750887082 -0400	checkout: moving from contract to main
+321d6b01479770ee6c30437a04878ebfc1f679b3 6d40f1c001d47ae26a554e3975a6a68cac74f9d5 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750887098 -0400	checkout: moving from main to contract
+6d40f1c001d47ae26a554e3975a6a68cac74f9d5 8a8a3f12efcd01a5d7ed941e3b9eea9caa14154d Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750887665 -0400	commit (merge): Merge main into contract - resolve conflicts and maintain functionality
+8a8a3f12efcd01a5d7ed941e3b9eea9caa14154d 321d6b01479770ee6c30437a04878ebfc1f679b3 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888523 -0400	checkout: moving from contract to main
+321d6b01479770ee6c30437a04878ebfc1f679b3 3b5f2ae9090bf76595af0fda3986ac0b47d9b1ca Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888540 -0400	commit: Remove vercel.json to fix deployment errors and stop mass email failures
+3b5f2ae9090bf76595af0fda3986ac0b47d9b1ca 3b5f2ae9090bf76595af0fda3986ac0b47d9b1ca Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888686 -0400	checkout: moving from main to main
+3b5f2ae9090bf76595af0fda3986ac0b47d9b1ca 60dba1083605fe0b90ef03241b347431d625e019 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888686 -0400	commit: Remove vercel.json
+60dba1083605fe0b90ef03241b347431d625e019 3d4ed7034a9466bd67f63595cf5c3c4d2a63bf8e Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888775 -0400	pull origin main --no-rebase: Merge made by the 'ort' strategy.
+3d4ed7034a9466bd67f63595cf5c3c4d2a63bf8e c8eeb8edd2e5fbfb65006639a0ebd44e13fa62c1 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888803 -0400	pull --rebase origin main (start): checkout c8eeb8edd2e5fbfb65006639a0ebd44e13fa62c1
+c8eeb8edd2e5fbfb65006639a0ebd44e13fa62c1 2a8fedb9e94d5288bce4b012bf2bee160a4a60b3 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888803 -0400	pull --rebase origin main (pick): Remove vercel.json to fix deployment errors and stop mass email failures
+2a8fedb9e94d5288bce4b012bf2bee160a4a60b3 2a8fedb9e94d5288bce4b012bf2bee160a4a60b3 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888803 -0400	pull --rebase origin main (finish): returning to refs/heads/main
+2a8fedb9e94d5288bce4b012bf2bee160a4a60b3 9a989e4c418c035b69e22e86a4b2f5918c6ea854 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750983887 -0400	commit: resolve localhost comunication
+9a989e4c418c035b69e22e86a4b2f5918c6ea854 9a989e4c418c035b69e22e86a4b2f5918c6ea854 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1751120576 -0400	checkout: moving from main to PersonCrud
+9a989e4c418c035b69e22e86a4b2f5918c6ea854 13a7255e9a8fe2b933e2d626215b9c75fcda660d root <root@vmi2646293.contaboserver.net> 1752007990 +0200	commit: WIP: guardando cambios locales antes del pull
+13a7255e9a8fe2b933e2d626215b9c75fcda660d 7f838c4437896b41aabc19497fee6222199f2045 root <root@vmi2646293.contaboserver.net> 1752008122 +0200	pull --rebase (start): checkout 7f838c4437896b41aabc19497fee6222199f2045
+7f838c4437896b41aabc19497fee6222199f2045 e9232c1293eabb2d9f030a6fd473845232d052a2 root <root@vmi2646293.contaboserver.net> 1752008226 +0200	commit: resolve pull
+e9232c1293eabb2d9f030a6fd473845232d052a2 b3f0d12b659ffe8479c7d5853d7dc1ac0f6c10b3 root <root@vmi2646293.contaboserver.net> 1752008327 +0200	pull origin main: Merge made by the 'ort' strategy.
+b3f0d12b659ffe8479c7d5853d7dc1ac0f6c10b3 d7f16c05184e442957c6381f2331b1d0d5845174 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1754390692 -0400	commit: Changes before JWT
+d7f16c05184e442957c6381f2331b1d0d5845174 d7f16c05184e442957c6381f2331b1d0d5845174 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1754390829 -0400	rebase (finish): returning to refs/heads/PersonCrud
+d7f16c05184e442957c6381f2331b1d0d5845174 d7f16c05184e442957c6381f2331b1d0d5845174 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1754390946 -0400	reset: moving to HEAD
+d7f16c05184e442957c6381f2331b1d0d5845174 ea47197f36acb96b99f5a6bee8a10bfc18d4b9ce Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1754390954 -0400	pull --rebase origin PersonCrud (start): checkout ea47197f36acb96b99f5a6bee8a10bfc18d4b9ce
+ea47197f36acb96b99f5a6bee8a10bfc18d4b9ce d7f16c05184e442957c6381f2331b1d0d5845174 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1754390960 -0400	rebase (abort): returning to refs/heads/PersonCrud

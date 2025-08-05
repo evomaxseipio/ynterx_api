@@ -132,17 +132,16 @@ property_table = Table(
         autoincrement=True
     ),
     Column("property_type", String(50), nullable=False),
-    Column("cadastral_number", String(50), nullable=True),
-    Column("title_number", String(50), nullable=True),
-    Column("surface_area", Numeric(12, 2), nullable=True),
+    Column("cadastral_number", String(50), nullable=False),
+    Column("title_number", String(50), nullable=False),
+    Column("surface_area", Numeric(12, 2), nullable=False),
     Column("covered_area", Numeric(12, 2), nullable=True),
     Column("property_value", Numeric(15, 2), nullable=True),
+    Column("property_owner", String(100), nullable=True),
     Column("currency", String(3), nullable=False, server_default="USD"),
-    Column("description", Text, nullable=True),
     Column("address_line1", String(100), nullable=True),
     Column("address_line2", String(100), nullable=True),
     Column("city_id", Integer, ForeignKey("city.city_id"), nullable=True),
-    Column("postal_code", String(20), nullable=True),
     Column(
         "is_active",
         Boolean,
@@ -244,3 +243,22 @@ contract_bank_account = Table(
         name="contract_bank_account_account_type_check",
     ),
 )
+
+class ContractParagraph(Base):
+    """SQLAlchemy model for contract paragraphs"""
+    __tablename__ = "contract_paragraphs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contract_type_id = Column(Integer, nullable=False)
+    section = Column(String(100), nullable=False)
+    order_position = Column(Integer, nullable=False, default=1)
+    title = Column(String(255))
+    content = Column(Text, nullable=False)
+    paragraph_variables = Column(Text)  # JSONB as text for now
+    paragraph_description = Column(String(500))
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<ContractParagraph(id={self.id}, section='{self.section}', title='{self.title}')>"

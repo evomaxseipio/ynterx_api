@@ -1,0 +1,293 @@
+{
+  "contract_id": "contract_CNT-000030-2025",
+  "created_at": "2025-07-31T22:04:25.088311",
+  "modified_at": "2025-07-31T22:04:25.088321",
+  "original_data": {
+    "contract_type": "Contrato de préstamo con garantía real",
+    "contract_date": "31/07/2025",
+    "description": null,
+    "contract_number": "CNT-000030-2025",
+    "generated_at": "2025-07-31T22:04:24.158043",
+    "loan_amount": "30,000.00",
+    "loan_amount_raw": 30000.0,
+    "loan_amount_text": "TREINTA MIL DÓLARES ESTADOUNIDENSES (USD 30.000,00)",
+    "loan_currency": "USD",
+    "interest_rate": 2.2,
+    "loan_term_months": 12,
+    "start_date": "",
+    "end_date": "",
+    "loan_type": "Hipotecario",
+    "monthly_payment": "660.00",
+    "monthly_payment_raw": 660.0000000000001,
+    "final_payment": "30,660.00",
+    "final_payment_raw": 30660.0,
+    "discount_rate": 0.2,
+    "payment_qty_quotes": 12,
+    "payment_qty_months": "",
+    "payment_type": "Mensual",
+    "bank_holder_name": "GRUPO REYSA SRL",
+    "bank_name": "Banco de Reservas ",
+    "bank_account_number": "18972878",
+    "bank_account_type": "ahorros",
+    "bank_currency": "DOP",
+    "bank_account_id": 97,
+    "property_type": "Inmueble",
+    "property_cadastral": "405358987261",
+    "property_title": "4000382998",
+    "property_surface_area": 754.72,
+    "property_covered_area": null,
+    "property_address": null,
+    "property_address2": "GUAYACANES, SAN PEDRO DE MACORÍS",
+    "property_value": "0.00",
+    "property_value_raw": 0.0,
+    "property_currency": "USD",
+    "property_description": "",
+    "property_owner": "",
+    "all_properties": [
+      {
+        "property_type": "Inmueble",
+        "cadastral_number": "405358987261",
+        "title_number": "4000382998",
+        "surface_area": 754.72,
+        "covered_area": null,
+        "property_value": 0.0,
+        "currency": "USD",
+        "description": null,
+        "address_line1": null,
+        "address_line2": "GUAYACANES, SAN PEDRO DE MACORÍS",
+        "city_id": null,
+        "postal_code": null,
+        "property_role": "garantia"
+      }
+    ],
+    "investor_company_name": "GRUPO REYSA SRL",
+    "investor_company_rnc": "132253256",
+    "investor_company_rm": "RM3187SPM",
+    "client_company_name": "",
+    "client_company_rnc": "",
+    "client_company_rm": "",
+    "clients": [
+      {
+        "first_name": "MAXIMILIANO",
+        "last_name": "MARTINS",
+        "middle_name": "",
+        "full_name": "MAXIMILIANO  MARTINS",
+        "date_of_birth": null,
+        "gender": "MASCULINO",
+        "nationality": "",
+        "marital_status": "SOLTERO",
+        "phone_number": "(XXX) XXX-XXXX",
+        "email": "xxxxxx@xmail.com",
+        "document_type": "Cédula",
+        "document_number": "023-0093859-0",
+        "issuing_country": "",
+        "document_issue_date": null,
+        "document_expiry_date": null,
+        "address_line1": "ANGULO GURIDI CASA 13",
+        "address_line2": "",
+        "city": "",
+        "postal_code": "",
+        "address_type": "Casa",
+        "is_principal": true
+      }
+    ],
+    "clients_count": 1,
+    "client_name": "MAXIMILIANO MARTINS",
+    "client_full_name": "MAXIMILIANO  MARTINS",
+    "client_first_name": "MAXIMILIANO",
+    "client_last_name": "MARTINS",
+    "client_middle_name": "",
+    "client_date_of_birth": null,
+    "client_gender": "MASCULINO",
+    "client_nationality": "",
+    "client_marital_status": "SOLTERO",
+    "client_phone": "(XXX) XXX-XXXX",
+    "client_email": "xxxxxx@xmail.com",
+    "client_document_type": "Cédula",
+    "client_document_number": "023-0093859-0",
+    "client_issuing_country": "",
+    "client_address": "ANGULO GURIDI CASA 13",
+    "client_address2": "",
+    "client_city": "",
+    "client_postal_code": "",
+    "investors": [
+      {
+        "first_name": "ESTHER BISMARELIS",
+        "last_name": "CORNIEL",
+        "middle_name": "",
+        "full_name": "ESTHER BISMARELIS  CORNIEL",
+        "date_of_birth": null,
+        "gender": "FEMENINO",
+        "nationality": "",
+        "marital_status": "",
+        "phone_number": "(XXX) XXX-XXXX",
+        "email": "xxxxxx@xmail.com",
+        "document_type": "Cédula",
+        "document_number": "071-0047479-5",
+        "address_line1": "DE RESIOENCIA MANZ.C, PROY. LOS MAESTRO, EDIF. 2 PISO 1 APTO. 102",
+        "city": ""
+      }
+    ],
+    "investors_count": 1,
+    "investor_name": "ESTHER BISMARELIS CORNIEL",
+    "investor_full_name": "ESTHER BISMARELIS  CORNIEL",
+    "investor_first_name": "ESTHER BISMARELIS",
+    "investor_last_name": "CORNIEL",
+    "investor_middle_name": "",
+    "investor_document_number": "071-0047479-5",
+    "investor_address": "DE RESIOENCIA MANZ.C, PROY. LOS MAESTRO, EDIF. 2 PISO 1 APTO. 102",
+    "investor_phone": "(XXX) XXX-XXXX",
+    "investor_email": "xxxxxx@xmail.com",
+    "witness_name": "MAXIMILIANO JUNIOR REYES",
+    "witness_full_name": "MAXIMILIANO JUNIOR  REYES",
+    "witness_first_name": "MAXIMILIANO JUNIOR",
+    "witness_last_name": "REYES",
+    "witness_document_number": "402-0019871-7",
+    "witness_address": "ANGULO GURIDI CASA 13",
+    "witness_phone": "(XXX) XXX-XXXX",
+    "witness_email": "xxxxxx@xmail.com",
+    "witnesses": [
+      {
+        "person": {
+          "first_name": "MAXIMILIANO JUNIOR",
+          "last_name": "REYES",
+          "middle_name": "",
+          "date_of_birth": null,
+          "gender": "MASCULINO",
+          "nationality_country": "REPUBLICA DOMINICANA",
+          "marital_status": "SOLTERO",
+          "occupation": "ESTUDIANTE"
+        },
+        "person_document": {
+          "is_primary": true,
+          "document_type": "Cédula",
+          "document_number": "402-0019871-7",
+          "issuing_country_id": "1",
+          "document_issue_date": null,
+          "document_expiry_date": null
+        },
+        "address": {
+          "address_line1": "ANGULO GURIDI CASA 13",
+          "address_line2": "",
+          "city_id": "1",
+          "postal_code": "21008",
+          "address_type": "Casa",
+          "is_principal": true
+        },
+        "person_role_id": 3
+      }
+    ],
+    "witnesses_count": 1,
+    "notary_name": "CARLOS REYES",
+    "notary_full_name": "CARLOS  REYES",
+    "notary_first_name": "CARLOS",
+    "notary_last_name": "REYES",
+    "notary_license_number": "1178",
+    "notary_document_number": "00233445566",
+    "notary_address": "CALLE EL SOL #23",
+    "notary_phone": "809-123-4567",
+    "notary_email": "notario.diaz@email.com",
+    "notaries": [
+      {
+        "person": {
+          "p_first_name": "CARLOS",
+          "p_last_name": "REYES",
+          "p_middle_name": "",
+          "p_date_of_birth": "1980-06-20",
+          "p_gender": "MASCULINO",
+          "p_nationality_country": "DOMINICANA",
+          "p_marital_status": "SOLTERO",
+          "p_occupation": "TESTIGO",
+          "p_documents": [
+            {
+              "is_primary": true,
+              "document_type": "Cédula",
+              "document_number": "00233445566",
+              "issuing_country_id": "1",
+              "document_issue_date": "2018-05-18",
+              "document_expiry_date": "2028-05-18"
+            }
+          ],
+          "p_addresses": [
+            {
+              "address_line1": "CALLE EL SOL #23",
+              "address_line2": "",
+              "city_id": "1",
+              "postal_code": "10210",
+              "address_type": "Casa",
+              "is_principal": true
+            }
+          ],
+          "p_person_role_id": 7,
+          "p_additional_data": {
+            "notary_id": "d08a2d5b-32b1-4ff6-b93a-3647a17ca439",
+            "office_name": "Notaría Pública No. 12",
+            "jurisdiction": "San Pedro de Macorís",
+            "license_number": "1178",
+            "professional_email": "notario.diaz@email.com",
+            "professional_phone": "809-123-4567"
+          }
+        }
+      }
+    ],
+    "referrer_name": "",
+    "referrer_document_number": "",
+    "referents": [
+      {
+        "p_first_name": "MAXIMILIANO",
+        "p_last_name": "MARTINS",
+        "p_middle_name": "",
+        "p_date_of_birth": null,
+        "p_gender": "MASCULINO",
+        "p_nationality_country": "REPUBLICA DOMINICANA",
+        "p_marital_status": "SOLTERO",
+        "p_occupation": "",
+        "p_documents": [
+          {
+            "is_primary": true,
+            "document_type": "Cédula",
+            "document_number": "023-0093859-0",
+            "issuing_country_id": "1",
+            "document_issue_date": null,
+            "document_expiry_date": null
+          }
+        ],
+        "p_addresses": [
+          {
+            "address_line1": "ANGULO GURIDI CASA 13",
+            "address_line2": "",
+            "city_id": "1",
+            "postal_code": "21008",
+            "address_type": "Casa",
+            "is_principal": true
+          }
+        ],
+        "p_person_role_id": 8,
+        "p_additional_data": {
+          "referral_code": "REF20258610",
+          "referral_phone_number": "8298707615",
+          "commission_percentage": 10.0,
+          "bank_name": "Banco Popular Dominicano ",
+          "bank_account": "182082882",
+          "notes": "referenciador excelente \n",
+          "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1753996750022.jpg"
+        }
+      }
+    ],
+    "current_date": "31 de July de 2025",
+    "current_year": 2025,
+    "current_month": "July",
+    "current_day": 31,
+    "contract_type_id": 1,
+    "contract_end_date": "31/07/2026",
+    "contract_id": "fd406be8-d11d-48c4-a8ee-78a1c63362e7",
+    "paragraphs_result": {
+      "client_fisica_soltera_identification": "De la otra parte, el señor MAXIMILIANO  MARTINS, nacionalidad dominicana, mayor de edad, soltero(a), titular de la cédula de identidad y electoral No.023-0093859-0, con domicilio establecido en la ANGULO GURIDI CASA 13, teléfono (XXX) XXX-XXXX, correo electrónico xxxxxx@xmail.com, quien en lo que sigue del presente acto se denominará LA SEGUNDA PARTE o POR SU PROPIO NOMBRE.",
+      "investor_juridica_identification": "De una parte, la sociedad de comercio GRUPO REYSA SRL, organizada de acuerdo con las leyes de la República Dominicana, RNC No. 132253256, RM. 3187SPM, con domicilio social en la DE RESIOENCIA MANZ.C, PROY. LOS MAESTRO, EDIF. 2 PISO 1 APTO. 102, debidamente representada en este contrato por su gerente, ESTHER BISMARELIS  CORNIEL, dominicano, mayor de edad, casado, portador de la cédula de identidad y electoral No.071-0047479-5, con domicilio en la DE RESIOENCIA MANZ.C, PROY. LOS MAESTRO, EDIF. 2 PISO 1 APTO. 102, sociedad que en lo que sigue del presente contrato se denominará LA PRIMERA PARTE o POR SU PROPIO NOMBRE; y,"
+    },
+    "client_paragraph": "De la otra parte, el señor MAXIMILIANO  MARTINS, nacionalidad dominicana, mayor de edad, soltero(a), titular de la cédula de identidad y electoral No.023-0093859-0, con domicilio establecido en la ANGULO GURIDI CASA 13, teléfono (XXX) XXX-XXXX, correo electrónico xxxxxx@xmail.com, quien en lo que sigue del presente acto se denominará LA SEGUNDA PARTE o POR SU PROPIO NOMBRE.",
+    "investor_paragraph": "De una parte, la sociedad de comercio GRUPO REYSA SRL, organizada de acuerdo con las leyes de la República Dominicana, RNC No. 132253256, RM. 3187SPM, con domicilio social en la DE RESIOENCIA MANZ.C, PROY. LOS MAESTRO, EDIF. 2 PISO 1 APTO. 102, debidamente representada en este contrato por su gerente, ESTHER BISMARELIS  CORNIEL, dominicano, mayor de edad, casado, portador de la cédula de identidad y electoral No.071-0047479-5, con domicilio en la DE RESIOENCIA MANZ.C, PROY. LOS MAESTRO, EDIF. 2 PISO 1 APTO. 102, sociedad que en lo que sigue del presente contrato se denominará LA PRIMERA PARTE o POR SU PROPIO NOMBRE; y,"
+  },
+  "version": 1,
+  "storage_type": "local"
+}

@@ -8,6 +8,9 @@ import json
 import uuid
 import shutil
 import os
+import asyncio
+from app.config import settings
+from app.utils.email_services import send_email, load_email_template
 
 
 class ContractService:
@@ -16,7 +19,7 @@ class ContractService:
     ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.doc', '.docx', '.pdf', '.xls', '.xlsx'}
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
-    def __init__(self, use_google_drive: bool = False):
+    def __init__(self, use_google_drive: bool = True):
         self.use_google_drive = use_google_drive
         self.base_dir = Path(__file__).parent.parent
         self.template_dir = self.base_dir / "templates"
@@ -91,10 +94,26 @@ class ContractService:
         # ========================================
         if "loan" in data and data["loan"]:
             loan = data["loan"]
+            
+            # Importar función de conversión de números a texto
+            from app.utils.number_to_text import numero_a_texto_con_monto, numero_a_texto_simple
+            
+            # Obtener monto y moneda
+            loan_amount = loan.get('amount', 0)
+            loan_currency = loan.get("currency", "USD")
+            
+            # Generar texto legal del monto (con formato numérico)
+            loan_amount_text = numero_a_texto_con_monto(loan_amount, loan_currency)
+            
+            # Generar texto simple del monto (sin formato numérico)
+            loan_amount_text_simple = numero_a_texto_simple(loan_amount, loan_currency)
+            
             flattened.update({
-                "loan_amount": f"{loan.get('amount', 0):,.2f}",
-                "loan_amount_raw": loan.get('amount', 0),
-                "loan_currency": loan.get("currency", "USD"),
+                "loan_amount": f"{loan_amount:,.2f}",
+                "loan_amount_raw": loan_amount,
+                "loan_amount_text": loan_amount_text,
+                "loan_amount_text_simple": loan_amount_text_simple,
+                "loan_currency": loan_currency,
                 "interest_rate": loan.get("interest_rate", ""),
                 "loan_term_months": loan.get("term_months", ""),
                 "start_date": loan.get("start_date", ""),
@@ -105,11 +124,21 @@ class ContractService:
             # Detalles de pagos
             if "loan_payments_details" in loan:
                 payments = loan["loan_payments_details"]
+                
+                # Generar texto legal para pagos mensuales y final
+                monthly_payment_amount = payments.get('monthly_payment', 0)
+                final_payment_amount = payments.get('final_payment', 0)
+                
+                monthly_payment_text = numero_a_texto_con_monto(monthly_payment_amount, loan_currency)
+                final_payment_text = numero_a_texto_con_monto(final_payment_amount, loan_currency)
+                
                 flattened.update({
-                    "monthly_payment": f"{payments.get('monthly_payment', 0):,.2f}",
-                    "monthly_payment_raw": payments.get('monthly_payment', 0),
-                    "final_payment": f"{payments.get('final_payment', 0):,.2f}",
-                    "final_payment_raw": payments.get('final_payment', 0),
+                    "monthly_payment": f"{monthly_payment_amount:,.2f}",
+                    "monthly_payment_raw": monthly_payment_amount,
+                    "monthly_payment_text": monthly_payment_text,
+                    "final_payment": f"{final_payment_amount:,.2f}",
+                    "final_payment_raw": final_payment_amount,
+                    "final_payment_text": final_payment_text,
                     "discount_rate": payments.get("discount_rate", ""),
                     "payment_qty_quotes": payments.get("payment_qty_quotes", ""),
                     "payment_qty_months": payments.get("payment_qty_months", ""),
@@ -155,14 +184,11 @@ class ContractService:
                 "property_covered_area": prop.get("covered_area", ""),
                 "property_address": prop.get("address_line1", ""),
                 "property_address2": prop.get("address_line2", ""),
-                "property_city": prop.get("city", ""),
-                "property_postal_code": prop.get("postal_code", ""),
                 "property_value": f"{prop.get('property_value', 0):,.2f}",
                 "property_value_raw": prop.get('property_value', 0),
                 "property_currency": prop.get("currency", "USD"),
-                "property_description": prop.get("description", ""),
-                "property_appraised_by": prop.get("appraised_by", ""),
-                "property_appraised_at": prop.get("appraised_at", ""),
+                "property_description": prop.get("property_description", ""),
+                "property_owner": prop.get("property_owner", ""),
             })
 
             # Todas las propiedades para iteración
@@ -336,11 +362,13 @@ class ContractService:
         # ========================================
         # NOTARIOS
         # ========================================
+        # Manejar estructura antigua (notaries) y nueva (notary)
+        notary_data = None
         if "notaries" in data and data["notaries"]:
-            notary = data["notaries"][0]
-            person = notary.get("person", {})
-            notary_doc = notary.get("notary_document", {})
-            address = notary.get("address", {})
+            notary_data = data["notaries"][0]
+            person = notary_data.get("person", {})
+            notary_doc = notary_data.get("notary_document", {})
+            address = notary_data.get("address", {})
 
             # Mascara por defecto para email y teléfono
             email = person.get("email", "") or "xxxxxx@xmail.com"
@@ -359,30 +387,102 @@ class ContractService:
             })
 
             flattened["notaries"] = data["notaries"]
+        
+        # Manejar estructura nueva (notary)
+        elif "notary" in data and data["notary"]:
+            notary_data = data["notary"][0]
+            person = notary_data.get("person", {})
+            documents = person.get("p_documents", [])
+            addresses = person.get("p_addresses", [])
+            additional_data = person.get("p_additional_data", {})
+            
+            # Obtener primer documento y dirección
+            notary_doc = documents[0] if documents else {}
+            address = addresses[0] if addresses else {}
+            
+            # Mascara por defecto para email y teléfono
+            email = additional_data.get("professional_email", "") or "xxxxxx@xmail.com"
+            phone = additional_data.get("professional_phone", "") or "(XXX) XXX-XXXX"
+
+            flattened.update({
+                "notary_name": f"{person.get('p_first_name', '')} {person.get('p_last_name', '')}".strip(),
+                "notary_full_name": f"{person.get('p_first_name', '')} {person.get('p_middle_name', '') or ''} {person.get('p_last_name', '')}".strip(),
+                "notary_first_name": person.get("p_first_name", ""),
+                "notary_last_name": person.get("p_last_name", ""),
+                "notary_license_number": additional_data.get("license_number", ""),
+                "notary_document_number": notary_doc.get("document_number", ""),
+                "notary_address": address.get("address_line1", ""),
+                "notary_phone": phone,
+                "notary_email": email,
+            })
+
+            flattened["notaries"] = data["notary"]
 
         # ========================================
         # REFERENTES
         # ========================================
-        if "referrers" in data and data["referrers"]:
-            referrer = data["referrers"][0]
-            person = referrer.get("person", {})
-            document = referrer.get("person_document", {})
+        if "referents" in data and data["referents"]:
+            referent = data["referents"][0]
+            person = referent.get("person", {})
+            document = referent.get("person_document", {})
 
             flattened.update({
                 "referrer_name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
                 "referrer_document_number": document.get("document_number", ""),
             })
 
-            flattened["referrers"] = data["referrers"]
+            flattened["referents"] = data["referents"]
 
         # ========================================
         # FECHAS Y METADATOS
         # ========================================
+        
+        # Importar funciones de formateo de fechas
+        from app.utils.date_formatter import formatear_fecha_legal, formatear_fecha_simple, parse_fecha_string
+        
+        # Procesar fechas del contrato si están disponibles
+        contract_date_str = data.get("contract_date")
+        contract_end_date_str = data.get("contract_end_date")
+        
+        if contract_date_str:
+            contract_date_obj = parse_fecha_string(contract_date_str)
+            
+            # loan_start_date = contract_date (sin modificar)
+            loan_start_date_text = formatear_fecha_legal(contract_date_obj)
+            loan_start_date_simple = formatear_fecha_simple(contract_date_obj)
+            
+            # first_payment_date = contract_date + 1 mes
+            from datetime import timedelta
+            from dateutil.relativedelta import relativedelta
+            
+            first_payment_date_obj = contract_date_obj + relativedelta(months=1)
+            first_payment_date_text = formatear_fecha_legal(first_payment_date_obj)
+            first_payment_date_simple = formatear_fecha_simple(first_payment_date_obj)
+        else:
+            loan_start_date_text = "FECHA A DETERMINAR"
+            loan_start_date_simple = "FECHA A DETERMINAR"
+            first_payment_date_text = "FECHA A DETERMINAR"
+            first_payment_date_simple = "FECHA A DETERMINAR"
+        
+        if contract_end_date_str:
+            contract_end_date_obj = parse_fecha_string(contract_end_date_str)
+            last_payment_date_text = formatear_fecha_legal(contract_end_date_obj)
+            last_payment_date_simple = formatear_fecha_simple(contract_end_date_obj)
+        else:
+            last_payment_date_text = "FECHA A DETERMINAR"
+            last_payment_date_simple = "FECHA A DETERMINAR"
+        
         flattened.update({
             "current_date": datetime.now().strftime("%d de %B de %Y"),
             "current_year": datetime.now().year,
             "current_month": datetime.now().strftime("%B"),
             "current_day": datetime.now().day,
+            "loan_start_date_text": loan_start_date_text,
+            "loan_start_date_simple": loan_start_date_simple,
+            "first_payment_date_text": first_payment_date_text,
+            "first_payment_date_simple": first_payment_date_simple,
+            "last_payment_date_text": last_payment_date_text,
+            "last_payment_date_simple": last_payment_date_simple,
         })
 
         # ========================================
@@ -414,7 +514,7 @@ class ContractService:
 
         return template_path
 
-    async def generate_contract(self, data: Dict[str, Any], connection=None) -> Dict[str, Any]:
+    async def generate_contract(self, data: Dict[str, Any], connection: Any = None) -> Dict[str, Any]:
         """Generar contrato completo"""
 
         # Ya no es necesario generar contract_id manualmente, el número de contrato viene de la base de datos
@@ -441,60 +541,155 @@ class ContractService:
                     # Si existe paragraph_request, usarlo para obtener los párrafos específicos
                     if "paragraph_request" in data:
                         paragraphs_result = {}
+                        paragraph_errors = []
+
                         for req in data["paragraph_request"]:
-                            person_role = req.get("person_role")
-                            contract_type_db = req.get("contract_type")
-                            section = req.get("section")
-                            contract_services = req.get("contract_services", contract_type_db)
-                            template = await get_paragraph_from_db(
-                                connection,
-                                person_role=person_role,
-                                contract_type=contract_type_db,
-                                section=section,
-                                contract_services=contract_services
-                            )
-                            if template:
-                                processed = process_paragraph(template, processed_data)
-                                key = f"{person_role}_{contract_type_db}_{section}"
-                                paragraphs_result[key] = processed
+                            try:
+                                person_role = req.get("person_role")
+                                contract_type_db = req.get("contract_type")
+                                section = req.get("section")
+                                contract_services = req.get("contract_services", contract_type_db)
+
+                                template = await get_paragraph_from_db(
+                                    connection,
+                                    person_role=person_role,
+                                    contract_type=contract_type_db,
+                                    section=section,
+                                    contract_services=contract_services
+                                )
+
+                                if template:
+                                    processed = process_paragraph(template, processed_data)
+                                    key = f"{person_role}_{contract_type_db}_{section}"
+                                    paragraphs_result[key] = processed
+                                else:
+                                    # Si no se encuentra el párrafo, usar uno por defecto
+                                    default_template = f"Párrafo por defecto para {person_role} - {section}"
+                                    key = f"{person_role}_{contract_type_db}_{section}"
+                                    paragraphs_result[key] = default_template
+                                    paragraph_errors.append({
+                                        "type": "missing_paragraph",
+                                        "person_role": person_role,
+                                        "contract_type": contract_type_db,
+                                        "section": section,
+                                        "message": f"No se encontró párrafo para {person_role} - {section}"
+                                    })
+
+                            except Exception as paragraph_error:
+                                paragraph_errors.append({
+                                    "type": "paragraph_error",
+                                    "person_role": req.get("person_role"),
+                                    "contract_type": req.get("contract_type"),
+                                    "section": req.get("section"),
+                                    "error": str(paragraph_error)
+                                })
+                                # Continuar con el siguiente párrafo
+                                continue
+
                         processed_data["paragraphs_result"] = paragraphs_result
+                        if paragraph_errors:
+                            processed_data["paragraph_errors"] = paragraph_errors
+
                     else:
                         # Lógica anterior: inferir automáticamente
                         person_role = data.get("person_role")
                         if not person_role:
                             if "clients" in data and data["clients"]:
-                                person_role = "cliente"
+                                person_role = "client"
                             elif "investors" in data and data["investors"]:
-                                person_role = "inversionista"
+                                person_role = "investor"
                             else:
-                                person_role = "cliente"
+                                person_role = "client"
                         contract_type_db = data.get("contract_type_db") or data.get("contract_type_person") or "juridica"
-                        contract_services = data.get("contract_services") or contract_type_db or "mortgage"
-                        db_paragraphs = await get_all_paragraphs_for_contract(
-                            connection,
-                            person_role,
-                            contract_type_db,
-                            contract_services,
-                            processed_data
-                        )
-                        processed_data.update(db_paragraphs)
-                        print(f"✅ Párrafos DB procesados para person_role={person_role}, contract_type={contract_type_db}, contract_services={contract_services}")
-                        for key, value in db_paragraphs.items():
-                            preview = value[:100] + "..." if len(value) > 100 else value
-                            print(f"   📝 {key}: {preview}")
+                        contract_services = data.get("contract_services") or data.get("contract_type", "mortgage")
+                        
+                        # Normalizar valores para asegurar compatibilidad con la base de datos
+                        if person_role in ["cliente", "client"]:
+                            person_role = "client"
+                        elif person_role in ["inversionista", "investor"]:
+                            person_role = "investor"
+                        
+                        if contract_type_db in ["juridica", "fisica_soltera", "fisica_casada"]:
+                            contract_type_db = contract_type_db
+                        else:
+                            contract_type_db = "juridica"  # valor por defecto
+
+                        print(f"🔍 Parámetros para párrafos: person_role={person_role}, contract_type_db={contract_type_db}, contract_services={contract_services}")
+
+                        try:
+                            # Obtener párrafos para cliente
+                            client_paragraphs = await get_all_paragraphs_for_contract(
+                                connection,
+                                "client",
+                                contract_type_db,
+                                contract_services,
+                                processed_data
+                            )
+                            
+                            # Obtener párrafos para inversionista
+                            investor_paragraphs = await get_all_paragraphs_for_contract(
+                                connection,
+                                "investor",
+                                contract_type_db,
+                                contract_services,
+                                processed_data
+                            )
+                            
+                            # Combinar párrafos
+                            all_paragraphs = {**client_paragraphs, **investor_paragraphs}
+                            processed_data.update(all_paragraphs)
+                            
+                            print(f"✅ Párrafos DB procesados para contract_type={contract_type_db}, contract_services={contract_services}")
+                            print(f"   📝 Párrafos de cliente: {len(client_paragraphs)}")
+                            print(f"   📝 Párrafos de inversionista: {len(investor_paragraphs)}")
+                            for key, value in all_paragraphs.items():
+                                preview = value[:100] + "..." if len(value) > 100 else value
+                                print(f"   📝 {key}: {preview}")
+                        except Exception as e:
+                            print(f"⚠️ Error procesando párrafos automáticos: {e}")
+                            # Continuar sin párrafos automáticos
 
                 except Exception as e:
-                    print(f"⚠️ Error procesando párrafos de DB: {e}")
+                    print(f"⚠️ Error general procesando párrafos de DB: {e}")
                     # Continuar sin párrafos de DB
 
+
+
             # Si se generaron párrafos específicos, insertarlos en el contexto para el Word
+            # SOLO si no existen párrafos de la base de datos
             if "paragraphs_result" in processed_data:
                 # Mapeo automático para los más comunes
                 for key, value in processed_data["paragraphs_result"].items():
-                    if "client" in key and "identification" in key:
+                    if "client" in key and "identification" in key and "client_paragraph" not in processed_data:
                         processed_data["client_paragraph"] = value
-                    if "investor" in key and "identification" in key:
+                        print(f"📝 Usando párrafo específico para cliente: {value[:50]}...")
+                    if "investor" in key and "identification" in key and "investor_paragraph" not in processed_data:
                         processed_data["investor_paragraph"] = value
+                        print(f"📝 Usando párrafo específico para inversionista: {value[:50]}...")
+
+            # Mostrar qué párrafos se van a usar en el documento
+            print("📋 Párrafos finales para el documento:")
+            for key in ['client_paragraph', 'investor_paragraph', 'witness_paragraph', 'notary_paragraph']:
+                if key in processed_data:
+                    preview = processed_data[key][:100] + "..." if len(processed_data[key]) > 100 else processed_data[key]
+                    print(f"   {key}: {preview}")
+                else:
+                    print(f"   {key}: NO ENCONTRADO")
+
+            # Mostrar todas las variables que se van a pasar al template
+            print("🔍 Variables que se pasan al template:")
+            template_vars = ['client_paragraph', 'investor_paragraph', 'client_full_name', 'investor_full_name', 
+                           'loan_amount', 'interest_rate', 'monthly_payment', 'final_payment']
+            for var in template_vars:
+                if var in processed_data:
+                    value = processed_data[var]
+                    if isinstance(value, str) and len(value) > 50:
+                        preview = value[:50] + "..."
+                    else:
+                        preview = str(value)
+                    print(f"   {var}: {preview}")
+                else:
+                    print(f"   {var}: NO ENCONTRADO")
 
             # Generar documento
             doc = DocxTemplate(template_path)
@@ -521,14 +716,55 @@ class ContractService:
             }
 
             # Si usa Google Drive, subir también allí
+            # print("🔄 use_google_drive:", self.use_google_drive)
+            # print("📦 gdrive_service inicializado:", hasattr(self, 'gdrive_service'))
+
+
+
             if self.use_google_drive:
                 try:
-                    drive_result = await self.gdrive_service.upload_contract(
+                    drive_result = self.gdrive_service.upload_contract(
                         contract_id, output_path, processed_data
                     )
                     response.update(drive_result)
+                    # Enviar email a los destinatarios si hay enlace de Drive
+                    if drive_result.get("drive_link"):
+                        print(f"🔔 Enviando email a los destinatarios: {settings.CONTRACT_EMAIL_RECIPIENTS}")
+
+                        # Obtener nombre del cliente para el email
+                        client_name = "Cliente"
+                        if "clients" in processed_data and processed_data["clients"]:
+                            main_client = processed_data["clients"][0]
+                            client_name = f"{main_client.get('first_name', '')} {main_client.get('last_name', '')}".strip()
+                        elif "client_name" in processed_data:
+                            client_name = processed_data["client_name"]
+
+                        subject = f"📄 Su contrato está disponible - {contract_id}"
+
+                        # Usar template HTML para el email
+                        html_body = load_email_template(client_name, drive_result['drive_link'])
+
+                        # Enviar a todos los destinatarios de forma asíncrona
+                        email_tasks = []
+                        for email in settings.CONTRACT_EMAIL_RECIPIENTS:
+                            task = asyncio.create_task(
+                                asyncio.to_thread(
+                                    send_email,
+                                    email,
+                                    subject,
+                                    text="Su contrato ha sido generado exitosamente y está disponible para revisión.",
+                                    html_body=html_body,
+                                    category="Contract Notification"
+                                )
+                            )
+                            email_tasks.append(task)
+
+                        # Esperar a que todos los emails se envíen
+                        await asyncio.gather(*email_tasks, return_exceptions=True)
+                        print(f"🔔 Email enviado a los destinatarios: {settings.CONTRACT_EMAIL_RECIPIENTS}")
                 except Exception as e:
                     # No fallar si Google Drive falla, solo advertir
+                    print(f"Error subiendo a Google Drive: {str(e)}")
                     response["drive_warning"] = f"Error subiendo a Google Drive: {str(e)}"
 
             return response
@@ -587,10 +823,10 @@ class ContractService:
                 )
 
                 processed_data.update(db_paragraphs)
-                print(f"✅ Párrafos DB actualizados para person_role={person_role}, contract_type={contract_type_db}, contract_services={contract_services}")
+                # print(f"✅ Párrafos DB actualizados para person_role={person_role}, contract_type={contract_type_db}, contract_services={contract_services}")
                 for key, value in db_paragraphs.items():
                     preview = value[:100] + "..." if len(value) > 100 else value
-                    print(f"   📝 {key}: {preview}")
+                    # print(f"   📝 {key}: {preview}")
 
             except Exception as e:
                 print(f"⚠️ Error procesando párrafos en update: {e}")

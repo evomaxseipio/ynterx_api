@@ -25,16 +25,27 @@ class GoogleDriveService:
         self.main_folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
 
         if not self.credentials_path:
+            print(f"GOOGLE_CREDENTIALS_PATH environment variable not set")
             raise ValueError("GOOGLE_CREDENTIALS_PATH environment variable not set")
 
         if not Path(self.credentials_path).exists():
+            print(f"Google credentials file not found: {self.credentials_path}")
             raise FileNotFoundError(f"Google credentials file not found: {self.credentials_path}")
 
         self._authenticate()
 
-        # Crear o encontrar carpeta principal
-        if not self.main_folder_id:
+        # Validar carpeta principal si se especifica
+        if self.main_folder_id:
+            # Intentar obtener la carpeta para validar acceso
+            try:
+                folder = self.service.files().get(fileId=self.main_folder_id, fields='id, name', supportsAllDrives=True).execute()
+                print(f"Main folder found: {folder}")
+            except Exception as e:
+                raise HTTPException(500, f"El ID de carpeta de Google Drive no es válido o no tienes acceso. Verifica que el ID '{self.main_folder_id}' exista y que el Service Account tenga permisos de editor sobre la carpeta. Error: {str(e)}")
+        else:
             self.main_folder_id = self._create_main_folder()
+
+
 
     def _authenticate(self):
         """Autenticar con Google Drive API"""
@@ -44,7 +55,9 @@ class GoogleDriveService:
                 self.credentials_path, scopes=scopes
             )
             self.service = build('drive', 'v3', credentials=credentials)
+
         except Exception as e:
+            print(f"Error authenticating with Google Drive: {str(e)}")
             raise HTTPException(500, f"Error authenticating with Google Drive: {str(e)}")
 
     def _create_main_folder(self) -> str:
@@ -55,7 +68,7 @@ class GoogleDriveService:
         }
 
         try:
-            folder = self.service.files().create(body=folder_metadata, fields='id').execute()
+            folder = self.service.files().create(body=folder_metadata, fields='id', supportsAllDrives=True).execute()
             folder_id = folder.get('id')
 
             # Hacer la carpeta pública para lectura
@@ -81,10 +94,23 @@ class GoogleDriveService:
         }
 
         try:
-            folder = self.service.files().create(body=folder_metadata, fields='id').execute()
+            folder = self.service.files().create(body=folder_metadata, fields='id', supportsAllDrives=True).execute()
             return folder.get('id')
         except Exception as e:
             raise HTTPException(500, f"Error creating contract folder: {str(e)}")
+
+    def _create_attachments_folder(self, parent_folder_id: str) -> str:
+        """Crear subcarpeta 'attachments' en Google Drive"""
+        folder_metadata = {
+            'name': 'attachments',
+            'mimeType': 'application/vnd.google-apps.folder',
+            'parents': [parent_folder_id]
+        }
+        try:
+            folder = self.service.files().create(body=folder_metadata, fields='id', supportsAllDrives=True).execute()
+            return folder.get('id')
+        except Exception as e:
+            raise HTTPException(500, f"Error creating attachments folder: {str(e)}")
 
     def _upload_file(self, file_path: Path, parent_folder_id: str, file_name: Optional[str] = None) -> Dict[str, str]:
         """Subir archivo a Google Drive"""
@@ -95,6 +121,8 @@ class GoogleDriveService:
             'name': file_name,
             'parents': [parent_folder_id]
         }
+
+        print(f"File metadata: {file_metadata}")
 
         # Determinar tipo MIME
         if file_path.suffix.lower() == '.docx':
@@ -114,8 +142,10 @@ class GoogleDriveService:
             file = self.service.files().create(
                 body=file_metadata,
                 media_body=media,
-                fields='id,webViewLink,webContentLink'
+                fields='id,webViewLink,webContentLink',
+                supportsAllDrives=True
             ).execute()
+            print(f"File uploaded successfully: {file}")
 
             return {
                 'file_id': file.get('id'),
@@ -123,6 +153,7 @@ class GoogleDriveService:
                 'download_link': file.get('webContentLink')
             }
         except Exception as e:
+            print(f"Error uploading file to Drive: {str(e)}")
             raise HTTPException(500, f"Error uploading file to Drive: {str(e)}")
 
     def _upload_metadata(self, metadata: Dict[str, Any], folder_id: str) -> str:
@@ -141,11 +172,15 @@ class GoogleDriveService:
                 temp_file.unlink()
             raise e
 
-    async def upload_contract(self, contract_id: str, contract_path: Path, metadata: Dict[str, Any]) -> Dict[str, Any]:
+
+    def upload_contract(self, contract_id: str, contract_path: Path, metadata: Dict[str, Any]) -> Dict[str, Any]:
         """Subir contrato completo a Google Drive"""
         try:
             # Crear carpeta del contrato
             contract_folder_id = self._create_contract_folder(contract_id)
+
+            # Crear subcarpeta attachments
+            attachments_folder_id = self._create_attachments_folder(contract_folder_id)
 
             # Subir archivo del contrato
             contract_result = self._upload_file(contract_path, contract_folder_id)
@@ -153,8 +188,29 @@ class GoogleDriveService:
             # Subir metadatos
             metadata_file_id = self._upload_metadata(metadata, contract_folder_id)
 
+            # Subir archivos de attachments si existen localmente
+            local_attachments_dir = contract_path.parent / 'attachments'
+            attachments_uploaded = []
+            if local_attachments_dir.exists() and local_attachments_dir.is_dir():
+                for file in local_attachments_dir.iterdir():
+                    if file.is_file():
+                        try:
+                            upload_result = self._upload_file(file, attachments_folder_id)
+                            attachments_uploaded.append({
+                                'filename': file.name,
+                                'file_id': upload_result['file_id'],
+                                'web_view_link': upload_result['web_view_link']
+                            })
+                        except Exception as e:
+                            print(f"Error uploading attachment {file.name}: {str(e)}")
+
             # Crear enlace público a la carpeta
             folder_link = f"https://drive.google.com/drive/folders/{contract_folder_id}"
+
+            print(f"Contract uploaded successfully: {contract_result}")
+            print(f"Metadata uploaded successfully: {metadata_file_id}")
+            print(f"Folder link: {folder_link}")
+            print(f"Attachments uploaded: {attachments_uploaded}")
 
             return {
                 "drive_success": True,
@@ -162,10 +218,12 @@ class GoogleDriveService:
                 "drive_file_id": contract_result['file_id'],
                 "drive_link": folder_link,
                 "drive_view_link": contract_result['web_view_link'],
-                "metadata_file_id": metadata_file_id
+                "metadata_file_id": metadata_file_id,
+                "attachments_uploaded": attachments_uploaded
             }
 
         except Exception as e:
+            print(f"Error uploading contract: {str(e)}")
             return {
                 "drive_success": False,
                 "drive_error": str(e)
@@ -176,7 +234,7 @@ class GoogleDriveService:
         # Buscar carpeta del contrato
         try:
             query = f"name='{contract_id}' and mimeType='application/vnd.google-apps.folder' and parents='{self.main_folder_id}'"
-            results = self.service.files().list(q=query, fields='files(id)').execute()
+            results = self.service.files().list(q=query, fields='files(id)', supportsAllDrives=True, includeItemsFromAllDrives=True).execute()
             folders = results.get('files', [])
 
             if not folders:
@@ -194,6 +252,7 @@ class GoogleDriveService:
             }
 
         except Exception as e:
+            print(f"Error uploading attachment: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -206,7 +265,9 @@ class GoogleDriveService:
             results = self.service.files().list(
                 q=f"parents='{self.main_folder_id}'",
                 pageSize=1,
-                fields="files(id, name)"
+                fields="files(id, name)",
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True
             ).execute()
 
             return {
@@ -226,7 +287,7 @@ class GoogleDriveService:
         """Obtener enlace público de carpeta de contrato"""
         try:
             query = f"name='{contract_id}' and mimeType='application/vnd.google-apps.folder' and parents='{self.main_folder_id}'"
-            results = self.service.files().list(q=query, fields='files(id)').execute()
+            results = self.service.files().list(q=query, fields='files(id)', supportsAllDrives=True, includeItemsFromAllDrives=True).execute()
             folders = results.get('files', [])
 
             if folders:

@@ -8,7 +8,7 @@ from .config import settings
 log = logging.getLogger(__name__)
 
 
-async def send_email(to_email: str, subject: str, body: str) -> bool:
+def send_email(to_email: str, subject: str, body: str) -> bool:
     """
     Send an email using SMTP configuration from settings.
 
@@ -44,8 +44,10 @@ async def send_email(to_email: str, subject: str, body: str) -> bool:
         server.quit()
 
         log.info(f"Email sent successfully to {to_email}")
+
         return True
 
     except Exception as e:
         log.error(f"Failed to send email to {to_email}: {e!s}")
+
         return False

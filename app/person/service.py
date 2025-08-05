@@ -79,7 +79,21 @@ class PersonService:
 
         # Preparar datos adicionales como JSON
         additional_data_json = None
-        if person_data.p_additional_data and person_data.p_additional_data:
+        if person_data.p_additional_data:
+            # Validar que p_email y p_phone_number estén en additional_data
+            if 'email' not in person_data.p_additional_data or 'phone_number' not in person_data.p_additional_data:
+                return {
+                    "success": False,
+                    "message": "Los campos 'email' y 'phone_number' son requeridos en additional_data",
+                    "errors": ["Campos email y phone_number faltantes en additional_data"],
+                    "status_code": 400,
+                    "person_id": None,
+                    "data": None,
+                    "person_exists": False,
+                    "timestamp": None,
+                    "error_details": None
+                }
+            
             # Convertir fechas en additional_data si existen
             additional_data = person_data.p_additional_data.copy()
             for key, value in additional_data.items():

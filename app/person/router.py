@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Depends
+from typing import List, Optional
 
 from app.auth.dependencies import DepCurrentUser
 from app.database import DepDatabase
@@ -14,6 +15,9 @@ from app.person.schemas import (
     PersonUpdate,
     PersonCompleteCreate,
     PersonCompleteResponse,
+    ReferrerCreate,
+    ReferrerUpdate,
+    ReferrerResponse,
 )
 from app.person.service import (
     CountryService,
@@ -24,6 +28,7 @@ from app.person.service import (
     PersonDocumentService,
     PersonAddressService,
 )
+from app.person.services import ReferrerService
 
 router = APIRouter(prefix="/persons", tags=["persons"])
 
@@ -458,3 +463,77 @@ async def get_persons_stats(
             "by_gender": [dict(row) for row in gender_result],
             "by_marital_status": [dict(row) for row in marital_result]
         }
+
+
+router_referrers = APIRouter(prefix="/referrers", tags=["referrers"])
+
+
+@router_referrers.post("", response_model=dict)
+async def create_or_update_referrer(
+    referrer_data: ReferrerCreate,
+    db: DepDatabase,
+    current_user: DepCurrentUser,
+) -> dict:
+    """Crear o actualizar un referente"""
+    result = await ReferrerService.create_or_update_referrer(referrer_data, connection=db)
+    
+    if not result["success"]:
+        raise HTTPException(400, result["message"])
+    
+    return result
+
+
+@router_referrers.get("/{person_id}", response_model=Optional[ReferrerResponse])
+async def get_referrer_by_person_id(
+    person_id: UUID,
+    db: DepDatabase,
+    current_user: DepCurrentUser,
+) -> Optional[dict]:
+    """Obtener referente por person_id"""
+    referrer = await ReferrerService.get_referrer_by_person_id(person_id, connection=db)
+    
+    if not referrer:
+        raise HTTPException(404, "Referente no encontrado")
+    
+    return referrer
+
+
+@router_referrers.get("/id/{referrer_id}", response_model=Optional[ReferrerResponse])
+async def get_referrer_by_id(
+    referrer_id: UUID,
+    db: DepDatabase,
+    current_user: DepCurrentUser,
+) -> Optional[dict]:
+    """Obtener referente por referrer_id"""
+    referrer = await ReferrerService.get_referrer_by_id(referrer_id, connection=db)
+    
+    if not referrer:
+        raise HTTPException(404, "Referente no encontrado")
+    
+    return referrer
+
+
+@router_referrers.get("", response_model=List[ReferrerResponse])
+async def list_referrers(
+    db: DepDatabase,
+    current_user: DepCurrentUser,
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+) -> List[dict]:
+    """Listar todos los referentes activos"""
+    return await ReferrerService.list_referrers(connection=db, limit=limit, offset=offset)
+
+
+@router_referrers.post("/{person_id}/increment-count", response_model=dict)
+async def increment_referred_clients_count(
+    person_id: UUID,
+    db: DepDatabase,
+    current_user: DepCurrentUser,
+) -> dict:
+    """Incrementar el contador de clientes referidos"""
+    result = await ReferrerService.increment_referred_clients_count(person_id, connection=db)
+    
+    if not result["success"]:
+        raise HTTPException(400, result["message"])
+    
+    return result

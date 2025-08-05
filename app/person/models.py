@@ -8,6 +8,8 @@ from sqlalchemy import (
     String,
     Table,
     text,
+    Numeric,
+    Text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import expression
@@ -167,6 +169,41 @@ address = Table(
     Column("postal_code", String(20), nullable=True),
     Column("address_type", String(50), nullable=True),
     Column("is_principal", Boolean, server_default=expression.false(), nullable=False),
+    Column(
+        "is_active",
+        Boolean,
+        server_default=expression.true(),
+        nullable=False,
+    ),
+    Column(
+        "created_at",
+        TIMESTAMP,
+        server_default=text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    ),
+    Column(
+        "updated_at",
+        TIMESTAMP,
+        server_default=text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    ),
+)
+
+# Tabla referrer
+referrer = Table(
+    "referrer",
+    metadata,
+    Column(
+        "referrer_id", UUID, primary_key=True, server_default=text("gen_random_uuid()")
+    ),
+    Column("person_id", UUID, ForeignKey("person.person_id", ondelete="CASCADE"), nullable=False, unique=True),
+    Column("referral_code", String(255), nullable=True),
+    Column("referrer_phone_number", String(50), nullable=True),
+    Column("referred_clients_count", Integer, server_default=text("0"), nullable=False),
+    Column("bank_name", String(255), nullable=True),
+    Column("bank_account", String(50), nullable=True),
+    Column("commission_percentage", Numeric(5, 2), nullable=True),
+    Column("notes", Text, nullable=True),
     Column(
         "is_active",
         Boolean,

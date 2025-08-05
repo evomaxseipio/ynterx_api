@@ -133,7 +133,6 @@ class ContractCompleteRequest(BaseModel):
     # Información básica del contrato
     contract_type: str = Field(..., description="Tipo de contrato")
     contract_type_id: int = Field(..., description="ID del tipo de contrato")
-    description: Optional[str] = Field(None, description="Descripción del contrato")
 
     # Datos financieros
     loan: Optional[ContractLoanCreate] = Field(None, description="Datos del préstamo")
@@ -149,11 +148,10 @@ class ContractCompleteRequest(BaseModel):
     referrers: Optional[List[Dict[str, Any]]] = Field(None, description="Lista de referentes")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "contract_type": "mortgage",
                 "contract_type_id": 1,
-                "description": "Contrato de Hipoteca - Préstamo $20,000",
                 "loan": {
                     "amount": 20000.00,
                     "currency": "USD",
@@ -176,11 +174,12 @@ class ContractCompleteRequest(BaseModel):
                         "surface_area": 300.21,
                         "covered_area": 220.00,
                         "property_value": 20000.00,
+                        "property_owner": "Juan Pérez",
                         "currency": "USD",
-                        "description": "Casa hipotecada como garantía",
+                        "property_description": "Casa hipotecada como garantía",
                         "address_line1": "Calle Altagracia No. 39",
-                        "city_id": 1,
-                        "property_role": "garantia"
+                        "address_line2": "Apto 2B",
+                        "city_id": 1
                     }
                 ],
                 "clients": [

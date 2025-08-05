@@ -3,6 +3,7 @@ from uuid import UUID
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, constr
+from decimal import Decimal
 
 ###
 ### Common Schemas (Mantenidos para compatibilidad con otros endpoints)
@@ -213,3 +214,38 @@ class PersonLegacyCreate(BaseModel):
     marital_status_id: int | None = None  # Para compatibilidad
     education_level_id: int | None = None  # Para compatibilidad
     is_active: bool = True
+
+
+class ReferrerBase(BaseModel):
+    person_id: UUID
+    referral_code: Optional[str] = Field(None, max_length=255)
+    referrer_phone_number: Optional[str] = Field(None, max_length=50)
+    bank_name: Optional[str] = Field(None, max_length=255)
+    bank_account: Optional[str] = Field(None, max_length=50)
+    commission_percentage: Optional[Decimal] = Field(None, ge=0, le=100)
+    notes: Optional[str] = None
+    is_active: bool = Field(True)
+
+
+class ReferrerCreate(ReferrerBase):
+    pass
+
+
+class ReferrerUpdate(BaseModel):
+    referral_code: Optional[str] = Field(None, max_length=255)
+    referrer_phone_number: Optional[str] = Field(None, max_length=50)
+    bank_name: Optional[str] = Field(None, max_length=255)
+    bank_account: Optional[str] = Field(None, max_length=50)
+    commission_percentage: Optional[Decimal] = Field(None, ge=0, le=100)
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class ReferrerResponse(ReferrerBase):
+    referrer_id: UUID
+    referred_clients_count: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

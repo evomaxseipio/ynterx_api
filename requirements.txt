@@ -53,3 +53,12 @@ google-api-python-client==2.102.0
 google-auth==2.23.3
 google-auth-oauthlib==1.1.0
 google-auth-httplib2==0.1.1
+
+# Dependencias para web scraping
+beautifulsoup4==4.12.2
+
+# Dependencias para conversión de números a texto
+num2words==0.5.14
+
+# Dependencias para manejo de fechas
+python-dateutil==2.8.2

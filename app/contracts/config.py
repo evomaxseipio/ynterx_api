@@ -7,10 +7,12 @@ from typing import Optional
 class ContractConfig:
     """Configuración centralizada del sistema de contratos"""
 
+
     # Configuración de Google Drive
     USE_GOOGLE_DRIVE: bool = os.getenv("USE_GOOGLE_DRIVE", "false").lower() == "true"
     GOOGLE_CREDENTIALS_PATH: Optional[str] = os.getenv("GOOGLE_CREDENTIALS_PATH")
     GOOGLE_DRIVE_FOLDER_ID: Optional[str] = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+
 
     # Configuración de archivos
     MAX_FILE_SIZE: int = int(os.getenv("MAX_FILE_SIZE", "10485760"))  # 10MB por defecto
@@ -29,6 +31,8 @@ class ContractConfig:
     # Configuración de plantillas
     DEFAULT_TEMPLATE: str = "default_template.docx"
     MORTGAGE_TEMPLATE: str = "mortgage_template.docx"
+
+
 
     @classmethod
     def validate_config(cls) -> dict:
@@ -50,6 +54,8 @@ class ContractConfig:
         templates = list(cls.TEMPLATES_DIR.glob("*.docx")) if cls.TEMPLATES_DIR.exists() else []
         if not templates:
             issues.append("No Word templates found in templates directory")
+
+
 
         return {
             "valid": len(issues) == 0,

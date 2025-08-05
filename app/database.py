@@ -12,7 +12,7 @@ from sqlalchemy import (
     Update,
 )
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine, AsyncSession, async_sessionmaker
 
 from app.config import settings
 from app.constants import DB_NAMING_CONVENTION
@@ -34,6 +34,17 @@ engine = create_async_engine(
     connect_args=connect_args,
 )
 metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
+
+# Create async session factory
+async_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
+    """Get async database session"""
+    async with async_session_maker() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
 
 async def fetch_one(

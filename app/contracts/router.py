@@ -1,4 +1,6 @@
 # router.py
+from dotenv import load_dotenv
+
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Request
 from fastapi.responses import FileResponse
 from typing import Dict, Any, Optional, List
@@ -6,7 +8,7 @@ from pathlib import Path
 import os
 import uuid
 import json
-from datetime import datetime
+from datetime import datetime, date
 
 
 from app.auth.dependencies import DepCurrentUser
@@ -19,6 +21,8 @@ from app.contracts.loan_property_service import ContractLoanPropertyService
 from app.person.service import PersonService
 from app.person.schemas import PersonCompleteCreate, PersonDocumentCreate, PersonAddressCreate
 from sqlalchemy import text as sql_text
+
+load_dotenv()
 
 router = APIRouter(prefix="/contracts", tags=["contracts"])
 
@@ -46,7 +50,7 @@ async def generate_contract_complete(
     - Reutilización de personas existentes
     """
 
-    print(f"🚀 Iniciando generación de contrato completo...")
+    # print(f"🚀 Iniciando generación de contrato completo...")
 
     # 1. PROCESAR TODAS LAS PERSONAS del JSON
     participant_roles = [
@@ -54,7 +58,8 @@ async def generate_contract_complete(
         ("investors", "inversionista", 2),
         ("witnesses", "testigo", 3),
         ("notaries", "notario", 7),
-        ("referrers", "referente", 8)
+        ("notary", "notario", 7),  # Nueva estructura
+        ("referents", "referente", 8)
     ]
 
     participant_ids = []
@@ -71,63 +76,111 @@ async def generate_contract_complete(
     # Procesar cada grupo de personas
     for group_name, role_name, default_role_id in participant_roles:
         group_data = data.get(group_name, [])
-        print(f"👤 Procesando {len(group_data)} {group_name}...")
+        # print(f"👤 Procesando {len(group_data)} {group_name}...")
 
         for idx, participant in enumerate(group_data):
             processed_persons_summary["total"] += 1
 
             try:
-                # Construir PersonCompleteCreate desde el JSON
-                person_data = {
-                    "p_first_name": participant["person"]["first_name"],
-                    "p_last_name": participant["person"]["last_name"],
-                    "p_middle_name": participant["person"].get("middle_name"),
-                    "p_date_of_birth": participant["person"].get("date_of_birth"),
-                    "p_gender": participant["person"].get("gender"),
-                    "p_nationality_country": participant["person"].get("nationality"),
-                    "p_marital_status": participant["person"].get("marital_status"),
-                    "p_occupation": participant["person"].get("occupation", role_name.title()),
-                    "p_person_role_id": participant.get("p_person_role_id", default_role_id),
-                    "p_additional_data": participant.get("p_additional_data", {})
-                }
+                # Manejar estructura anidada para notarios y referentes
+                if (group_name == "notary" and "person" in participant) or group_name == "referents":
+                    if group_name == "notary":
+                        # Estructura nueva: notary[0].person
+                        person_info = participant["person"]
+                        documents = person_info.get("p_documents", [])
+                        addresses = person_info.get("p_addresses", [])
+                        additional_data = person_info.get("p_additional_data", {})
+                        
+                        person_data = {
+                            "p_first_name": person_info.get("p_first_name", ""),
+                            "p_last_name": person_info.get("p_last_name", ""),
+                            "p_middle_name": person_info.get("p_middle_name", ""),
+                            "p_date_of_birth": person_info.get("p_date_of_birth"),
+                            "p_gender": person_info.get("p_gender", ""),
+                            "p_nationality_country": person_info.get("p_nationality_country", ""),
+                            "p_marital_status": person_info.get("p_marital_status", ""),
+                            "p_occupation": person_info.get("p_occupation", "Notario"),
+                            "p_person_role_id": person_info.get("p_person_role_id", default_role_id),
+                            "p_additional_data": additional_data
+                        }
+                    else:  # group_name == "referents"
+                        # Estructura para referentes: referents[0] (directo)
+                        documents = participant.get("p_documents", [])
+                        addresses = participant.get("p_addresses", [])
+                        additional_data = participant.get("p_additional_data", {})
+                        
+                        person_data = {
+                            "p_first_name": participant.get("p_first_name", ""),
+                            "p_last_name": participant.get("p_last_name", ""),
+                            "p_middle_name": participant.get("p_middle_name", ""),
+                            "p_date_of_birth": participant.get("p_date_of_birth"),
+                            "p_gender": participant.get("p_gender", ""),
+                            "p_nationality_country": participant.get("p_nationality_country", ""),
+                            "p_marital_status": participant.get("p_marital_status", ""),
+                            "p_occupation": participant.get("p_occupation", "Referente"),
+                            "p_person_role_id": participant.get("p_person_role_id", default_role_id),
+                            "p_additional_data": additional_data
+                        }
+                    
+                    # Usar documentos y direcciones directamente
+                    if documents:
+                        person_data["p_documents"] = documents
+                    if addresses:
+                        person_data["p_addresses"] = addresses
+                else:
+                    # Estructura estándar para otros participantes
+                    person_data = {
+                        "p_first_name": participant["person"]["first_name"],
+                        "p_last_name": participant["person"]["last_name"],
+                        "p_middle_name": participant["person"].get("middle_name"),
+                        "p_date_of_birth": participant["person"].get("date_of_birth"),
+                        "p_gender": participant["person"].get("gender"),
+                        "p_nationality_country": participant["person"].get("nationality"),
+                        "p_marital_status": participant["person"].get("marital_status"),
+                        "p_occupation": participant["person"].get("occupation", role_name.title()),
+                        "p_person_role_id": participant.get("p_person_role_id", default_role_id),
+                        "p_additional_data": participant.get("additional_data", {})
+                    }
 
-                # Preparar documentos
-                documents = []
-                if "person_document" in participant:
-                    doc_data = participant["person_document"]
-                    documents.append({
-                        "is_primary": True,
-                        "document_type": doc_data["document_type"],
-                        "document_number": doc_data["document_number"],
-                        "issuing_country_id": doc_data["issuing_country_id"],
-                        "document_issue_date": doc_data.get("document_issue_date"),
-                        "document_expiry_date": doc_data.get("document_expiry_date")
-                    })
-                elif "notary_document" in participant:
-                    doc_data = participant["notary_document"]
-                    documents.append({
-                        "is_primary": True,
-                        "document_type": doc_data.get("document_type", "Cédula"),
-                        "document_number": doc_data["document_number"],
-                        "issuing_country_id": doc_data["issuing_country_id"],
-                        "document_issue_date": doc_data.get("document_issue_date"),
-                        "document_expiry_date": doc_data.get("document_expiry_date")
-                    })
+                # Preparar documentos (solo para estructura estándar)
+                if group_name not in ["notary", "referents"] or "p_documents" not in person_data:
+                    documents = []
+                    if "person_document" in participant:
+                        doc_data = participant["person_document"]
+                        documents.append({
+                            "is_primary": True,
+                            "document_type": doc_data["document_type"],
+                            "document_number": doc_data["document_number"],
+                            "issuing_country_id": doc_data["issuing_country_id"],
+                            "document_issue_date": doc_data.get("document_issue_date"),
+                            "document_expiry_date": doc_data.get("document_expiry_date")
+                        })
+                    elif "notary_document" in participant:
+                        doc_data = participant["notary_document"]
+                        documents.append({
+                            "is_primary": True,
+                            "document_type": doc_data.get("document_type", "Cédula"),
+                            "document_number": doc_data["document_number"],
+                            "issuing_country_id": doc_data["issuing_country_id"],
+                            "document_issue_date": doc_data.get("document_issue_date"),
+                            "document_expiry_date": doc_data.get("document_expiry_date")
+                        })
 
-                if documents:
-                    person_data["p_documents"] = documents
+                    if documents:
+                        person_data["p_documents"] = documents
 
-                # Preparar direcciones
-                if "address" in participant:
-                    address_data = participant["address"]
-                    person_data["p_addresses"] = [{
-                        "address_line1": address_data["address_line1"],
-                        "address_line2": address_data.get("address_line2"),
-                        "city_id": address_data["city_id"],
-                        "postal_code": address_data.get("postal_code"),
-                        "address_type": address_data.get("address_type", "Casa"),
-                        "is_principal": address_data.get("is_principal", True)
-                    }]
+                # Preparar direcciones (solo para estructura estándar)
+                if group_name not in ["notary", "referents"] or "p_addresses" not in person_data:
+                    if "address" in participant:
+                        address_data = participant["address"]
+                        person_data["p_addresses"] = [{
+                            "address_line1": address_data["address_line1"],
+                            "address_line2": address_data.get("address_line2"),
+                            "city_id": address_data["city_id"],
+                            "postal_code": address_data.get("postal_code"),
+                            "address_type": address_data.get("address_type", "Casa"),
+                            "is_principal": address_data.get("is_principal", True)
+                        }]
 
                 # Crear el schema
                 from app.person.schemas import PersonCompleteCreate
@@ -141,6 +194,14 @@ async def generate_contract_complete(
                         created_by=None,
                         updated_by=None
                     )
+                    
+                    # 🔍 DEBUG: Log temporal para inversionistas
+                    if group_name == "investors":
+                        print(f"🔍 DEBUG INVESTOR {idx+1}: {participant['person']['first_name']} {participant['person']['last_name']}")
+                        print(f"   - Result: {result}")
+                        print(f"   - Success: {result.get('success') if result else 'None'}")
+                        print(f"   - Person ID: {result.get('person_id') if result else 'None'}")
+                        print(f"   - Message: {result.get('message') if result else 'None'}")
 
                 # ✅ VERIFICACIÓN CRÍTICA: Manejar None result
                 if result is None:
@@ -171,7 +232,7 @@ async def generate_contract_complete(
                         "ya está registrada", "already registered", "persona ya existe",
                         "already exists", "duplicate", "duplicado"
                     ]):
-                        print(f"  🔄 {role_name} {idx+1}: Persona ya existe, reutilizando ID {person_id}")
+                        # print(f"  🔄 {role_name} {idx+1}: Persona ya existe, reutilizando ID {person_id}")
                         processed_persons_summary["reused"] += 1
 
                         # Tratamos esto como éxito
@@ -200,9 +261,15 @@ async def generate_contract_complete(
 
                     # Log detallado
                     status = "Reutilizada" if is_reused else ("Existente" if is_existing else "Nueva")
-                    print(f"  ✅ {role_name} {idx+1}: {participant['person']['first_name']} - {status} (ID: {person_id})")
-
+                    # print(f"  ✅ {role_name} {idx+1}: {participant['person']['first_name']} - {status} (ID: {person_id})")
+                    
+                    # 🔍 DEBUG: Log temporal para inversionistas
+                    if group_name == "investors":
+                        print(f"   ✅ INVESTOR AGREGADO: {participant['person']['first_name']} - {status} (ID: {person_id})")
                 else:
+                    # 🔍 DEBUG: Log temporal para inversionistas que fallan
+                    if group_name == "investors":
+                        print(f"   ❌ INVESTOR FALLÓ: {participant['person']['first_name']} - No se obtuvo person_id")
                     # Error real que no podemos manejar
                     processed_persons_summary["errors"] += 1
                     error_msg = result.get("message", "Error creando persona")
@@ -213,7 +280,7 @@ async def generate_contract_complete(
                         "error": error_msg,
                         "full_result": result
                     })
-                    print(f"  ❌ {role_name} {idx+1}: Error real - {error_msg}")
+                    # print(f"  ❌ {role_name} {idx+1}: Error real - {error_msg}")
 
             except Exception as e:
                 processed_persons_summary["errors"] += 1
@@ -224,7 +291,7 @@ async def generate_contract_complete(
                     "error": f"Error en procesamiento: {str(e)}",
                     "exception": True
                 })
-                print(f"  ❌ {role_name} {idx+1}: Exception - {str(e)}")
+                # print(f"  ❌ {role_name} {idx+1}: Exception - {str(e)}")
 
     print(f"📊 Resumen procesamiento personas:")
     print(f"   Total: {processed_persons_summary['total']}")
@@ -233,6 +300,10 @@ async def generate_contract_complete(
     print(f"   Existentes: {processed_persons_summary['existing']}")
     print(f"   Reutilizadas: {processed_persons_summary['reused']}")
     print(f"   Errores: {processed_persons_summary['errors']}")
+    
+    print(f"📋 Participantes para contrato: {len(participants_for_contract)}")
+    for p in participants_for_contract:
+        print(f"  - {p['role']}: {p['person_id']} (Type: {p['person_role_id']})")
 
     # Validar que se procesaron personas mínimas
     if participant_errors and processed_persons_summary["successful"] == 0:
@@ -244,11 +315,12 @@ async def generate_contract_complete(
 
     # Advertir si hay errores pero continuar
     if participant_errors:
-        print(f"⚠️ Continuando con {processed_persons_summary['successful']} personas exitosas, {processed_persons_summary['errors']} errores")
+        # print(f"⚠️ Continuando con {processed_persons_summary['successful']} personas exitosas, {processed_persons_summary['errors']} errores")
+        pass
 
     # 2. GENERAR CONTRACT_NUMBER usando función SQL
     contract_type_name = data.get("contract_type", "mortgage")
-    print(f"📋 Generando número de contrato para tipo: {contract_type_name}")
+    # print(f"📋 Generando número de contrato para tipo: {contract_type_name}")
 
     try:
         from sqlalchemy import text
@@ -257,23 +329,41 @@ async def generate_contract_complete(
             {"contract_type": contract_type_name}
         )
         contract_number = result.scalar()
-        print(f"📄 Número de contrato generado: {contract_number}")
+        # print(f"📄 Número de contrato generado: {contract_number}")
     except Exception as e:
-        print(f"⚠️ Error generando desde BD: {str(e)}")
+        # print(f"⚠️ Error generando desde BD: {str(e)}")
         contract_number = f"{contract_type_name.upper()}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-        print(f"📄 Número de contrato fallback: {contract_number}")
+        # print(f"📄 Número de contrato fallback: {contract_number}")
 
     if not contract_number:
         contract_number = f"{contract_type_name.upper()}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-        print(f"📄 Número de contrato por defecto: {contract_number}")
+        # print(f"📄 Número de contrato por defecto: {contract_number}")
 
     # 3. CREAR CONTRATO EN LA BASE DE DATOS
+    
+    # Procesar fechas del contrato
+    def parse_contract_date(date_str: str) -> date:
+        """Convertir fecha del formato DD/MM/YYYY a objeto date"""
+        if not date_str:
+            return datetime.now().date()
+        try:
+            day, month, year = date_str.split('/')
+            return date(int(year), int(month), int(day))
+        except (ValueError, AttributeError):
+            return datetime.now().date()
+    
+    # Obtener fechas del JSON
+    contract_start_date = parse_contract_date(data.get("contract_date"))
+    contract_end_date = parse_contract_date(data.get("contract_end_date"))
+    
     contract_insert = contract_table.insert().values(
         contract_number=contract_number,
         contract_type_id=data.get("contract_type_id", 1),
         contract_service_id=None,
         contract_status_id=1,  # Draft
-        contract_date=datetime.now().date(),
+        contract_date=contract_start_date,
+        start_date=contract_start_date,
+        end_date=contract_end_date,
         title=data.get("description"),
         description=data.get("description"),
         template_name=f"{contract_type_name}_template.docx",
@@ -289,10 +379,12 @@ async def generate_contract_complete(
 
     contract_row = await fetch_one(contract_insert, connection=db, commit_after=True)
     contract_id = contract_row["contract_id"]
-    print(f"🆔 Contrato creado en BD con ID: {contract_id}")
+    # print(f"🆔 Contrato creado en BD con ID: {contract_id}")
 
     # 4. REGISTRAR PARTICIPANTES EN contract_participant
+    print(f"🔍 DEBUG: Insertando {len(participants_for_contract)} participantes en contract_participant")
     for p in participants_for_contract:
+        print(f"  - Insertando: {p['role']} (Type: {p['person_role_id']}) - Person ID: {p['person_id']}")
         participant_insert = contract_participant_table.insert().values(
             contract_id=contract_id,
             person_id=p["person_id"],
@@ -307,25 +399,60 @@ async def generate_contract_complete(
     print(f"👥 Registrados {len(participants_for_contract)} participantes en BD")
 
 
+
     # ✅ 4.5 CREAR LOAN Y PROPERTIES
     loan_property_result = None
-    if data.get("loan") or data.get("properties"):
-        print(f"🏦 Procesando loan y properties...")
-        loan_property_result = await ContractLoanPropertyService.create_contract_loan_and_properties(
-            contract_id=contract_id,
-            loan_data=data.get("loan"),
-            properties_data=data.get("properties", []),
-            connection=db,
-            contract_context=data
-        )
+    loan_property_errors = []
 
-        if loan_property_result["overall_success"]:
-            print(f"✅ Loan y properties creados exitosamente")
-        else:
-            print(f"⚠️ Algunos problemas creando loan/properties: {loan_property_result}")
+    if data.get("loan") or data.get("properties"):
+        # print(f"🏦 Procesando loan y properties...")
+        try:
+            loan_property_result = await ContractLoanPropertyService.create_contract_loan_and_properties(
+                contract_id=contract_id,
+                loan_data=data.get("loan"),
+                properties_data=data.get("properties", []),
+                connection=db,
+                contract_context=data
+            )
+
+            if loan_property_result["overall_success"]:
+                # print(f"✅ Loan y properties creados exitosamente")
+                pass
+            else:
+                # print(f"⚠️ Algunos problemas creando loan/properties: {loan_property_result}")
+                # Recolectar errores específicos
+                if loan_property_result.get("loan_result") and not loan_property_result["loan_result"].get("success"):
+                    loan_property_errors.append({
+                        "type": "loan",
+                        "error": loan_property_result["loan_result"].get("message", "Error desconocido en loan")
+                    })
+
+                if loan_property_result.get("bank_account_result") and not loan_property_result["bank_account_result"].get("success"):
+                    loan_property_errors.append({
+                        "type": "bank_account",
+                        "error": loan_property_result["bank_account_result"].get("message", "Error desconocido en bank account")
+                    })
+
+                if loan_property_result.get("properties_result") and not loan_property_result["properties_result"].get("success"):
+                    loan_property_errors.append({
+                        "type": "properties",
+                        "error": loan_property_result["properties_result"].get("message", "Error desconocido en properties")
+                    })
+
+        except Exception as e:
+            # print(f"❌ Error general en loan/properties: {str(e)}")
+            loan_property_errors.append({
+                "type": "general",
+                "error": f"Error general procesando loan/properties: {str(e)}"
+            })
+            # Continuar sin loan_property_result
+            loan_property_result = {
+                "overall_success": False,
+                "message": f"Error general: {str(e)}"
+            }
 
     # 5. GENERAR DOCUMENTO WORD usando tu servicio existente
-    print(f"📝 Generando documento Word...")
+    # print(f"📝 Generando documento Word...")
 
     enhanced_data = data.copy()
     enhanced_data.update({
@@ -350,12 +477,13 @@ async def generate_contract_complete(
                 updated_at=datetime.now()
             )
             await execute(update_query, connection=db, commit_after=True)
-            print(f"✅ Contrato actualizado en BD con paths del documento")
+            # print(f"✅ Contrato actualizado en BD con paths del documento")
         else:
-            print(f"❌ Error en generación de documento: {document_result}")
+            # print(f"❌ Error en generación de documento: {document_result}")
+            pass
 
     except Exception as e:
-        print(f"❌ Error generando documento Word: {str(e)}")
+        # print(f"❌ Error generando documento Word: {str(e)}")
         document_result = {
             "success": False,
             "error": str(e),
@@ -411,10 +539,10 @@ async def generate_contract_complete(
             "message": f"Se procesaron {processed_persons_summary['successful']} personas exitosamente ({processed_persons_summary['reused']} reutilizadas), {processed_persons_summary['errors']} errores reales"
         }
 
-    print(f"🎉 Contrato completo generado exitosamente!")
-    print(f"   Personas nuevas: {processed_persons_summary['successful'] - processed_persons_summary['existing'] - processed_persons_summary['reused']}")
-    print(f"   Personas reutilizadas: {processed_persons_summary['reused']}")
-    print(f"   Participantes registrados: {len(participants_for_contract)}")
+    # print(f"🎉 Contrato completo generado exitosamente!")
+    # print(f"   Personas nuevas: {processed_persons_summary['successful'] - processed_persons_summary['existing'] - processed_persons_summary['reused']}")
+    # print(f"   Personas reutilizadas: {processed_persons_summary['reused']}")
+    # print(f"   Participantes registrados: {len(participants_for_contract)}")
 
     return response
 
