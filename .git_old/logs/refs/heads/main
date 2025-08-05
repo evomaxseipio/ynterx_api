@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 321d6b01479770ee6c30437a04878ebfc1f679b3 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750887082 -0400	branch: Created from refs/remotes/origin/main
+321d6b01479770ee6c30437a04878ebfc1f679b3 3b5f2ae9090bf76595af0fda3986ac0b47d9b1ca Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888540 -0400	commit: Remove vercel.json to fix deployment errors and stop mass email failures
+3b5f2ae9090bf76595af0fda3986ac0b47d9b1ca 60dba1083605fe0b90ef03241b347431d625e019 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888686 -0400	commit: Remove vercel.json
+60dba1083605fe0b90ef03241b347431d625e019 3d4ed7034a9466bd67f63595cf5c3c4d2a63bf8e Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888775 -0400	pull origin main --no-rebase: Merge made by the 'ort' strategy.
+3d4ed7034a9466bd67f63595cf5c3c4d2a63bf8e 2a8fedb9e94d5288bce4b012bf2bee160a4a60b3 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750888803 -0400	pull --rebase origin main (finish): refs/heads/main onto c8eeb8edd2e5fbfb65006639a0ebd44e13fa62c1
+2a8fedb9e94d5288bce4b012bf2bee160a4a60b3 9a989e4c418c035b69e22e86a4b2f5918c6ea854 Maximiliano Seipio Martins <mseipio.eovtechrd@gmail.com> 1750983887 -0400	commit: resolve localhost comunication

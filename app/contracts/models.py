@@ -1,6 +1,11 @@
 from sqlalchemy import (
     TIMESTAMP,
+<<<<<<< HEAD
     Table, Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Date, Numeric,    text,
+=======
+    Table, Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Date, Numeric,
+    BigInteger, text, CheckConstraint,
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
  UUID as SA_UUID
 )
 from sqlalchemy.ext.declarative import declarative_base
@@ -131,6 +136,7 @@ property_table = Table(
         autoincrement=True
     ),
     Column("property_type", String(50), nullable=False),
+<<<<<<< HEAD
     Column("cadastral_number", String(50), nullable=True),
     Column("title_number", String(50), nullable=True),
     Column("surface_area", Numeric(12, 2), nullable=True),
@@ -142,6 +148,18 @@ property_table = Table(
     Column("address_line2", String(100), nullable=True),
     Column("city_id", Integer, ForeignKey("city.city_id"), nullable=True),
     Column("postal_code", String(20), nullable=True),
+=======
+    Column("cadastral_number", String(50), nullable=False),
+    Column("title_number", String(50), nullable=False),
+    Column("surface_area", Numeric(12, 2), nullable=False),
+    Column("covered_area", Numeric(12, 2), nullable=True),
+    Column("property_value", Numeric(15, 2), nullable=True),
+    Column("property_owner", String(100), nullable=True),
+    Column("currency", String(3), nullable=False, server_default="USD"),
+    Column("address_line1", String(100), nullable=True),
+    Column("address_line2", String(100), nullable=True),
+    Column("city_id", Integer, ForeignKey("city.city_id"), nullable=True),
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
     Column(
         "is_active",
         Boolean,
@@ -206,3 +224,62 @@ contract_property = Table(
         nullable=False,
     ),
 )
+<<<<<<< HEAD
+=======
+
+# New contract_bank_account table
+contract_bank_account = Table(
+    "contract_bank_account",
+    metadata,
+    Column(
+        "bank_account_id",
+        BigInteger,
+        primary_key=True,
+        autoincrement=True,
+    ),
+    Column("contract_id", UUID, ForeignKey("contract.contract_id", ondelete="CASCADE"), nullable=False),
+    Column(
+        "client_person_id",
+        UUID,
+        ForeignKey("person.person_id"),
+        nullable=True,
+    ),
+    Column("holder_name", String(100), nullable=False),
+    Column("bank_name", String(100), nullable=False),
+    Column("account_number", String(50), nullable=False),
+    Column("account_type", String(20), nullable=False),
+    Column("bank_code", String(20), nullable=True),
+    Column("swift_code", String(20), nullable=True),
+    Column("iban", String(34), nullable=True),
+    Column("currency", String(3), nullable=False, server_default=text("'USD'")),
+    Column(
+        "created_at",
+        TIMESTAMP,
+        server_default=text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    ),
+    CheckConstraint(
+        "account_type IN ('corriente', 'ahorros', 'inversion', 'other')",
+        name="contract_bank_account_account_type_check",
+    ),
+)
+
+class ContractParagraph(Base):
+    """SQLAlchemy model for contract paragraphs"""
+    __tablename__ = "contract_paragraphs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contract_type_id = Column(Integer, nullable=False)
+    section = Column(String(100), nullable=False)
+    order_position = Column(Integer, nullable=False, default=1)
+    title = Column(String(255))
+    content = Column(Text, nullable=False)
+    paragraph_variables = Column(Text)  # JSONB as text for now
+    paragraph_description = Column(String(500))
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<ContractParagraph(id={self.id}, section='{self.section}', title='{self.title}')>"
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f

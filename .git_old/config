@@ -1,0 +1,24 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[branch "master"]
+	vscode-merge-base = origin/master
+[branch "contract"]
+	vscode-merge-base = origin/master
+	remote = origin
+	merge = refs/heads/contract
+[remote "origin"]
+	url = https://github.com/evomaxseipio/ynterx_api.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+	vscode-merge-base = origin/main
+[branch "PersonCrud"]
+	vscode-merge-base = origin/main
+	remote = origin
+	merge = refs/heads/PersonCrud
+[pull]
+	rebase = false

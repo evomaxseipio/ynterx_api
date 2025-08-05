@@ -133,7 +133,10 @@ class ContractCompleteRequest(BaseModel):
     # Información básica del contrato
     contract_type: str = Field(..., description="Tipo de contrato")
     contract_type_id: int = Field(..., description="ID del tipo de contrato")
+<<<<<<< HEAD
     description: Optional[str] = Field(None, description="Descripción del contrato")
+=======
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
     # Datos financieros
     loan: Optional[ContractLoanCreate] = Field(None, description="Datos del préstamo")
@@ -149,11 +152,18 @@ class ContractCompleteRequest(BaseModel):
     referrers: Optional[List[Dict[str, Any]]] = Field(None, description="Lista de referentes")
 
     class Config:
+<<<<<<< HEAD
         schema_extra = {
             "example": {
                 "contract_type": "mortgage",
                 "contract_type_id": 1,
                 "description": "Contrato de Hipoteca - Préstamo $20,000",
+=======
+        json_schema_extra = {
+            "example": {
+                "contract_type": "mortgage",
+                "contract_type_id": 1,
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
                 "loan": {
                     "amount": 20000.00,
                     "currency": "USD",
@@ -176,11 +186,20 @@ class ContractCompleteRequest(BaseModel):
                         "surface_area": 300.21,
                         "covered_area": 220.00,
                         "property_value": 20000.00,
+<<<<<<< HEAD
                         "currency": "USD",
                         "description": "Casa hipotecada como garantía",
                         "address_line1": "Calle Altagracia No. 39",
                         "city_id": 1,
                         "property_role": "garantia"
+=======
+                        "property_owner": "Juan Pérez",
+                        "currency": "USD",
+                        "property_description": "Casa hipotecada como garantía",
+                        "address_line1": "Calle Altagracia No. 39",
+                        "address_line2": "Apto 2B",
+                        "city_id": 1
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
                     }
                 ],
                 "clients": [

@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "person_role": "cliente",
     "contract_type_db": "juridica",
     "contract_services": "mortgage",
@@ -14,16 +15,37 @@
         {
             "person_role": "client",
             "contract_type": "fisica_soltera",
+=======
+    "contract_type": "mortgage",
+    "contract_type_id": 1,
+    "description": "Contrato de Hipoteca - Préstamo $20,000",
+    "client_company": {
+        "name": "EVOLUTION TECHNOLOGY, S.R.L.",
+        "rnc": "133174588",
+        "rm": "3187SPM",
+        "role": "CLIENT"
+    },
+    "investor_company": {},
+    "paragraph_request": [
+        {
+            "person_role": "client",
+            "contract_type": "juridica",
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
             "section": "identification",
             "contract_services": "mortgage"
         },
         {
             "person_role": "investor",
+<<<<<<< HEAD
             "contract_type": "juridica",
+=======
+            "contract_type": "fisica_soltera",
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
             "section": "identification",
             "contract_services": "mortgage"
         }
     ],
+<<<<<<< HEAD
     "clients": [
         {
             "person": {
@@ -77,11 +99,79 @@
             "p_person_role_id": 1,
             "p_additional_data": {
             }
+=======
+    "loan": {
+        "amount": 20000.00,
+        "currency": "USD",
+        "interest_rate": 2.2,
+        "term_months": 12,
+        "loan_type": "hipotecario",
+        "loan_payments_details": {
+            "monthly_payment": 440.00,
+            "final_payment": 20440.00,
+            "discount_rate": 0.2,
+            "payment_qty_quotes": 11,
+            "payment_type": "mensual"
+        },
+        "bank_account": {
+            "bank_name": "Banco de Ahorro y Crédito Popular",
+            "bank_account_number": "1234567890",
+            "bank_account_type": "corriente",
+            "bank_account_currency": "USD"
+        }
+    },
+    "properties": [
+        {
+            "property_type": "casa",
+            "cadastral_number": "406463901881",
+            "title_number": "4000277703",
+            "surface_area": 300.21,
+            "covered_area": 220.00,
+            "property_value": 20000.00,
+            "currency": "USD",
+            "description": "Casa hipotecada como garantía de préstamo",
+            "address_line1": "Calle Altagracia No. 39",
+            "address_line2": "Villa Velásquez",
+            "city_id": 1,
+            "postal_code": "21000",
+            "property_role": "garantia"
+        }
+    ],
+    "clients": [
+        {
+            "person": {
+                "first_name": "Rafael José",
+                "last_name": "Dolis",
+                "middle_name": "",
+                "date_of_birth": "1985-04-12",
+                "gender": "Masculino",
+                "nationality": "Dominicana",
+                "marital_status": "Soltero",
+                "occupation": "Empresario"
+            },
+            "person_document": {
+                "document_type": "Cédula",
+                "document_number": "138-0005267-5",
+                "issuing_country_id": "1",
+                "document_issue_date": "2018-04-01",
+                "document_expiry_date": "2028-04-01"
+            },
+            "address": {
+                "address_line1": "Calle José Hazim Azar",
+                "address_line2": "Edificio Paola III, Piso 1, Apto. A-101",
+                "city_id": "1",
+                "postal_code": "21000",
+                "address_type": "Casa",
+                "is_principal": true
+            },
+            "p_person_role_id": 1
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
         }
     ],
     "investors": [
         {
             "person": {
+<<<<<<< HEAD
                 "first_name": "Miguel",
                 "last_name": "Reyes",
                 "middle_name": "Angel",
@@ -91,10 +181,21 @@
                 "marital_status": "Casado",
                 "phone_number": "809-333-3333",
                 "email": "miguel.reyes@gruporeysa.com"
+=======
+                "first_name": "Miguel Angel",
+                "last_name": "Reyes Pichardo",
+                "middle_name": "",
+                "date_of_birth": "1978-11-05",
+                "gender": "Masculino",
+                "nationality": "Dominicana",
+                "marital_status": "Casado",
+                "occupation": "Inversionista"
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
             },
             "person_document": {
                 "document_type": "Cédula",
                 "document_number": "023-0089169-0",
+<<<<<<< HEAD
                 "issuing_country": "Dominicana"
             },
             "address": {
@@ -104,12 +205,28 @@
             },
             "p_person_role_id": 1,
             "p_additional_data": {}
+=======
+                "issuing_country_id": "1",
+                "document_issue_date": "2018-04-01",
+                "document_expiry_date": "2028-04-01"
+            },
+            "address": {
+                "address_line1": "Calle Altagracia No. 39",
+                "address_line2": "Villa Velásquez",
+                "city_id": "1",
+                "postal_code": "21000",
+                "address_type": "Casa",
+                "is_principal": true
+            },
+            "p_person_role_id": 2
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
         }
     ],
     "witnesses": [
         {
             "person": {
                 "first_name": "Carlos",
+<<<<<<< HEAD
                 "last_name": "Reyes"
             },
             "person_document": {
@@ -122,12 +239,37 @@
             },
             "p_person_role_id": 3,
             "p_additional_data": {}
+=======
+                "last_name": "Reyes",
+                "middle_name": "Antonio",
+                "date_of_birth": "1980-03-08",
+                "gender": "Masculino",
+                "nationality": "Dominicana",
+                "marital_status": "Soltero",
+                "occupation": "Testigo"
+            },
+            "person_document": {
+                "document_type": "Cédula",
+                "document_number": "00233445566",
+                "issuing_country_id": "1",
+                "document_issue_date": "2005-06-01",
+                "document_expiry_date": "2025-06-01"
+            },
+            "address": {
+                "address_line1": "Calle El Sol #23",
+                "city_id": "1",
+                "postal_code": "21000",
+                "address_type": "Casa"
+            },
+            "p_person_role_id": 3
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
         }
     ],
     "notaries": [
         {
             "person": {
                 "first_name": "Luis Franklin",
+<<<<<<< HEAD
                 "last_name": "Diaz Herrera"
             },
             "notary_document": {
@@ -193,4 +335,39 @@
     "contract_type": "mortgage",
     "contract_date": "14 de Julio de 2025",
     "description": "Préstamo hipotecario para compra de vivienda principal"
+=======
+                "last_name": "Diaz Herrera",
+                "middle_name": "",
+                "date_of_birth": "1980-03-08",
+                "gender": "Masculino",
+                "nationality": "Dominicana",
+                "marital_status": "Soltero",
+                "occupation": "Notario"
+            },
+            "notary_document": {
+                "notary_number": "1178",
+                "document_type": "Cédula",
+                "document_number": "00233445566",
+                "issuing_country_id": "1",
+                "document_issue_date": "2005-06-01",
+                "document_expiry_date": "2025-06-01"
+            },
+            "address": {
+                "address_line1": "Calle Valiente #36",
+                "address_line2": "Apto. 5C, Villa Providencia",
+                "city_id": "1",
+                "postal_code": "21000",
+                "address_type": "Oficina"
+            },
+            "p_person_role_id": 7,
+            "p_additional_data": {
+                "license_number": "1178",
+                "issuing_entity": "Colegio Dominicano de Notarios",
+                "issue_date": "2020-05-15",
+                "expiration_date": "2030-05-14",
+                "jurisdiction": "San Pedro de Macorís"
+            }
+        }
+    ]
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 }

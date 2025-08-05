@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 # app/contracts/loan_property_service.py
 """
 Servicio para manejar la creación de loans y properties en contratos
@@ -8,6 +11,10 @@ from typing import Dict, Any, List
 from uuid import UUID
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncConnection
+<<<<<<< HEAD
+=======
+from sqlalchemy import text as sql_text  # ← AGREGAR ESTE IMPORT
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
 from app.database import fetch_one, execute
 from app.contracts.models import contract_loan, contract_property, property_table
@@ -89,12 +96,20 @@ class ContractLoanPropertyService:
                         surface_area=prop_data.get("surface_area"),
                         covered_area=prop_data.get("covered_area"),
                         property_value=prop_data.get("property_value"),
+<<<<<<< HEAD
                         currency=prop_data.get("currency", "USD"),
                         description=prop_data.get("description"),
                         address_line1=prop_data.get("address_line1"),
                         address_line2=prop_data.get("address_line2"),
                         city_id=prop_data.get("city_id"),  # Puede ser None si no se mapea
                         postal_code=prop_data.get("postal_code"),
+=======
+                        property_owner=prop_data.get("property_owner"),
+                        currency=prop_data.get("currency", "USD"),
+                        address_line1=prop_data.get("address_line1"),
+                        address_line2=prop_data.get("address_line2"),
+                        city_id=prop_data.get("city_id"),
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
                         is_active=True,
                         created_at=datetime.now(),
                         updated_at=datetime.now()
@@ -146,8 +161,14 @@ class ContractLoanPropertyService:
             else:
                 return {
                     "success": False,
+<<<<<<< HEAD
                     "message": "No properties could be created",
                     "property_ids": [],
+=======
+                    "message": "No properties were created",
+                    "property_ids": [],
+                    "properties": [],
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
                     "errors": property_errors
                 }
 
@@ -164,17 +185,30 @@ class ContractLoanPropertyService:
         contract_id: UUID,
         loan_data: Dict[str, Any],
         properties_data: List[Dict[str, Any]],
+<<<<<<< HEAD
         connection: AsyncConnection
+=======
+        connection: AsyncConnection,
+        contract_context: Dict[str, Any] = None  # ← AGREGAR ESTE PARÁMETRO
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
     ) -> Dict[str, Any]:
         """
         Crear tanto loan como properties para un contrato (método conveniente)
         """
+<<<<<<< HEAD
         print(f"🏦 Procesando loan y properties para contrato {contract_id}")
+=======
+        # print(f"🏦 Procesando loan y properties para contrato {contract_id}")
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
         results = {
             "contract_id": str(contract_id),
             "loan_result": None,
             "properties_result": None,
+<<<<<<< HEAD
+=======
+            "bank_account_result": None,  # ← AGREGAR ESTA LÍNEA
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
             "overall_success": False
         }
 
@@ -184,7 +218,20 @@ class ContractLoanPropertyService:
                 contract_id, loan_data, connection
             )
             results["loan_result"] = loan_result
+<<<<<<< HEAD
             print(f"🏦 Loan: {'✅' if loan_result['success'] else '❌'} {loan_result['message']}")
+=======
+            # print(f"🏦 Loan: {'✅' if loan_result['success'] else '❌'} {loan_result['message']}")
+
+            # ← AGREGAR ESTA SECCIÓN COMPLETA
+            # Crear bank account si hay datos de cuenta bancaria en el loan
+            if "bank_account" in loan_data and contract_context:
+                bank_account_result = await ContractLoanPropertyService._create_bank_account_record(
+                    contract_id, loan_data["bank_account"], connection, contract_context
+                )
+                results["bank_account_result"] = bank_account_result
+                # print(f"🏦 Bank Account: {'✅' if bank_account_result['success'] else '❌'} {bank_account_result.get('message', 'Created')}")
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
         # Crear properties
         if properties_data:
@@ -192,7 +239,11 @@ class ContractLoanPropertyService:
                 contract_id, properties_data, connection
             )
             results["properties_result"] = properties_result
+<<<<<<< HEAD
             print(f"🏠 Properties: {'✅' if properties_result['success'] else '❌'} {properties_result['message']}")
+=======
+            # print(f"🏠 Properties: {'✅' if properties_result['success'] else '❌'} {properties_result['message']}")
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
         # Determinar éxito general
         loan_ok = not loan_data or (results["loan_result"] and results["loan_result"]["success"])
@@ -201,3 +252,124 @@ class ContractLoanPropertyService:
         results["overall_success"] = loan_ok and properties_ok
 
         return results
+<<<<<<< HEAD
+=======
+
+    # ← AGREGAR ESTE MÉTODO COMPLETO AL FINAL DE LA CLASE
+    @staticmethod
+    async def _create_bank_account_record(
+        contract_id: UUID,
+        bank_account_data: Dict[str, Any],
+        connection: AsyncConnection,
+        contract_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Crear registro de cuenta bancaria en contract_bank_account"""
+
+        # print(f"🏦 Iniciando creación de bank account para contrato {contract_id}")
+        # print(f"🔍 Bank account data: {bank_account_data}")
+        # print(f"🔍 Contract context keys: {list(contract_context.keys()) if contract_context else 'None'}")
+
+        # Obtener holder_name
+        holder_name = "Titular no especificado"
+
+        # Prioridad 1: Empresa del cliente
+        if "client_company" in contract_context and contract_context["client_company"].get("name"):
+            holder_name = contract_context["client_company"]["name"]
+            # print(f"🏢 Usando client_company: {holder_name}")
+
+        # Prioridad 2: Empresa del inversionista
+        elif "investor_company" in contract_context and contract_context["investor_company"].get("name"):
+            holder_name = contract_context["investor_company"]["name"]
+            # print(f"🏢 Usando investor_company: {holder_name}")
+
+        # Prioridad 3: Primer cliente
+        elif "clients" in contract_context and contract_context["clients"]:
+            client = contract_context["clients"][0]
+            person = client.get("person", {})
+            first_name = person.get("first_name", "")
+            last_name = person.get("last_name", "")
+            holder_name = f"{first_name} {last_name}".strip()
+            # print(f"👤 Usando primer cliente: {holder_name}")
+
+        try:
+            # Normalizar account_type para evitar errores de constraint
+            account_type = bank_account_data.get("bank_account_type", "corriente")
+            if account_type:
+                # Limpiar espacios y normalizar valores
+                account_type = account_type.strip().lower()
+                # Mapear valores comunes a los permitidos
+                account_type_mapping = {
+                    "ahorros": "ahorros",
+                    "corriente": "corriente",
+                    "inversion": "inversion",
+                    "savings": "ahorros",
+                    "checking": "corriente",
+                    "investment": "inversion"
+                }
+                account_type = account_type_mapping.get(account_type, "corriente")
+
+            # print(f"🔍 Parámetros para INSERT: holder_name={holder_name}, bank_name={bank_account_data.get('bank_name', '')}, account_type={account_type}")
+
+            # Usar connection.execute() directamente como en el router
+            result = await connection.execute(
+                sql_text("""
+                    INSERT INTO contract_bank_account (
+                        contract_id, client_person_id, holder_name, bank_name, account_number,
+                        account_type, bank_code, swift_code, iban, currency, created_at
+                    ) VALUES (
+                        :contract_id, :client_person_id, :holder_name, :bank_name, :account_number,
+                        :account_type, :bank_code, :swift_code, :iban, :currency, NOW()
+                    ) RETURNING bank_account_id
+                """),
+                {
+                    "contract_id": contract_id,
+                    "client_person_id": None,
+                    "holder_name": holder_name,
+                    "bank_name": bank_account_data.get("bank_name", ""),
+                    "account_number": bank_account_data.get("bank_account_number", ""),
+                    "account_type": account_type,
+                    "bank_code": bank_account_data.get("bank_code"),
+                    "swift_code": bank_account_data.get("swift_code"),
+                    "iban": bank_account_data.get("iban"),
+                    "currency": bank_account_data.get("bank_account_currency", "USD")
+                }
+            )
+
+            # Obtener el resultado
+            bank_result = result.fetchone()
+
+            # Commit manualmente
+            await connection.commit()
+
+            # print(f"🔍 Bank result: {bank_result}")
+
+            # Convertir a dict si es necesario
+            if bank_result:
+                bank_account_id = bank_result[0] if hasattr(bank_result, '__getitem__') else bank_result.bank_account_id
+
+                # print(f"✅ Bank Account creado con ID: {bank_account_id}")
+                return {
+                    "success": True,
+                    "bank_account_id": bank_account_id,
+                    "holder_name": holder_name,
+                    "bank_name": bank_account_data.get("bank_name", ""),
+                    "account_number": bank_account_data.get("bank_account_number", ""),
+                    "account_type": account_type,
+                    "currency": bank_account_data.get("bank_account_currency", "USD")
+                }
+            else:
+                # print(f"❌ No se pudo crear bank account")
+                return {
+                    "success": False,
+                    "message": "No se pudo crear el bank account",
+                    "bank_account_id": None
+                }
+
+        except Exception as e:
+            print(f"❌ Error creando bank account: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Error creating bank account: {str(e)}",
+                "bank_account_id": None
+            }
+>>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notificación de Contrato - YnterX</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px 0;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .email-wrapper {
+            max-width: 650px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="25" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="25" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .logo {
+            position: relative;
+            z-index: 1;
+        }
+
+        .company-name {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            /* margin-bottom: 2px; */
+        }
+
+        .company-tagline {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 16px;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .content {
+            padding: 50px 40px;
+            background-color: #ffffff;
+        }
+
+        .notification-badge {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(0, 114, 255, 0.3);
+        }
+
+        .document-icon {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        .main-title {
+            color: #1a1a1a;
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 20px;
+            letter-spacing: -0.3px;
+        }
+
+        .greeting {
+            color: #4a5568;
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 25px;
+        }
+
+        .client-name {
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .message-text {
+            color: #4a5568;
+            font-size: 16px;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin: 40px 0;
+            padding: 30px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.5);
+        }
+
+        .security-note {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f7fafc;
+            border-left: 4px solid #38b2ac;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .security-note-text {
+            color: #2d3748;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .signature {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .signature-text {
+            color: #4a5568;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .team-name {
+            color: #2d3748;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .footer {
+            background-color: #f8fafc;
+            padding: 30px 40px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .footer-text {
+            color: #718096;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .contact-info {
+            color: #a0aec0;
+            font-size: 12px;
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+            margin: 30px 0;
+        }
+
+        @media (max-width: 600px) {
+            .email-wrapper {
+                margin: 10px;
+                border-radius: 12px;
+            }
+
+            .content {
+                padding: 30px 25px;
+            }
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .company-name {
+                font-size: 24px;
+            }
+
+            .main-title {
+                font-size: 24px;
+            }
+
+            .footer {
+                padding: 25px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-wrapper">
+        <div class="header">
+            <div class="logo">
+                <div class="company-name">YnterX</div>
+                <div class="company-tagline">Soluciones Financieras</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- <div class="notification-badge">
+                <span class="document-icon">📄</span>
+                Contrato Disponible
+            </div> -->
+
+            <h1 class="main-title">Su contrato ha sido procesado exitosamente</h1>
+
+            <p class="greeting">
+                Estimado/a <span class="client-name">{{client_name}}</span>,
+            </p>
+
+            <p class="message-text">
+                Nos complace informarle que su contrato ha sido generado y procesado exitosamente.
+                El documento se encuentra ahora disponible para su revisión en nuestra plataforma segura.
+            </p>
+
+            <div class="cta-section">
+                <a class="cta-button" href="{{contract_folder_url}}" target="_blank">
+                    Acceder al Contrato
+                </a>
+            </div>
+
+            <div class="security-note">
+                <p class="security-note-text">
+                    🔒 <strong>Acceso Seguro:</strong> Este enlace le proporcionará acceso directo y seguro
+                    a su carpeta de documentos. Le recomendamos revisar el contenido detalladamente.
+                </p>
+            </div>
+
+            <div class="divider"></div>
+
+            <p class="message-text">
+                Si tiene alguna pregunta o requiere aclaraciones sobre el contenido del contrato,
+                no dude en contactarnos. Nuestro equipo estará encantado de asistirle.
+            </p>
+
+            <div class="signature">
+                <p class="signature-text">
+                    Gracias por confiar en nosotros para sus necesidades financieras.
+                </p>
+                <p class="team-name">
+                    Atentamente,<br>
+                    Equipo de YnterX
+                </p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p class="footer-text">
+                Este es un mensaje automático generado por nuestro sistema.
+                Por favor, no responda directamente a este correo electrónico.
+            </p>
+            <p class="contact-info">
+                Para consultas, contáctenos a través de nuestros canales oficiales de atención al cliente.
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>
