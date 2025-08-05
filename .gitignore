@@ -247,3 +247,6 @@ tags
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode,python,vim
+
+# Custom ignores for ynterxal API
+app/utils/RNC_Contribuyentes_Actualizado_26_Jul_2025.csv
