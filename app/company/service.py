@@ -7,9 +7,15 @@ import csv
 import os
 from pathlib import Path
 import asyncpg
+import re
 
-from app.company.models import CompanyCreate, CompanyUpdate, CompanyResponse, CompanyListResponse
-from app.company.database import CompanyDatabase
+from app.company.models import (
+    CompanyCreate, CompanyUpdate, CompanyResponse, CompanyListResponse,
+    CompanyAddressCreate, CompanyAddressUpdate, CompanyAddressResponse,
+    CompanyManagerCreate, CompanyManagerUpdate, CompanyManagerResponse,
+    CompanyWithRelations
+)
+from app.company.database import CompanyDatabase, CompanyAddressDatabase, CompanyManagerDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -211,6 +217,8 @@ class CompanyService:
 
     def __init__(self, pool: asyncpg.Pool):
         self.db = CompanyDatabase(pool)
+        self.address_db = CompanyAddressDatabase(pool)
+        self.manager_db = CompanyManagerDatabase(pool)
         self.rnc_service = RNCService()
 
     async def create_company(self, company_data: CompanyCreate) -> CompanyResponse:
@@ -227,6 +235,22 @@ class CompanyService:
         if not company:
             raise HTTPException(status_code=404, detail="Empresa no encontrada")
         return company
+
+    async def get_company_with_relations(self, company_id: int) -> CompanyWithRelations:
+        """Obtener empresa con direcciones y gerentes"""
+        company = await self.db.get_company_by_id(company_id)
+        if not company:
+            raise HTTPException(status_code=404, detail="Empresa no encontrada")
+        
+        # Get addresses and managers
+        addresses = await self.address_db.get_addresses_by_company_id(company_id)
+        managers = await self.manager_db.get_managers_by_company_id(company_id)
+        
+        return CompanyWithRelations(
+            **company.dict(),
+            addresses=addresses,
+            managers=managers
+        )
 
     async def get_company_by_rnc(self, rnc: str) -> CompanyResponse:
         """Obtener empresa por RNC"""
@@ -291,6 +315,106 @@ class CompanyService:
             logger.error(f"Error getting companies by type: {e}")
             raise HTTPException(status_code=500, detail="Error al obtener empresas por tipo")
 
+    # Company Address Methods
+    async def create_company_address(self, address_data: CompanyAddressCreate) -> CompanyAddressResponse:
+        """Crear una nueva dirección de empresa"""
+        try:
+            return await self.address_db.create_company_address(address_data)
+        except Exception as e:
+            logger.error(f"Error creating company address: {e}")
+            raise HTTPException(status_code=500, detail="Error al crear la dirección")
+
+    async def get_company_address_by_id(self, address_id: int) -> CompanyAddressResponse:
+        """Obtener dirección de empresa por ID"""
+        address = await self.address_db.get_company_address_by_id(address_id)
+        if not address:
+            raise HTTPException(status_code=404, detail="Dirección no encontrada")
+        return address
+
+    async def get_addresses_by_company_id(self, company_id: int) -> List[CompanyAddressResponse]:
+        """Obtener todas las direcciones de una empresa"""
+        try:
+            return await self.address_db.get_addresses_by_company_id(company_id)
+        except Exception as e:
+            logger.error(f"Error getting company addresses: {e}")
+            raise HTTPException(status_code=500, detail="Error al obtener las direcciones")
+
+    async def update_company_address(self, address_id: int, address_data: CompanyAddressUpdate) -> CompanyAddressResponse:
+        """Actualizar dirección de empresa"""
+        try:
+            address = await self.address_db.update_company_address(address_id, address_data)
+            if not address:
+                raise HTTPException(status_code=404, detail="Dirección no encontrada")
+            return address
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error updating company address: {e}")
+            raise HTTPException(status_code=500, detail="Error al actualizar la dirección")
+
+    async def delete_company_address(self, address_id: int) -> bool:
+        """Eliminar dirección de empresa (soft delete)"""
+        try:
+            success = await self.address_db.delete_company_address(address_id)
+            if not success:
+                raise HTTPException(status_code=404, detail="Dirección no encontrada")
+            return success
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error deleting company address: {e}")
+            raise HTTPException(status_code=500, detail="Error al eliminar la dirección")
+
+    # Company Manager Methods
+    async def create_company_manager(self, manager_data: CompanyManagerCreate) -> CompanyManagerResponse:
+        """Crear un nuevo gerente de empresa"""
+        try:
+            return await self.manager_db.create_company_manager(manager_data)
+        except Exception as e:
+            logger.error(f"Error creating company manager: {e}")
+            raise HTTPException(status_code=500, detail="Error al crear el gerente")
+
+    async def get_company_manager_by_id(self, manager_id: int) -> CompanyManagerResponse:
+        """Obtener gerente de empresa por ID"""
+        manager = await self.manager_db.get_company_manager_by_id(manager_id)
+        if not manager:
+            raise HTTPException(status_code=404, detail="Gerente no encontrado")
+        return manager
+
+    async def get_managers_by_company_id(self, company_id: int) -> List[CompanyManagerResponse]:
+        """Obtener todos los gerentes de una empresa"""
+        try:
+            return await self.manager_db.get_managers_by_company_id(company_id)
+        except Exception as e:
+            logger.error(f"Error getting company managers: {e}")
+            raise HTTPException(status_code=500, detail="Error al obtener los gerentes")
+
+    async def update_company_manager(self, manager_id: int, manager_data: CompanyManagerUpdate) -> CompanyManagerResponse:
+        """Actualizar gerente de empresa"""
+        try:
+            manager = await self.manager_db.update_company_manager(manager_id, manager_data)
+            if not manager:
+                raise HTTPException(status_code=404, detail="Gerente no encontrado")
+            return manager
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error updating company manager: {e}")
+            raise HTTPException(status_code=500, detail="Error al actualizar el gerente")
+
+    async def delete_company_manager(self, manager_id: int) -> bool:
+        """Eliminar gerente de empresa (soft delete)"""
+        try:
+            success = await self.manager_db.delete_company_manager(manager_id)
+            if not success:
+                raise HTTPException(status_code=404, detail="Gerente no encontrado")
+            return success
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error deleting company manager: {e}")
+            raise HTTPException(status_code=500, detail="Error al eliminar el gerente")
+
     async def consultar_rnc_con_empresa(self, rnc: str) -> Dict[str, Any]:
         """Consultar RNC y obtener información de empresa si existe en la base de datos"""
         # Primero consultar RNC
@@ -309,3 +433,50 @@ class CompanyService:
             rnc_data['company_in_db'] = False
 
         return rnc_data
+
+    async def process_company_address(self, company_id: int, address_data: Dict[str, Any]):
+        """Procesar dirección de la empresa - valida si ya existe una con el mismo address_type y la actualiza"""
+        try:
+            address_type = address_data.get("address_type", "Business")
+            
+            # Buscar si ya existe una dirección con el mismo address_type
+            existing_addresses = await self.address_db.get_addresses_by_company_id(company_id)
+            existing_address = next((addr for addr in existing_addresses if addr.address_type == address_type), None)
+
+            if existing_address:
+                # Actualizar la dirección existente
+                address_update_data = CompanyAddressUpdate(
+                    address_line1=address_data.get("address_line1", ""),
+                    address_line2=address_data.get("address_line2", ""),
+                    city=address_data.get("city", ""),
+                    postal_code=address_data.get("postal_code", ""),
+                    email=address_data.get("email", ""),
+                    phone=address_data.get("phone_number", ""),
+                    is_active=True
+                )
+                
+                await self.address_db.update_company_address(existing_address.address_id, address_update_data)
+                logger.info(f"Updated existing address (type: {address_type}) for company {company_id}")
+                return existing_address.address_id
+            else:
+                # Crear nueva dirección
+                address_create_data = CompanyAddressCreate(
+                    company_id=company_id,
+                    address_line1=address_data.get("address_line1", ""),
+                    address_line2=address_data.get("address_line2", ""),
+                    city=address_data.get("city", ""),
+                    postal_code=address_data.get("postal_code", ""),
+                    address_type=address_type,
+                    email=address_data.get("email", ""),
+                    phone=address_data.get("phone_number", ""),
+                    is_principal=True,  # La primera dirección será principal
+                    is_active=True
+                )
+
+                new_address = await self.address_db.create_company_address(address_create_data)
+                logger.info(f"Created new address (type: {address_type}) for company {company_id}")
+                return new_address.address_id
+
+        except Exception as e:
+            logger.error(f"Error processing company address: {e}")
+            raise HTTPException(status_code=500, detail=f"Error procesando dirección de empresa: {str(e)}")

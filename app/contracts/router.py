@@ -59,7 +59,7 @@ async def generate_contract_complete(
         ("witnesses", "testigo", 3),
         ("notaries", "notario", 7),
         ("notary", "notario", 7),  # Nueva estructura
-        ("referents", "referente", 8)
+        ("referents", "referidor", 8)
     ]
 
     participant_ids = []
@@ -104,21 +104,22 @@ async def generate_contract_complete(
                             "p_additional_data": additional_data
                         }
                     else:  # group_name == "referents"
-                        # Estructura para referentes: referents[0] (directo)
-                        documents = participant.get("p_documents", [])
-                        addresses = participant.get("p_addresses", [])
-                        additional_data = participant.get("p_additional_data", {})
+                        # Estructura para referentes: referents[0].person (como otros participantes)
+                        person_info = participant["person"]
+                        documents = person_info.get("documents", [])
+                        addresses = person_info.get("addresses", [])
+                        additional_data = person_info.get("additional_data", {})
                         
                         person_data = {
-                            "p_first_name": participant.get("p_first_name", ""),
-                            "p_last_name": participant.get("p_last_name", ""),
-                            "p_middle_name": participant.get("p_middle_name", ""),
-                            "p_date_of_birth": participant.get("p_date_of_birth"),
-                            "p_gender": participant.get("p_gender", ""),
-                            "p_nationality_country": participant.get("p_nationality_country", ""),
-                            "p_marital_status": participant.get("p_marital_status", ""),
-                            "p_occupation": participant.get("p_occupation", "Referente"),
-                            "p_person_role_id": participant.get("p_person_role_id", default_role_id),
+                            "p_first_name": person_info.get("first_name", ""),
+                            "p_last_name": person_info.get("last_name", ""),
+                            "p_middle_name": person_info.get("middle_name", ""),
+                            "p_date_of_birth": person_info.get("date_of_birth"),
+                            "p_gender": person_info.get("gender", ""),
+                            "p_nationality_country": person_info.get("nationality_country", ""),
+                            "p_marital_status": person_info.get("marital_status", ""),
+                            "p_occupation": person_info.get("occupation", "Referente"),
+                            "p_person_role_id": person_info.get("person_role_id", default_role_id),
                             "p_additional_data": additional_data
                         }
                     
@@ -128,24 +129,49 @@ async def generate_contract_complete(
                     if addresses:
                         person_data["p_addresses"] = addresses
                 else:
-                    # Estructura estándar para otros participantes
+                    # Estructura estándar para otros participantes (clientes, inversores, testigos)
+                    person_info = participant["person"]
+                    documents = person_info.get("p_documents", [])
+                    addresses = person_info.get("p_addresses", [])
+                    additional_data = person_info.get("p_additional_data", {})
+                    
                     person_data = {
-                        "p_first_name": participant["person"]["first_name"],
-                        "p_last_name": participant["person"]["last_name"],
-                        "p_middle_name": participant["person"].get("middle_name"),
-                        "p_date_of_birth": participant["person"].get("date_of_birth"),
-                        "p_gender": participant["person"].get("gender"),
-                        "p_nationality_country": participant["person"].get("nationality"),
-                        "p_marital_status": participant["person"].get("marital_status"),
-                        "p_occupation": participant["person"].get("occupation", role_name.title()),
-                        "p_person_role_id": participant.get("p_person_role_id", default_role_id),
-                        "p_additional_data": participant.get("additional_data", {})
+                        "p_first_name": person_info.get("p_first_name", ""),
+                        "p_last_name": person_info.get("p_last_name", ""),
+                        "p_middle_name": person_info.get("p_middle_name", ""),
+                        "p_date_of_birth": person_info.get("p_date_of_birth"),
+                        "p_gender": person_info.get("p_gender", ""),
+                        "p_nationality_country": person_info.get("p_nationality_country", ""),
+                        "p_marital_status": person_info.get("p_marital_status", ""),
+                        "p_occupation": person_info.get("p_occupation", role_name.title()),
+                        "p_person_role_id": person_info.get("p_person_role_id", default_role_id),
+                        "p_additional_data": additional_data
                     }
+                    
+                    # Usar documentos y direcciones directamente
+                    if documents:
+                        person_data["p_documents"] = documents
+                    if addresses:
+                        person_data["p_addresses"] = addresses
 
-                # Preparar documentos (solo para estructura estándar)
-                if group_name not in ["notary", "referents"] or "p_documents" not in person_data:
+                                # Preparar documentos (solo si no están ya en p_documents)
+                if "p_documents" not in person_data:
                     documents = []
-                    if "person_document" in participant:
+                    if "p_documents" in participant["person"]:
+                        # Usar documentos directamente del objeto person con formato p_
+                        documents = participant["person"]["p_documents"]
+                    elif "documents" in participant["person"]:
+                        # Usar documentos directamente del objeto person (formato antiguo)
+                        for doc_data in participant["person"]["documents"]:
+                            documents.append({
+                                "is_primary": doc_data.get("is_primary", True),
+                                "document_type": doc_data["document_type"],
+                                "document_number": doc_data["document_number"],
+                                "issuing_country_id": doc_data["issuing_country_id"],
+                                "document_issue_date": doc_data.get("document_issue_date"),
+                                "document_expiry_date": doc_data.get("document_expiry_date")
+                            })
+                    elif "person_document" in participant:
                         doc_data = participant["person_document"]
                         documents.append({
                             "is_primary": True,
@@ -165,13 +191,25 @@ async def generate_contract_complete(
                             "document_issue_date": doc_data.get("document_issue_date"),
                             "document_expiry_date": doc_data.get("document_expiry_date")
                         })
-
+                    
                     if documents:
                         person_data["p_documents"] = documents
 
                 # Preparar direcciones (solo para estructura estándar)
                 if group_name not in ["notary", "referents"] or "p_addresses" not in person_data:
-                    if "address" in participant:
+                    if "addresses" in participant["person"]:
+                        # Usar direcciones directamente del objeto person
+                        person_data["p_addresses"] = []
+                        for address_data in participant["person"]["addresses"]:
+                            person_data["p_addresses"].append({
+                                "address_line1": address_data["address_line1"],
+                                "address_line2": address_data.get("address_line2"),
+                                "city_id": address_data["city_id"],
+                                "postal_code": address_data.get("postal_code"),
+                                "address_type": address_data.get("address_type", "Casa"),
+                                "is_principal": address_data.get("is_principal", True)
+                            })
+                    elif "address" in participant:
                         address_data = participant["address"]
                         person_data["p_addresses"] = [{
                             "address_line1": address_data["address_line1"],
@@ -266,6 +304,8 @@ async def generate_contract_complete(
                     # 🔍 DEBUG: Log temporal para inversionistas
                     if group_name == "investors":
                         print(f"   ✅ INVESTOR AGREGADO: {participant['person']['first_name']} - {status} (ID: {person_id})")
+                    
+
                 else:
                     # 🔍 DEBUG: Log temporal para inversionistas que fallan
                     if group_name == "investors":
@@ -383,20 +423,157 @@ async def generate_contract_complete(
 
     # 4. REGISTRAR PARTICIPANTES EN contract_participant
     print(f"🔍 DEBUG: Insertando {len(participants_for_contract)} participantes en contract_participant")
+    participant_errors = []
+    
     for p in participants_for_contract:
-        print(f"  - Insertando: {p['role']} (Type: {p['person_role_id']}) - Person ID: {p['person_id']}")
-        participant_insert = contract_participant_table.insert().values(
-            contract_id=contract_id,
-            person_id=p["person_id"],
-            person_type_id=p["person_role_id"],
-            is_primary=p["is_primary"],
-            is_active=True,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
-        )
-        await execute(participant_insert, connection=db, commit_after=True)
+        try:
+            print(f"  - Insertando: {p['role']} (Type: {p['person_role_id']}) - Person ID: {p['person_id']}")
+            participant_insert = contract_participant_table.insert().values(
+                contract_id=contract_id,
+                person_id=p["person_id"],
+                person_type_id=p["person_role_id"],
+                is_primary=p["is_primary"],
+                is_active=True,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+            await execute(participant_insert, connection=db, commit_after=True)
+            print(f"  ✅ {p['role']} insertado exitosamente")
+        except Exception as e:
+            error_msg = f"Error insertando {p['role']}: {str(e)}"
+            print(f"  ❌ {error_msg}")
+            participant_errors.append({
+                "role": p['role'],
+                "person_id": p['person_id'],
+                "error": str(e)
+            })
+            # Continuar con el siguiente participante en lugar de abortar toda la transacción
 
-    print(f"👥 Registrados {len(participants_for_contract)} participantes en BD")
+    if participant_errors:
+        print(f"⚠️ Errores insertando participantes: {len(participant_errors)} errores")
+        for error in participant_errors:
+            print(f"  - {error['role']}: {error['error']}")
+    else:
+        print(f"👥 Registrados {len(participants_for_contract)} participantes en BD exitosamente")
+
+    # 4.6 CREAR RELACIONES CLIENTE-REFERIDOR
+    print("🔗 LLEGANDO A LA SECCIÓN DE CLIENT_REFERRER")
+    client_referrer_errors = []
+    client_referrer_created = 0
+    
+    # Obtener IDs de clientes y referidores del contrato
+    # Usar el person_role_id del JSON en lugar de buscar en la tabla person
+    client_ids = []
+    referrer_ids = []
+    
+    for p in participants_for_contract:
+        if p.get("person_role_id") == 1:  # Cliente
+            client_ids.append(p["person_id"])
+        elif p.get("person_role_id") == 8:  # Referidor
+            referrer_ids.append(p["person_id"])
+    
+    print(f"🔍 DEBUG: client_ids encontrados: {client_ids}")
+    print(f"🔍 DEBUG: referrer_ids encontrados: {referrer_ids}")
+    print(f"🔍 DEBUG: todos los participantes: {[(p['role'], p['person_id']) for p in participants_for_contract]}")
+    
+    if client_ids and referrer_ids:
+        print(f"🔗 Creando relaciones cliente-referidor: {len(client_ids)} clientes × {len(referrer_ids)} referidores")
+        
+        # Obtener client_id de la tabla client basado en person_id
+        for client_person_id in client_ids:
+            try:
+                # Buscar el client_id correspondiente al person_id
+                client_query = text("""
+                    SELECT client_id FROM client 
+                    WHERE person_id = :person_id AND is_active = true
+                """)
+                client_result = await db.execute(client_query, {"person_id": client_person_id})
+                client_row = client_result.fetchone()
+                
+                if client_row:
+                    client_id = client_row["client_id"]
+                    print(f"  ✅ Encontrado client_id: {client_id} para person_id: {client_person_id}")
+                    
+                    for referrer_person_id in referrer_ids:
+                        try:
+                            # Verificar que el referidor existe en la tabla referrer
+                            referrer_check_query = text("""
+                                SELECT referrer_id FROM referrer 
+                                WHERE person_id = :person_id AND is_active = true
+                            """)
+                            referrer_check_result = await db.execute(referrer_check_query, {"person_id": referrer_person_id})
+                            referrer_check_row = referrer_check_result.fetchone()
+                            
+                            if referrer_check_row:
+                                print(f"  ✅ Referidor verificado: {referrer_person_id} -> {referrer_check_row['referrer_id']}")
+                                
+                                # Crear relación usando client_id y person_id (no referrer_id)
+                                insert_query = text("""
+                                    INSERT INTO client_referrer 
+                                    (client_id, referrer_id, relation_date, is_active, created_at, updated_at)
+                                    VALUES (:client_id, :referrer_id, :relation_date, :is_active, :created_at, :updated_at)
+                                    ON CONFLICT (client_id, referrer_id, is_active) DO NOTHING
+                                    RETURNING client_referrer_id
+                                """)
+                                
+                                result = await db.execute(insert_query, {
+                                    "client_id": client_id,
+                                    "referrer_id": referrer_person_id,  # Usar person_id directamente
+                                    "relation_date": datetime.now(),
+                                    "is_active": True,
+                                    "created_at": datetime.now(),
+                                    "updated_at": datetime.now()
+                                })
+                                
+                                await db.commit()
+                                
+                                if result.rowcount > 0:
+                                    client_referrer_created += 1
+                                    print(f"  ✅ Relación cliente-referidor creada: {client_id} ↔ {referrer_person_id}")
+                                else:
+                                    print(f"  ℹ️ Relación ya existe: {client_id} ↔ {referrer_person_id}")
+                            else:
+                                print(f"  ⚠️ No se encontró referidor activo para person_id: {referrer_person_id}")
+                                print(f"  🔍 Verificando si existe registro en tabla referrer...")
+                                # Verificar si existe el registro en la tabla referrer
+                                check_query = text("""
+                                    SELECT COUNT(*) as count FROM referrer 
+                                    WHERE person_id = :person_id
+                                """)
+                                check_result = await db.execute(check_query, {"person_id": referrer_person_id})
+                                check_row = check_result.fetchone()
+                                print(f"  📊 Registros en tabla referrer para person_id {referrer_person_id}: {check_row['count']}")
+                                
+                        except Exception as e:
+                            client_referrer_errors.append({
+                                "client_id": str(client_id),
+                                "referrer_id": str(referrer_person_id),
+                                "error": str(e)
+                            })
+                            print(f"  ❌ Error creando relación: {client_id} ↔ {referrer_person_id} - {str(e)}")
+                else:
+                    print(f"  ⚠️ No se encontró client_id para person_id: {client_person_id}")
+                    print(f"  🔍 Verificando si existe registro en tabla client...")
+                    # Verificar si existe el registro en la tabla client
+                    check_query = text("""
+                        SELECT COUNT(*) as count FROM client 
+                        WHERE person_id = :person_id
+                    """)
+                    check_result = await db.execute(check_query, {"person_id": client_person_id})
+                    check_row = check_result.fetchone()
+                    print(f"  📊 Registros en tabla client para person_id {client_person_id}: {check_row['count']}")
+                    
+            except Exception as e:
+                print(f"  ❌ Error buscando client_id para person_id {client_person_id}: {str(e)}")
+    
+    if client_referrer_created > 0:
+        print(f"🔗 Creadas {client_referrer_created} relaciones cliente-referidor exitosamente")
+    if client_referrer_errors:
+        print(f"⚠️ Errores en relaciones cliente-referidor: {len(client_referrer_errors)} errores")
+        for error in client_referrer_errors:
+            print(f"  - {error['client_id']} ↔ {error['referrer_id']}: {error['error']}")
+    else:
+        print(f"🔗 No se crearon relaciones cliente-referidor (sin errores)")
 
 
 

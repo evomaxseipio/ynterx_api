@@ -1,0 +1,171 @@
+{
+    "contract_type": "mortgage",
+    "contract_type_id": 1,
+    "contract_number": "TEST-001-2025",
+    "description": "Contrato de Hipoteca - Préstamo $20,000",
+    "client_company": {
+        "company_name": "Grupo Inmobiliario Dolis",
+        "company_rnc": "001-2345678-9",
+        "company_mercantil_number": "3187SPM",
+        "company_phone": "(809) 870-8956",
+        "company_email": "grupoinmobiliariodolis@email.com",
+        "company_type": "Servicio",
+        "company_address": {
+            "address_line1": "Calle José Hazim Azar, Edificio Paola III",
+            "city": "San Pedro de Macorís",
+            "postal_code": "21000",
+            "phone_number": "(809) 870-8956",
+            "email": "grupoinmobiliariodolis@email.com"
+        },
+        "company_manager": [{
+            "name": "Rafael José Dolis",
+            "position": "Gerente General",
+            "document_number": "138-0005267-5",
+            "nationality": "Dominicana",
+            "marital_status": "Soltero",
+            "address": "Calle José Hazim Azar, Edificio Paola III, San Pedro de Macorís",
+            "is_main_manager": true
+        },
+        {
+            "name": "Miguel Angel Reyes Pichardo",
+            "position": "Gerente General",
+            "document_number": "023-0089169-0",
+            "nationality": "Dominicana",
+            "marital_status": "Soltero",
+            "is_main_manager": false
+        }]
+    },
+    "investor_company": {
+        "company_name": "Reysa Inversiones S.R.L.",
+        "company_rnc": "133174588",
+        "company_mercantil_number": "3187SPM",
+        "company_phone": "(809) 870-8956", 
+        "company_email": "reysainversiones@email.com",
+        "company_type": "Servicio",
+        "company_address": {
+            "address_line1": "Calle Altagracia No. 39",
+            "address_line2": "Villa Velásquez",
+            "city": "San Pedro de Macorís",
+            "postal_code": "21000",
+            "address_type": "Residencial"
+        },
+        "company_manager": [{
+            "name": "Miguel Angel Reyes Pichardo",
+            "position": "Gerente General",
+            "document_number": "023-0089169-0",
+            "nationality": "Dominicana",
+            "marital_status": "Casado",
+            "address": "Calle Altagracia No. 39, Villa Velásquez, San Pedro de Macorís",
+            "is_main_manager": true
+        },
+        {
+            "name": "Laura Elizabeth Reyes Pichardo",
+            "position": "Gerente General",
+            "document_number": "023-01469879-5",
+            "nationality": "Dominicana",
+            "marital_status": "Casada",
+            "is_main_manager": false
+        }]
+    },
+    "paragraph_request": [
+        {
+            "person_role": "client",
+            "contract_type": "juridica",
+            "section": "identification",
+            "contract_services": "mortgage"
+        },
+        {
+            "person_role": "investor",
+            "contract_type": "juridica",
+            "section": "identification",
+            "contract_services": "mortgage"
+        }
+    ],
+    "loan": {
+        "amount": 20000.00,
+        "currency": "USD",
+        "interest_rate": 2.2,
+        "term_months": 12,
+        "loan_type": "hipotecario",
+        "loan_payments_details": {
+            "monthly_payment": 440.00,
+            "final_payment": 20440.00,
+            "discount_rate": 0.2,
+            "payment_qty_quotes": 11,
+            "payment_type": "mensual"
+        },
+        "bank_account": {
+            "bank_name": "Banco de Ahorro y Crédito Popular",
+            "bank_account_number": "1234567890",
+            "bank_account_type": "corriente",
+            "bank_account_currency": "USD"
+        }
+    },
+    "properties": [
+        {
+            "property_type": "casa",
+            "cadastral_number": "406463901881",
+            "title_number": "4000277703",
+            "surface_area": 300.21,
+            "covered_area": 220.00,
+            "property_value": 20000.00,
+            "currency": "USD",
+            "description": "Casa hipotecada como garantía de préstamo",
+            "address_line1": "Calle Altagracia No. 39",
+            "address_line2": "Villa Velásquez",
+            "city_id": 1,
+            "postal_code": "21000",
+            "property_role": "garantia"
+        }
+    ],
+    "clients": [
+      
+    ],
+    "investors": [
+  
+    ],
+    "witnesses": [
+      
+    ],
+    "notaries": [
+        {
+            "person": {
+                "first_name": "Luis Franklin",
+                "last_name": "Diaz Herrera",
+                "middle_name": "",
+                "date_of_birth": "1980-03-08",
+                "gender": "Masculino",
+                "nationality": "Dominicana",
+                "marital_status": "Soltero",
+                "occupation": "Notario"
+            },
+            "notary_document": {
+                "notary_number": "1178",
+                "document_type": "Cédula",
+                "document_number": "00233445566",
+                "issuing_country_id": "1",
+                "document_issue_date": "2005-06-01",
+                "document_expiry_date": "2025-06-01"
+            },
+            "address": {
+                "address_line1": "Calle Valiente #36",
+                "address_line2": "Apto. 5C, Villa Providencia",
+                "city_id": "1",
+                "postal_code": "21000",
+                "address_type": "Oficina"
+            },
+            "p_person_role_id": 7,
+            "p_additional_data": {
+                "license_number": "NT-239872",
+                "issuing_entity": "Suprema Corte de Justicia",
+                "issue_date": "2020-05-15",
+                "expiration_date": "2030-05-14",
+                "jurisdiction": "Distrito Nacional",
+                "office_name": "Oficina Jurídica Pérez & Asociados",
+                "professional_email": "notario.perez@oficina.com",
+                "professional_phone": "809-555-1234",
+                "notes": "Especializado en contratos civiles y notariales"
+            }
+        }
+    ]
+}

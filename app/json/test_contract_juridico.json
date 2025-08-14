@@ -1,0 +1,259 @@
+{
+    "contract_number": "HIP-000026-2025",
+    "contract_type": "Contrato de préstamo con garantía real",
+    "contract_type_id": 1,
+    "description": null,
+    "contract_date": "13/08/2025",
+    "contract_end_date": "13/08/2026",
+    "client_company": {
+        "company_name": "EMPRESA CONSTRUCTORA DEL CARIBE, S.A.",
+        "company_rnc": "1-30-12345-6",
+        "company_mercantil_number": "RM-2023-001234",
+        "company_phone": "(809) 555-1234",
+        "company_email": "info@constructora-caribe.com",
+        "company_type": "Construccion",
+        "company_address": {
+            "address_line1": "CALLE PRINCIPAL 456, EDIFICIO CORPORATIVO",
+            "city": "SANTO DOMINGO",
+            "postal_code": "10101",
+            "phone_number": "(809) 555-1234",
+            "email": "info@constructora-caribe.com"
+        },
+        "company_manager": [{
+            "name": "JUAN CARLOS PEREZ GARCIA",
+            "position": "Gerente General",
+            "document_number": "023-0012345-6",
+            "nationality": "Dominicana",
+            "marital_status": "Soltero",
+            "address": "CALLE PRINCIPAL 456, EDIFICIO CORPORATIVO, SANTO DOMINGO",
+            "is_main_manager": true
+        }]
+    },
+    "investor_company": {
+        "name": "",
+        "rnc": "",
+        "rm": "",
+        "role": "investor"
+    },
+    "paragraph_request": [
+        {
+            "person_role": "investor",
+            "contract_type": "fisica_soltera",
+            "section": "identification",
+            "contract_services": "mortgage"
+        },
+        {
+            "person_role": "client",
+            "contract_type": "juridica",
+            "section": "identification",
+            "contract_services": "mortgage"
+        }
+    ],
+    "loan": {
+        "amount": 75000.0,
+        "currency": "USD",
+        "interest_rate": 3.5,
+        "term_months": 24,
+        "loan_type": "Hipotecario",
+        "loan_payments_details": {
+            "monthly_payment": 1850.0,
+            "final_payment": 79400.0,
+            "discount_rate": 0.15,
+            "payment_qty_quotes": 23,
+            "payment_type": "Mensual"
+        },
+        "bank_account": {
+            "bank_name": "Banco Popular Dominicano",
+            "bank_account_number": "1234567890",
+            "bank_account_type": "Ahorro",
+            "bank_account_currency": "DOP"
+        }
+    },
+    "properties": [
+        {
+            "property_type": "inmueble",
+            "cadastral_number": "CAD-2025-001",
+            "title_number": "5000456789",
+            "surface_area": 1200.50,
+            "covered_area": 850.25,
+            "property_value": 150000.0,
+            "currency": "DOP",
+            "description": "UN INMUEBLE IDENTIFICADO COMO 4053688081358, QUE TIENE UNA SUPERFICIE DE 1200.50 METROS CUADRADOS, CON ÁREA CUBIERTA DE 850.25 METROS CUADRADOS, MATRÍCULA NO.5000456789, UBICADO EN PUNTA CANA, LA ALTAGRACIA",
+            "address_line1": "AVENIDA PRINCIPAL 123",
+            "address_line2": "PUNTA CANA, LA ALTAGRACIA",
+            "city_id": "2",
+            "postal_code": "23000",
+            "property_role": "garantia",
+            "owner_name": "EMPRESA CONSTRUCTORA DEL CARIBE, S.A.",
+            "owner_document_number": "1-30-12345-6",
+            "owner_nationality": "Republica Dominicana",
+            "owner_civil_status": "Juridica"
+        }
+    ],
+    "clients": [
+        {
+            "person": {
+                "p_first_name": "EMPRESA CONSTRUCTORA DEL CARIBE",
+                "p_last_name": "S.A.",
+                "p_middle_name": "",
+                "p_date_of_birth": null,
+                "p_gender": "Juridica",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Juridica",
+                "p_occupation": "Construccion",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "RNC",
+                        "document_number": "1-30-12345-6",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2020-01-15",
+                        "document_expiry_date": "2030-01-15"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "CALLE PRINCIPAL 456, EDIFICIO CORPORATIVO",
+                        "address_line2": "SANTO DOMINGO",
+                        "city_id": "1",
+                        "postal_code": "10101",
+                        "address_type": "Oficina",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 1,
+                "p_additional_data": {
+                    "phone_number": "809-555-1234",
+                    "email": "info@constructora-caribe.com",
+                    "company_type": "Sociedad Anonima",
+                    "legal_representative": "JUAN CARLOS PEREZ GARCIA",
+                    "representative_document": "023-0012345-6"
+                }
+            }
+        }
+    ],
+    "investors": [
+        {
+            "person": {
+                "p_first_name": "CARLOS ALBERTO",
+                "p_last_name": "RODRIGUEZ MARTINEZ",
+                "p_middle_name": "",
+                "p_date_of_birth": "1985-03-15",
+                "p_gender": "Masculino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Soltero",
+                "p_occupation": "INVERSIONISTA",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0056789-1",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2015-03-15",
+                        "document_expiry_date": "2025-03-15"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "CALLE RESIDENCIAL 789, URBANIZACION LAS PALMAS",
+                        "address_line2": "SANTO DOMINGO",
+                        "city_id": "1",
+                        "postal_code": "10102",
+                        "address_type": "Casa",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 2,
+                "p_additional_data": {
+                    "phone_number": "809-555-9876",
+                    "email": "carlos.rodriguez@email.com",
+                    "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755141600000.jpg"
+                }
+            }
+        }
+    ],
+    "witnesses": [
+        {
+            "person": {
+                "p_first_name": "MARIA ELENA",
+                "p_last_name": "SANTOS LOPEZ",
+                "p_middle_name": "",
+                "p_date_of_birth": "1978-07-22",
+                "p_gender": "Femenino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Casado",
+                "p_occupation": "ABOGADA",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0034567-8",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2018-07-22",
+                        "document_expiry_date": "2028-07-22"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "AVENIDA INDEPENDENCIA 321, EDIFICIO PROFESIONAL",
+                        "address_line2": "SANTO DOMINGO",
+                        "city_id": "1",
+                        "postal_code": "10103",
+                        "address_type": "Oficina",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 3,
+                "p_additional_data": {
+                    "phone_number": "809-555-4567",
+                    "email": "maria.santos@abogados.com",
+                    "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755141650000.jpg"
+                }
+            }
+        }
+    ],
+    "referents": [],
+    "notary": [
+        {
+            "person": {
+                "p_first_name": "LUIS FRANKLIN",
+                "p_last_name": "DIAZ HERRERA",
+                "p_middle_name": "",
+                "p_date_of_birth": "1900-01-01",
+                "p_gender": "MASCULINO",
+                "p_nationality_country": "REPÚBLICA DOMINICANA",
+                "p_marital_status": "SOLTERO",
+                "p_occupation": "ABOGADO",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0027895-5",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2018-05-18",
+                        "document_expiry_date": "2028-05-18"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "CALLE ALTAGRACIA 39",
+                        "address_line2": "VILLA VELASQUEZ",
+                        "city_id": "1",
+                        "postal_code": "10210",
+                        "address_type": "Oficina",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 7,
+                "p_additional_data": {
+                    "notary_id": "9baf6c75-ee86-4c15-9e30-ae479ffb139b",
+                    "office_name": "Oficina Jurídica Luis Herrera",
+                    "jurisdiction": "San Pedro de Macoris",
+                    "license_number": "1778",
+                    "professional_email": "notario.herrera@oficina.com",
+                    "professional_phone": "809.529.2589"
+                }
+            }
+        }
+    ]
+}

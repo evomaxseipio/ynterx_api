@@ -81,26 +81,41 @@ class ContractLoanPropertyService:
 
             for idx, prop_data in enumerate(properties_data):
                 try:
+                    print(f"🔍 Procesando propiedad {idx+1}: {prop_data}")
+                    print(f"📝 Campo 'description' recibido: '{prop_data.get('description', 'NO ENCONTRADO')}'")
                     # 1. Crear la propiedad en la tabla property
-                    property_insert = property_table.insert().values(
-                        property_type=prop_data.get("property_type"),
-                        cadastral_number=prop_data.get("cadastral_number"),
-                        title_number=prop_data.get("title_number"),
-                        surface_area=prop_data.get("surface_area"),
-                        covered_area=prop_data.get("covered_area"),
-                        property_value=prop_data.get("property_value"),
-                        property_owner=prop_data.get("property_owner"),
-                        currency=prop_data.get("currency", "USD"),
-                        address_line1=prop_data.get("address_line1"),
-                        address_line2=prop_data.get("address_line2"),
-                        city_id=prop_data.get("city_id"),
-                        is_active=True,
-                        created_at=datetime.now(),
-                        updated_at=datetime.now()
-                    ).returning(property_table.c.property_id)
+                    # Preparar valores para insertar
+                    insert_values = {
+                        "property_type": prop_data.get("property_type"),
+                        "cadastral_number": prop_data.get("cadastral_number"),
+                        "title_number": prop_data.get("title_number"),
+                        "surface_area": prop_data.get("surface_area"),
+                        "covered_area": prop_data.get("covered_area"),
+                        "property_value": prop_data.get("property_value"),
+                        "property_owner": prop_data.get("owner_name"),
+                        "owner_civil_status": prop_data.get("owner_civil_status"),
+                        "owner_document_number": prop_data.get("owner_document_number"),
+                        "owner_nationality": prop_data.get("owner_nationality"),
+                        "currency": prop_data.get("currency", "USD"),
+                        "property_description": prop_data.get("description"),
+                        "address_line1": prop_data.get("address_line1"),
+                        "address_line2": prop_data.get("address_line2"),
+                        "city_id": int(prop_data.get("city_id")) if prop_data.get("city_id") else None,
+                        "postal_code": prop_data.get("postal_code"),
+                        "image_path": prop_data.get("image_path"),
+                        "is_active": True,
+                        "created_at": datetime.now(),
+                        "updated_at": datetime.now()
+                    }
+                    
+                    print(f"📝 Valores a insertar: {insert_values}")
+                    print(f"🎯 Campo 'property_description' a insertar: '{insert_values.get('property_description', 'VACÍO')}'")
+                    
+                    property_insert = property_table.insert().values(**insert_values).returning(property_table.c.property_id)
 
                     property_result = await fetch_one(property_insert, connection=connection, commit_after=True)
                     property_id = property_result["property_id"]
+                    print(f"✅ Propiedad insertada con ID: {property_id}")
 
                     # 2. Relacionar la propiedad con el contrato
                     contract_property_insert = contract_property.insert().values(
@@ -115,6 +130,7 @@ class ContractLoanPropertyService:
                     )
 
                     await execute(contract_property_insert, connection=connection, commit_after=True)
+                    print(f"✅ Relación contract_property creada para property_id: {property_id}")
 
                     created_properties.append({
                         "property_id": property_id,
@@ -132,6 +148,8 @@ class ContractLoanPropertyService:
                         "error": str(prop_error)
                     })
                     print(f"❌ Error creando propiedad {idx+1}: {str(prop_error)}")
+                    # Continuar con la siguiente propiedad en lugar de abortar
+                    continue
 
             # Resultado final
             if created_properties:

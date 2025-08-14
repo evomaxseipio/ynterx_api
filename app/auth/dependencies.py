@@ -4,6 +4,7 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.auth.local_dev import LOCAL_DEV_TOKEN, LOCAL_DEV_USER_ID
+from app.auth.jwt_service import jwt_service
 from app.config import settings
 from app.exceptions import NotAuthenticated
 from app.session_cache import get_user_by_token
@@ -37,11 +38,17 @@ async def get_current_user(credentials: dep_security):
     if settings.ENVIRONMENT.is_debug and token == LOCAL_DEV_TOKEN:
         return str(LOCAL_DEV_USER_ID)
 
-    # Para otros tokens, validar contra la caché
-    user_id = await get_user_by_token(token)
-    if not user_id:
-        raise NotAuthenticated()
-    return user_id
+    try:
+        # Validar token JWT
+        payload = jwt_service.verify_token(token)
+        user_id = payload["sub"]
+        return user_id
+    except ValueError as e:
+        # Fallback a caché de sesión si JWT falla
+        user_id = await get_user_by_token(token)
+        if not user_id:
+            raise NotAuthenticated(str(e))
+        return user_id
 
 
 # Dependencia tipada para el usuario actual

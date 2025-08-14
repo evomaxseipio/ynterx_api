@@ -79,17 +79,22 @@ class ContractLoanResponse(BaseModel):
 class PropertyCreate(BaseModel):
     """Schema para crear una propiedad"""
     property_type: str = Field(..., max_length=50, description="Tipo de propiedad")
-    cadastral_number: str = Field(..., max_length=50, description="Número catastral")
-    title_number: str = Field(..., max_length=50, description="Número de título")
-    surface_area: Decimal = Field(..., ge=0, decimal_places=2, description="Área de superficie en m²")
+    cadastral_number: Optional[str] = Field(None, max_length=50, description="Número catastral")
+    title_number: Optional[str] = Field(None, description="Número de título")
+    surface_area: Optional[Decimal] = Field(None, ge=0, decimal_places=2, description="Área de superficie en m²")
     covered_area: Optional[Decimal] = Field(None, ge=0, decimal_places=2, description="Área techada en m²")
     property_value: Optional[Decimal] = Field(None, ge=0, decimal_places=2, description="Valor de la propiedad")
     property_owner: Optional[str] = Field(None, max_length=100, description="Propietario de la propiedad")
+    owner_civil_status: Optional[str] = Field(None, max_length=50, description="Estado civil del propietario")
+    owner_document_number: Optional[str] = Field(None, max_length=50, description="Número de documento del propietario")
+    owner_nationality: Optional[str] = Field(None, max_length=50, description="Nacionalidad del propietario")
     currency: str = Field("USD", max_length=3, description="Código de moneda")
     property_description: Optional[str] = Field(None, description="Descripción de la propiedad")
-    address_line1: Optional[str] = Field(None, max_length=100, description="Dirección línea 1")
-    address_line2: Optional[str] = Field(None, max_length=100, description="Dirección línea 2")
+    address_line1: Optional[str] = Field(None, description="Dirección línea 1")
+    address_line2: Optional[str] = Field(None, description="Dirección línea 2")
     city_id: Optional[int] = Field(None, description="ID de ciudad")
+    postal_code: Optional[str] = Field(None, max_length=20, description="Código postal")
+    image_path: Optional[str] = Field(None, description="Ruta o URL de la imagen")
     is_active: Optional[bool] = Field(True, description="Propiedad activa")
 
     @validator('property_type')
@@ -111,20 +116,27 @@ class PropertyResponse(BaseModel):
     """Schema para respuesta de propiedad creada"""
     property_id: int
     property_type: str
-    cadastral_number: str
-    title_number: str
-    surface_area: Decimal
+    cadastral_number: Optional[str]
+    title_number: Optional[str]
+    surface_area: Optional[Decimal]
     covered_area: Optional[Decimal]
     property_value: Optional[Decimal]
     property_owner: Optional[str]
+    owner_civil_status: Optional[str]
+    owner_document_number: Optional[str]
+    owner_nationality: Optional[str]
     currency: str
     property_description: Optional[str]
     address_line1: Optional[str]
     address_line2: Optional[str]
     city_id: Optional[int]
+    postal_code: Optional[str]
+    image_path: Optional[str]
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    created_by: Optional[UUID]
+    updated_by: Optional[UUID]
 
 
 class ContractPropertyResponse(BaseModel):
@@ -194,14 +206,19 @@ class PropertyUpdate(BaseModel):
     """Schema para actualizar propiedad"""
     property_type: Optional[str] = Field(None, max_length=50)
     cadastral_number: Optional[str] = Field(None, max_length=50)
-    title_number: Optional[str] = Field(None, max_length=50)
+    title_number: Optional[str] = Field(None)
     surface_area: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
     covered_area: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
     property_value: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
     property_owner: Optional[str] = Field(None, max_length=100)
+    owner_civil_status: Optional[str] = Field(None, max_length=50)
+    owner_document_number: Optional[str] = Field(None, max_length=50)
+    owner_nationality: Optional[str] = Field(None, max_length=50)
     currency: Optional[str] = Field(None, max_length=3)
     property_description: Optional[str] = None
-    address_line1: Optional[str] = Field(None, max_length=100)
-    address_line2: Optional[str] = Field(None, max_length=100)
+    address_line1: Optional[str] = Field(None)
+    address_line2: Optional[str] = Field(None)
     city_id: Optional[int] = None
+    postal_code: Optional[str] = Field(None, max_length=20)
+    image_path: Optional[str] = Field(None)
     is_active: Optional[bool] = None

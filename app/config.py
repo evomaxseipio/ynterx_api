@@ -58,6 +58,12 @@ class Config(CustomBaseSettings):
 
     CONTRACT_EMAIL_RECIPIENTS: list[str] = ["mseipio.evotechrd@gmail.com"]
 
+    # JWT Configuration
+    JWT_SECRET_KEY: str = "your-super-secret-jwt-key-change-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":
         if self.ENVIRONMENT.is_deployed and not self.SENTRY_DSN:

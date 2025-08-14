@@ -1,0 +1,72 @@
+{
+    "contract_type": "mortgage",
+    "contract_number": "TEST-NOTARY-001",
+    "description": "Prueba de notario",
+    "loan": {
+        "amount": 10000.00,
+        "currency": "USD",
+        "interest_rate": 2.0,
+        "term_months": 12,
+        "loan_type": "hipotecario"
+    },
+    "properties": [
+        {
+            "property_type": "casa",
+            "cadastral_number": "123456789",
+            "title_number": "987654321",
+            "surface_area": 150.0,
+            "covered_area": 120.0,
+            "property_value": 10000.0,
+            "currency": "USD",
+            "description": "Propiedad de prueba",
+            "address_line1": "Calle Test 123",
+            "city_id": 1,
+            "postal_code": "21000",
+            "property_role": "garantia"
+        }
+    ],
+    "clients": [],
+    "investors": [],
+    "witnesses": [],
+    "notaries": [
+        {
+            "person": {
+                "first_name": "Luis Franklin",
+                "last_name": "Diaz Herrera",
+                "middle_name": "",
+                "date_of_birth": "1980-03-08",
+                "gender": "Masculino",
+                "nationality": "Dominicana",
+                "marital_status": "Soltero",
+                "occupation": "Notario"
+            },
+            "notary_document": {
+                "notary_number": "1178",
+                "document_type": "Cédula",
+                "document_number": "00233445566",
+                "issuing_country_id": "1",
+                "document_issue_date": "2005-06-01",
+                "document_expiry_date": "2025-06-01"
+            },
+            "address": {
+                "address_line1": "Calle Valiente #36",
+                "address_line2": "Apto. 5C, Villa Providencia",
+                "city_id": "1",
+                "postal_code": "21000",
+                "address_type": "Oficina"
+            },
+            "p_person_role_id": 7,
+            "license_number": "NT-239872",
+            "p_additional_data": {
+                "issuing_entity": "Suprema Corte de Justicia",
+                "issue_date": "2020-05-15",
+                "expiration_date": "2030-05-14",
+                "jurisdiction": "Distrito Nacional",
+                "office_name": "Oficina Jurídica Pérez & Asociados",
+                "professional_email": "notario.perez@oficina.com",
+                "professional_phone": "809-555-1234",
+                "notes": "Especializado en contratos civiles y notariales"
+            }
+        }
+    ]
+}

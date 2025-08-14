@@ -74,6 +74,25 @@ class ContractService:
 
         # Actualizar en service.py el método _flatten_data
 
+    def _format_full_name(self, first_name: str, middle_name: str, last_name: str) -> str:
+        """
+        Formatea el nombre completo en mayúsculas con espacios sencillos.
+        """
+        # Construir el nombre completo
+        name_parts = []
+        if first_name:
+            name_parts.append(first_name)
+        if middle_name:
+            name_parts.append(middle_name)
+        if last_name:
+            name_parts.append(last_name)
+        
+        # Unir con espacios y convertir a mayúsculas
+        full_name = " ".join(name_parts)
+        # Normalizar espacios (reemplazar múltiples espacios con uno solo)
+        full_name = " ".join(full_name.split())
+        return full_name.upper()
+
     def _flatten_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Aplanar estructura JSON compleja para plantilla Word - Mejorado para contratos hipotecarios"""
         flattened = {}
@@ -187,7 +206,7 @@ class ContractService:
                 "property_value": f"{prop.get('property_value', 0):,.2f}",
                 "property_value_raw": prop.get('property_value', 0),
                 "property_currency": prop.get("currency", "USD"),
-                "property_description": prop.get("property_description", ""),
+                "property_description": prop.get("description", ""),
                 "property_owner": prop.get("property_owner", ""),
             })
 
@@ -195,22 +214,58 @@ class ContractService:
             flattened["all_properties"] = data["properties"]
 
         # ========================================
-        # EMPRESAS
+        # EMPRESAS (MEJORADO)
         # ========================================
         if "investor_company" in data:
             company = data["investor_company"]
+            company_address = company.get("company_address", {})
+            company_managers = company.get("company_manager", [])
+            main_manager = next((m for m in company_managers if m.get("is_main_manager")), company_managers[0] if company_managers else {})
+            
             flattened.update({
-                "investor_company_name": company.get("name", ""),
-                "investor_company_rnc": company.get("rnc", ""),
-                "investor_company_rm": company.get("rm", ""),
+                "investor_company_name": company.get("company_name", ""),
+                "investor_company_rnc": company.get("company_rnc", ""),
+                "investor_company_mercantil_number": company.get("company_mercantil_number", ""),
+                "investor_company_phone": company.get("company_phone", ""),
+                "investor_company_email": company.get("company_email", ""),
+                "investor_company_type": company.get("company_type", ""),
+                "investor_company_address": company_address.get("address_line1", ""),
+                "investor_company_address2": company_address.get("address_line2", ""),
+                "investor_company_city": company_address.get("city", ""),
+                "investor_company_postal_code": company_address.get("postal_code", ""),
+                "investor_company_address_type": company_address.get("address_type", ""),
+                "investor_manager_name": main_manager.get("name", ""),
+                "investor_manager_position": main_manager.get("position", ""),
+                "investor_manager_document_number": main_manager.get("document_number", ""),
+                "investor_manager_nationality": main_manager.get("nationality", ""),
+                "investor_manager_marital_status": main_manager.get("marital_status", ""),
+                "investor_manager_address": main_manager.get("address", ""),
             })
 
         if "client_company" in data:
             company = data["client_company"]
+            company_address = company.get("company_address", {})
+            company_managers = company.get("company_manager", [])
+            main_manager = next((m for m in company_managers if m.get("is_main_manager")), company_managers[0] if company_managers else {})
+            
             flattened.update({
-                "client_company_name": company.get("name", ""),
-                "client_company_rnc": company.get("rnc", ""),
-                "client_company_rm": company.get("rm", ""),
+                "client_company_name": company.get("company_name", ""),
+                "client_company_rnc": company.get("company_rnc", ""),
+                "client_company_mercantil_number": company.get("company_mercantil_number", ""),
+                "client_company_phone": company.get("company_phone", ""),
+                "client_company_email": company.get("company_email", ""),
+                "client_company_type": company.get("company_type", ""),
+                "client_company_address": company_address.get("address_line1", ""),
+                "client_company_address2": company_address.get("address_line2", ""),
+                "client_company_city": company_address.get("city", ""),
+                "client_company_postal_code": company_address.get("postal_code", ""),
+                "client_company_address_type": company_address.get("address_type", ""),
+                "client_manager_name": main_manager.get("name", ""),
+                "client_manager_position": main_manager.get("position", ""),
+                "client_manager_document_number": main_manager.get("document_number", ""),
+                "client_manager_nationality": main_manager.get("nationality", ""),
+                "client_manager_marital_status": main_manager.get("marital_status", ""),
+                "client_manager_address": main_manager.get("address", ""),
             })
 
         # ========================================
@@ -221,32 +276,41 @@ class ContractService:
 
             for idx, client in enumerate(data["clients"]):
                 person = client.get("person", {})
-                document = client.get("person_document", {})
-                address = client.get("address", {})
+                documents = person.get("p_documents", [])
+                addresses = person.get("p_addresses", [])
+                additional_data = person.get("p_additional_data", {})
 
-                # Mascara por defecto para email y teléfono
-                email = person.get("email", "") or "xxxxxx@xmail.com"
-                phone = person.get("phone_number", "") or "(XXX) XXX-XXXX"
+                # Extraer email y teléfono de additional_data
+                email = additional_data.get("email", "") or "xxxxxx@xmail.com"
+                phone = additional_data.get("phone_number", "") or "(XXX) XXX-XXXX"
+
+                # Obtener el primer documento y dirección
+                document = documents[0] if documents else {}
+                address = addresses[0] if addresses else {}
 
                 client_flat = {
-                    "first_name": person.get("first_name", ""),
-                    "last_name": person.get("last_name", ""),
-                    "middle_name": person.get("middle_name", ""),
-                    "full_name": f"{person.get('first_name', '')} {person.get('middle_name', '') or ''} {person.get('last_name', '')}".strip(),
-                    "date_of_birth": person.get("date_of_birth", ""),
-                    "gender": person.get("gender", ""),
-                    "nationality": person.get("nationality", ""),
-                    "marital_status": person.get("marital_status", ""),
+                    "first_name": person.get("p_first_name", ""),
+                    "last_name": person.get("p_last_name", ""),
+                    "middle_name": person.get("p_middle_name", ""),
+                    "full_name": self._format_full_name(
+                        person.get("p_first_name", ""),
+                        person.get("p_middle_name", ""),
+                        person.get("p_last_name", "")
+                    ),
+                    "date_of_birth": person.get("p_date_of_birth", ""),
+                    "gender": person.get("p_gender", ""),
+                    "nationality": person.get("p_nationality_country", ""),
+                    "marital_status": person.get("p_marital_status", ""),
                     "phone_number": phone,
                     "email": email,
                     "document_type": document.get("document_type", ""),
                     "document_number": document.get("document_number", ""),
-                    "issuing_country": document.get("issuing_country", ""),
+                    "issuing_country": document.get("issuing_country_id", ""),
                     "document_issue_date": document.get("document_issue_date", ""),
                     "document_expiry_date": document.get("document_expiry_date", ""),
                     "address_line1": address.get("address_line1", ""),
                     "address_line2": address.get("address_line2", ""),
-                    "city": address.get("city", ""),
+                    "city": address.get("city_id", ""),
                     "postal_code": address.get("postal_code", ""),
                     "address_type": address.get("address_type", ""),
                     "is_principal": address.get("is_principal", False),
@@ -257,7 +321,7 @@ class ContractService:
             flattened["clients"] = clients_list
             flattened["clients_count"] = len(clients_list)
 
-            # Cliente principal (primero)
+            # Cliente principal (primero) - Mantener compatibilidad
             if clients_list:
                 main_client = clients_list[0]
                 flattened.update({
@@ -276,9 +340,32 @@ class ContractService:
                     "client_document_number": main_client["document_number"],
                     "client_issuing_country": main_client["issuing_country"],
                     "client_address": main_client["address_line1"],
-                    "client_address2": main_client["address_line2"],
+                    "client_address2": main_client["address_line2"].upper() if main_client["address_line2"] else "",
                     "client_city": main_client["city"],
                     "client_postal_code": main_client["postal_code"],
+                })
+
+            # Generar variables múltiples para clientes (client1, client2, etc.)
+            for idx, client in enumerate(clients_list, 1):
+                client_num = idx
+                flattened.update({
+                    f"client{client_num}_full_name": client["full_name"],
+                    f"client{client_num}_first_name": client["first_name"],
+                    f"client{client_num}_last_name": client["last_name"],
+                    f"client{client_num}_middle_name": client["middle_name"],
+                    f"client{client_num}_date_of_birth": client["date_of_birth"],
+                    f"client{client_num}_gender": client["gender"],
+                    f"client{client_num}_nationality": client["nationality"],
+                    f"client{client_num}_marital_status": client["marital_status"],
+                    f"client{client_num}_phone": client["phone_number"] or "(XXX) XXX-XXXX",
+                    f"client{client_num}_email": client["email"] or "xxxxxx@xmail.com",
+                    f"client{client_num}_document_type": client["document_type"],
+                    f"client{client_num}_document_number": client["document_number"],
+                    f"client{client_num}_issuing_country": client["issuing_country"],
+                    f"client{client_num}_address": client["address_line1"],
+                    f"client{client_num}_address2": client["address_line2"].upper() if client["address_line2"] else "",
+                    f"client{client_num}_city": client["city"],
+                    f"client{client_num}_postal_code": client["postal_code"],
                 })
 
         # ========================================
@@ -289,35 +376,45 @@ class ContractService:
 
             for idx, investor in enumerate(data["investors"]):
                 person = investor.get("person", {})
-                document = investor.get("person_document", {})
-                address = investor.get("address", {})
+                documents = person.get("p_documents", [])
+                addresses = person.get("p_addresses", [])
+                additional_data = person.get("p_additional_data", {})
 
-                # Mascara por defecto para email y teléfono
-                email = person.get("email", "") or "xxxxxx@xmail.com"
-                phone = person.get("phone_number", "") or "(XXX) XXX-XXXX"
+                # Extraer email y teléfono de additional_data
+                email = additional_data.get("email", "") or "xxxxxx@xmail.com"
+                phone = additional_data.get("phone_number", "") or "(XXX) XXX-XXXX"
+
+                # Obtener el primer documento y dirección
+                document = documents[0] if documents else {}
+                address = addresses[0] if addresses else {}
 
                 investor_flat = {
-                    "first_name": person.get("first_name", ""),
-                    "last_name": person.get("last_name", ""),
-                    "middle_name": person.get("middle_name", ""),
-                    "full_name": f"{person.get('first_name', '')} {person.get('middle_name', '') or ''} {person.get('last_name', '')}".strip(),
-                    "date_of_birth": person.get("date_of_birth", ""),
-                    "gender": person.get("gender", ""),
-                    "nationality": person.get("nationality", ""),
-                    "marital_status": person.get("marital_status", ""),
+                    "first_name": person.get("p_first_name", ""),
+                    "last_name": person.get("p_last_name", ""),
+                    "middle_name": person.get("p_middle_name", ""),
+                    "full_name": self._format_full_name(
+                        person.get("p_first_name", ""),
+                        person.get("p_middle_name", ""),
+                        person.get("p_last_name", "")
+                    ),
+                    "date_of_birth": person.get("p_date_of_birth", ""),
+                    "gender": person.get("p_gender", ""),
+                    "nationality": person.get("p_nationality_country", ""),
+                    "marital_status": person.get("p_marital_status", ""),
                     "phone_number": phone,
                     "email": email,
                     "document_type": document.get("document_type", ""),
                     "document_number": document.get("document_number", ""),
                     "address_line1": address.get("address_line1", ""),
-                    "city": address.get("city", ""),
+                    "address_line2": address.get("address_line2", ""),
+                    "city": address.get("city_id", ""),
                 }
                 investors_list.append(investor_flat)
 
             flattened["investors"] = investors_list
             flattened["investors_count"] = len(investors_list)
 
-            # Inversionista principal
+            # Inversionista principal - Mantener compatibilidad
             if investors_list:
                 main_investor = investors_list[0]
                 flattened.update({
@@ -328,8 +425,30 @@ class ContractService:
                     "investor_middle_name": main_investor["middle_name"],
                     "investor_document_number": main_investor["document_number"],
                     "investor_address": main_investor["address_line1"],
+                    "investor_address2": main_investor["address_line2"].upper() if main_investor["address_line2"] else "",
                     "investor_phone": main_investor["phone_number"] or "(XXX) XXX-XXXX",
                     "investor_email": main_investor["email"] or "xxxxxx@xmail.com",
+                })
+
+            # Generar variables múltiples para inversores (investor1, investor2, etc.)
+            for idx, investor in enumerate(investors_list, 1):
+                investor_num = idx
+                flattened.update({
+                    f"investor{investor_num}_full_name": investor["full_name"],
+                    f"investor{investor_num}_first_name": investor["first_name"],
+                    f"investor{investor_num}_last_name": investor["last_name"],
+                    f"investor{investor_num}_middle_name": investor["middle_name"],
+                    f"investor{investor_num}_date_of_birth": investor["date_of_birth"],
+                    f"investor{investor_num}_gender": investor["gender"],
+                    f"investor{investor_num}_nationality": investor["nationality"],
+                    f"investor{investor_num}_marital_status": investor["marital_status"],
+                    f"investor{investor_num}_phone": investor["phone_number"] or "(XXX) XXX-XXXX",
+                    f"investor{investor_num}_email": investor["email"] or "xxxxxx@xmail.com",
+                    f"investor{investor_num}_document_type": investor["document_type"],
+                    f"investor{investor_num}_document_number": investor["document_number"],
+                    f"investor{investor_num}_address": investor["address_line1"],
+                    f"investor{investor_num}_address2": investor["address_line2"].upper() if investor["address_line2"] else "",
+                    f"investor{investor_num}_city": investor["city"],
                 })
 
         # ========================================
@@ -338,20 +457,30 @@ class ContractService:
         if "witnesses" in data and data["witnesses"]:
             witness = data["witnesses"][0]
             person = witness.get("person", {})
-            document = witness.get("person_document", {})
-            address = witness.get("address", {})
+            documents = person.get("p_documents", [])
+            addresses = person.get("p_addresses", [])
+            additional_data = person.get("p_additional_data", {})
 
-            # Mascara por defecto para email y teléfono
-            email = person.get("email", "") or "xxxxxx@xmail.com"
-            phone = person.get("phone_number", "") or "(XXX) XXX-XXXX"
+            # Extraer email y teléfono de additional_data
+            email = additional_data.get("email", "") or "xxxxxx@xmail.com"
+            phone = additional_data.get("phone_number", "") or "(XXX) XXX-XXXX"
+
+            # Obtener el primer documento y dirección
+            document = documents[0] if documents else {}
+            address = addresses[0] if addresses else {}
 
             flattened.update({
-                "witness_name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
-                "witness_full_name": f"{person.get('first_name', '')} {person.get('middle_name', '') or ''} {person.get('last_name', '')}".strip(),
-                "witness_first_name": person.get("first_name", ""),
-                "witness_last_name": person.get("last_name", ""),
+                "witness_name": f"{person.get('p_first_name', '')} {person.get('p_last_name', '')}".strip(),
+                "witness_full_name": self._format_full_name(
+                    person.get("p_first_name", ""),
+                    person.get("p_middle_name", ""),
+                    person.get("p_last_name", "")
+                ),
+                "witness_first_name": person.get("p_first_name", ""),
+                "witness_last_name": person.get("p_last_name", ""),
                 "witness_document_number": document.get("document_number", ""),
                 "witness_address": address.get("address_line1", ""),
+                "witness_address2": address.get("address_line2", "").upper() if address.get("address_line2") else "",
                 "witness_phone": phone,
                 "witness_email": email,
             })
@@ -362,35 +491,14 @@ class ContractService:
         # ========================================
         # NOTARIOS
         # ========================================
-        # Manejar estructura antigua (notaries) y nueva (notary)
+        # Manejar estructura "notaries" (plural) y "notary" (singular)
         notary_data = None
         if "notaries" in data and data["notaries"]:
             notary_data = data["notaries"][0]
-            person = notary_data.get("person", {})
-            notary_doc = notary_data.get("notary_document", {})
-            address = notary_data.get("address", {})
-
-            # Mascara por defecto para email y teléfono
-            email = person.get("email", "") or "xxxxxx@xmail.com"
-            phone = person.get("phone_number", "") or "(XXX) XXX-XXXX"
-
-            flattened.update({
-                "notary_name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
-                "notary_full_name": f"{person.get('first_name', '')} {person.get('middle_name', '') or ''} {person.get('last_name', '')}".strip(),
-                "notary_first_name": person.get("first_name", ""),
-                "notary_last_name": person.get("last_name", ""),
-                "notary_license_number": notary_doc.get("notary_number", ""),
-                "notary_document_number": notary_doc.get("document_number", ""),
-                "notary_address": address.get("address_line1", ""),
-                "notary_phone": phone,
-                "notary_email": email,
-            })
-
-            flattened["notaries"] = data["notaries"]
-        
-        # Manejar estructura nueva (notary)
         elif "notary" in data and data["notary"]:
             notary_data = data["notary"][0]
+        
+        if notary_data:
             person = notary_data.get("person", {})
             documents = person.get("p_documents", [])
             addresses = person.get("p_addresses", [])
@@ -404,9 +512,16 @@ class ContractService:
             email = additional_data.get("professional_email", "") or "xxxxxx@xmail.com"
             phone = additional_data.get("professional_phone", "") or "(XXX) XXX-XXXX"
 
+            # Formatear nombres con función de limpieza de espacios dobles
+            notary_name = f"{person.get('p_first_name', '')} {person.get('p_last_name', '')}".strip()
+            notary_full_name = f"{person.get('p_first_name', '')} {person.get('p_middle_name', '') or ''} {person.get('p_last_name', '')}".strip()
+            
+            # Limpiar espacios dobles y convertir a mayúsculas para full_name
+            notary_full_name = ' '.join(notary_full_name.split()).upper()
+
             flattened.update({
-                "notary_name": f"{person.get('p_first_name', '')} {person.get('p_last_name', '')}".strip(),
-                "notary_full_name": f"{person.get('p_first_name', '')} {person.get('p_middle_name', '') or ''} {person.get('p_last_name', '')}".strip(),
+                "notary_name": notary_name,
+                "notary_full_name": notary_full_name,
                 "notary_first_name": person.get("p_first_name", ""),
                 "notary_last_name": person.get("p_last_name", ""),
                 "notary_license_number": additional_data.get("license_number", ""),
@@ -416,7 +531,11 @@ class ContractService:
                 "notary_email": email,
             })
 
-            flattened["notaries"] = data["notary"]
+            # Guardar la estructura original para mantener compatibilidad
+            if "notaries" in data:
+                flattened["notaries"] = data["notaries"]
+            elif "notary" in data:
+                flattened["notaries"] = data["notary"]
 
         # ========================================
         # REFERENTES
@@ -427,7 +546,7 @@ class ContractService:
             document = referent.get("person_document", {})
 
             flattened.update({
-                "referrer_name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
+                "referrer_name": f"{person.get('p_first_name', '')} {person.get('p_last_name', '')}".strip(),
                 "referrer_document_number": document.get("document_number", ""),
             })
 
@@ -491,6 +610,19 @@ class ContractService:
         for key, value in data.items():
             if not isinstance(value, (dict, list)) and key not in flattened:
                 flattened[key] = value
+
+        # ========================================
+        # ASIGNACIÓN DE NOMBRES PARA COMPATIBILIDAD
+        # ========================================
+        # Si no existe client_full_name, usar client_manager_name
+        if "client_full_name" not in flattened or not flattened["client_full_name"]:
+            if "client_manager_name" in flattened and flattened["client_manager_name"]:
+                flattened["client_full_name"] = flattened["client_manager_name"]
+        
+        # Si no existe investor_full_name, usar investor_manager_name
+        if "investor_full_name" not in flattened or not flattened["investor_full_name"]:
+            if "investor_manager_name" in flattened and flattened["investor_manager_name"]:
+                flattened["investor_full_name"] = flattened["investor_manager_name"]
 
         return flattened
 
@@ -679,7 +811,7 @@ class ContractService:
             # Mostrar todas las variables que se van a pasar al template
             print("🔍 Variables que se pasan al template:")
             template_vars = ['client_paragraph', 'investor_paragraph', 'client_full_name', 'investor_full_name', 
-                           'loan_amount', 'interest_rate', 'monthly_payment', 'final_payment']
+                           'loan_amount', 'interest_rate', 'monthly_payment', 'final_payment', 'property_description']
             for var in template_vars:
                 if var in processed_data:
                     value = processed_data[var]
@@ -691,6 +823,13 @@ class ContractService:
                 else:
                     print(f"   {var}: NO ENCONTRADO")
 
+            # Verificar que property_description esté disponible
+            if 'property_description' in processed_data:
+                print(f"✅ property_description disponible: '{processed_data['property_description'][:100]}...'")
+            else:
+                print("❌ property_description NO disponible en processed_data")
+                print(f"📋 Variables disponibles: {list(processed_data.keys())}")
+            
             # Generar documento
             doc = DocxTemplate(template_path)
             doc.render(processed_data)
@@ -919,3 +1058,5 @@ class ContractService:
             "contracts": contracts,
             "total": len(contracts)
         }
+
+

@@ -251,3 +251,9 @@ tags
 # Custom ignores for ynterxal API
 app/utils/RNC_Contribuyentes_Actualizado_26_Jul_2025.csv
 sendgrid.env
+
+database/
+docs/
+scripts/generate_contract.py
+scripts/setup_admin_user.py
+test/

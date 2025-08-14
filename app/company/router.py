@@ -12,7 +12,17 @@ from app.company.models import (
     CompanyListSuccessResponse,
     CompanyListSimpleResponse,
     RNCSuccessResponse,
-    DeleteSuccessResponse
+    DeleteSuccessResponse,
+    CompanyAddressCreate,
+    CompanyAddressUpdate,
+    CompanyAddressResponse,
+    CompanyAddressSuccessResponse,
+    CompanyManagerCreate,
+    CompanyManagerUpdate,
+    CompanyManagerResponse,
+    CompanyManagerSuccessResponse,
+    CompanyWithRelations,
+    CompanyWithRelationsSuccessResponse
 )
 
 router = APIRouter(prefix="/company", tags=["company"])
@@ -372,6 +382,403 @@ async def get_companies_by_type(
         )
     except Exception as e:
         return CompanyListSimpleResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
+@router.get("/{company_id}/with-relations", response_model=CompanyWithRelationsSuccessResponse)
+async def get_company_with_relations(
+    company_id: int,
+    service: CompanyService = Depends(get_company_service)
+) -> CompanyWithRelationsSuccessResponse:
+    """
+    Obtener empresa con sus direcciones y gerentes
+
+    Args:
+        company_id (int): ID de la empresa
+
+    Returns:
+        CompanyWithRelationsSuccessResponse: Empresa con relaciones
+    """
+    try:
+        company = await service.get_company_with_relations(company_id)
+        return CompanyWithRelationsSuccessResponse(
+            success=True,
+            message="Empresa obtenida exitosamente",
+            data=company
+        )
+    except HTTPException as e:
+        return CompanyWithRelationsSuccessResponse(
+            success=False,
+            error="NOT_FOUND",
+            message=e.detail
+        )
+    except Exception as e:
+        return CompanyWithRelationsSuccessResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
+# Company Address Endpoints
+@router.post("/{company_id}/addresses", response_model=CompanyAddressSuccessResponse)
+async def create_company_address(
+    company_id: int,
+    address_data: CompanyAddressCreate,
+    service: CompanyService = Depends(get_company_service)
+) -> CompanyAddressSuccessResponse:
+    """
+    Crear una nueva dirección para una empresa
+
+    Args:
+        company_id (int): ID de la empresa
+        address_data (CompanyAddressCreate): Datos de la dirección
+
+    Returns:
+        CompanyAddressSuccessResponse: Dirección creada
+    """
+    try:
+        address_data.company_id = company_id
+        address = await service.create_company_address(address_data)
+        return CompanyAddressSuccessResponse(
+            success=True,
+            message="Dirección creada exitosamente",
+            data=address
+        )
+    except HTTPException as e:
+        return CompanyAddressSuccessResponse(
+            success=False,
+            error="CREATE_ERROR",
+            message=e.detail
+        )
+    except Exception as e:
+        return CompanyAddressSuccessResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
+@router.get("/{company_id}/addresses", response_model=CompanyListSimpleResponse)
+async def get_company_addresses(
+    company_id: int,
+    service: CompanyService = Depends(get_company_service)
+) -> CompanyListSimpleResponse:
+    """
+    Obtener todas las direcciones de una empresa
+
+    Args:
+        company_id (int): ID de la empresa
+
+    Returns:
+        CompanyListSimpleResponse: Lista de direcciones
+    """
+    try:
+        addresses = await service.get_addresses_by_company_id(company_id)
+        return CompanyListSimpleResponse(
+            success=True,
+            message=f"Se encontraron {len(addresses)} direcciones",
+            data=addresses
+        )
+    except HTTPException as e:
+        return CompanyListSimpleResponse(
+            success=False,
+            error="FETCH_ERROR",
+            message=e.detail
+        )
+    except Exception as e:
+        return CompanyListSimpleResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
+@router.get("/addresses/{address_id}", response_model=CompanyAddressSuccessResponse)
+async def get_company_address(
+    address_id: int,
+    service: CompanyService = Depends(get_company_service)
+) -> CompanyAddressSuccessResponse:
+    """
+    Obtener una dirección específica
+
+    Args:
+        address_id (int): ID de la dirección
+
+    Returns:
+        CompanyAddressSuccessResponse: Dirección encontrada
+    """
+    try:
+        address = await service.get_company_address_by_id(address_id)
+        return CompanyAddressSuccessResponse(
+            success=True,
+            message="Dirección obtenida exitosamente",
+            data=address
+        )
+    except HTTPException as e:
+        return CompanyAddressSuccessResponse(
+            success=False,
+            error="NOT_FOUND",
+            message=e.detail
+        )
+    except Exception as e:
+        return CompanyAddressSuccessResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
+@router.put("/addresses/{address_id}", response_model=CompanyAddressSuccessResponse)
+async def update_company_address(
+    address_id: int,
+    address_data: CompanyAddressUpdate,
+    service: CompanyService = Depends(get_company_service)
+) -> CompanyAddressSuccessResponse:
+    """
+    Actualizar una dirección de empresa
+
+    Args:
+        address_id (int): ID de la dirección
+        address_data (CompanyAddressUpdate): Datos a actualizar
+
+    Returns:
+        CompanyAddressSuccessResponse: Dirección actualizada
+    """
+    try:
+        address = await service.update_company_address(address_id, address_data)
+        return CompanyAddressSuccessResponse(
+            success=True,
+            message="Dirección actualizada exitosamente",
+            data=address
+        )
+    except HTTPException as e:
+        return CompanyAddressSuccessResponse(
+            success=False,
+            error="UPDATE_ERROR",
+            message=e.detail
+        )
+    except Exception as e:
+        return CompanyAddressSuccessResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
+@router.delete("/addresses/{address_id}", response_model=DeleteSuccessResponse)
+async def delete_company_address(
+    address_id: int,
+    service: CompanyService = Depends(get_company_service)
+) -> DeleteSuccessResponse:
+    """
+    Eliminar una dirección de empresa (soft delete)
+
+    Args:
+        address_id (int): ID de la dirección
+
+    Returns:
+        DeleteSuccessResponse: Mensaje de confirmación
+    """
+    try:
+        await service.delete_company_address(address_id)
+        return DeleteSuccessResponse(
+            success=True,
+            message="Dirección eliminada exitosamente",
+            data={"address_id": address_id}
+        )
+    except HTTPException as e:
+        return DeleteSuccessResponse(
+            success=False,
+            error="DELETE_ERROR",
+            message=e.detail
+        )
+    except Exception as e:
+        return DeleteSuccessResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
+# Company Manager Endpoints
+@router.post("/{company_id}/managers", response_model=CompanyManagerSuccessResponse)
+async def create_company_manager(
+    company_id: int,
+    manager_data: CompanyManagerCreate,
+    service: CompanyService = Depends(get_company_service)
+) -> CompanyManagerSuccessResponse:
+    """
+    Crear un nuevo gerente para una empresa
+
+    Args:
+        company_id (int): ID de la empresa
+        manager_data (CompanyManagerCreate): Datos del gerente
+
+    Returns:
+        CompanyManagerSuccessResponse: Gerente creado
+    """
+    try:
+        manager_data.company_id = company_id
+        manager = await service.create_company_manager(manager_data)
+        return CompanyManagerSuccessResponse(
+            success=True,
+            message="Gerente creado exitosamente",
+            data=manager
+        )
+    except HTTPException as e:
+        return CompanyManagerSuccessResponse(
+            success=False,
+            error="CREATE_ERROR",
+            message=e.detail
+        )
+    except Exception as e:
+        return CompanyManagerSuccessResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
+@router.get("/{company_id}/managers", response_model=CompanyListSimpleResponse)
+async def get_company_managers(
+    company_id: int,
+    service: CompanyService = Depends(get_company_service)
+) -> CompanyListSimpleResponse:
+    """
+    Obtener todos los gerentes de una empresa
+
+    Args:
+        company_id (int): ID de la empresa
+
+    Returns:
+        CompanyListSimpleResponse: Lista de gerentes
+    """
+    try:
+        managers = await service.get_managers_by_company_id(company_id)
+        return CompanyListSimpleResponse(
+            success=True,
+            message=f"Se encontraron {len(managers)} gerentes",
+            data=managers
+        )
+    except HTTPException as e:
+        return CompanyListSimpleResponse(
+            success=False,
+            error="FETCH_ERROR",
+            message=e.detail
+        )
+    except Exception as e:
+        return CompanyListSimpleResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
+@router.get("/managers/{manager_id}", response_model=CompanyManagerSuccessResponse)
+async def get_company_manager(
+    manager_id: int,
+    service: CompanyService = Depends(get_company_service)
+) -> CompanyManagerSuccessResponse:
+    """
+    Obtener un gerente específico
+
+    Args:
+        manager_id (int): ID del gerente
+
+    Returns:
+        CompanyManagerSuccessResponse: Gerente encontrado
+    """
+    try:
+        manager = await service.get_company_manager_by_id(manager_id)
+        return CompanyManagerSuccessResponse(
+            success=True,
+            message="Gerente obtenido exitosamente",
+            data=manager
+        )
+    except HTTPException as e:
+        return CompanyManagerSuccessResponse(
+            success=False,
+            error="NOT_FOUND",
+            message=e.detail
+        )
+    except Exception as e:
+        return CompanyManagerSuccessResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
+@router.put("/managers/{manager_id}", response_model=CompanyManagerSuccessResponse)
+async def update_company_manager(
+    manager_id: int,
+    manager_data: CompanyManagerUpdate,
+    service: CompanyService = Depends(get_company_service)
+) -> CompanyManagerSuccessResponse:
+    """
+    Actualizar un gerente de empresa
+
+    Args:
+        manager_id (int): ID del gerente
+        manager_data (CompanyManagerUpdate): Datos a actualizar
+
+    Returns:
+        CompanyManagerSuccessResponse: Gerente actualizado
+    """
+    try:
+        manager = await service.update_company_manager(manager_id, manager_data)
+        return CompanyManagerSuccessResponse(
+            success=True,
+            message="Gerente actualizado exitosamente",
+            data=manager
+        )
+    except HTTPException as e:
+        return CompanyManagerSuccessResponse(
+            success=False,
+            error="UPDATE_ERROR",
+            message=e.detail
+        )
+    except Exception as e:
+        return CompanyManagerSuccessResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
+@router.delete("/managers/{manager_id}", response_model=DeleteSuccessResponse)
+async def delete_company_manager(
+    manager_id: int,
+    service: CompanyService = Depends(get_company_service)
+) -> DeleteSuccessResponse:
+    """
+    Eliminar un gerente de empresa (soft delete)
+
+    Args:
+        manager_id (int): ID del gerente
+
+    Returns:
+        DeleteSuccessResponse: Mensaje de confirmación
+    """
+    try:
+        await service.delete_company_manager(manager_id)
+        return DeleteSuccessResponse(
+            success=True,
+            message="Gerente eliminado exitosamente",
+            data={"manager_id": manager_id}
+        )
+    except HTTPException as e:
+        return DeleteSuccessResponse(
+            success=False,
+            error="DELETE_ERROR",
+            message=e.detail
+        )
+    except Exception as e:
+        return DeleteSuccessResponse(
             success=False,
             error="INTERNAL_ERROR",
             message=f"Error interno: {str(e)}"
