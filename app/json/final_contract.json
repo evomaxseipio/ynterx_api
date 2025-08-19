@@ -2,8 +2,8 @@
     "contract_type": "Contrato de préstamo con garantía real",
     "contract_type_id": 1,
     "description": null,
-    "contract_date": "13/08/2025",
-    "contract_end_date": "13/08/2026",
+    "contract_date": "13/02/2025",
+    "contract_end_date": "13/02/2026",
     "client_company": {
         "name": "",
         "rnc": "",
@@ -74,8 +74,8 @@
     "clients": [
         {
             "person": {
-                "p_first_name": "SEIPIO",
-                "p_last_name": "MARTINS MINICANA",
+                "p_first_name": "MAXIMILIANO",
+                "p_last_name": "SEIPIO MARTINS",
                 "p_middle_name": "",
                 "p_date_of_birth": null,
                 "p_gender": "Masculino",

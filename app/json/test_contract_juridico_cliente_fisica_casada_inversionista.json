@@ -101,46 +101,7 @@
         }
     ],
     "clients": [
-        {
-            "person": {
-                "p_first_name": "EMPRESA DE DESARROLLO INMOBILIARIO DEL ESTE",
-                "p_last_name": "S.A.",
-                "p_middle_name": "",
-                "p_date_of_birth": null,
-                "p_gender": "Juridica",
-                "p_nationality_country": "Republica Dominicana",
-                "p_marital_status": "Juridica",
-                "p_occupation": "Desarrollo Inmobiliario",
-                "p_documents": [
-                    {
-                        "is_primary": true,
-                        "document_type": "RNC",
-                        "document_number": "1-30-99999-9",
-                        "issuing_country_id": "1",
-                        "document_issue_date": "2022-01-10",
-                        "document_expiry_date": "2032-01-10"
-                    }
-                ],
-                "p_addresses": [
-                    {
-                        "address_line1": "AVENIDA PRINCIPAL 777, EDIFICIO CORPORATIVO",
-                        "address_line2": "SAN PEDRO DE MACORIS",
-                        "city_id": "5",
-                        "postal_code": "21000",
-                        "address_type": "Oficina",
-                        "is_principal": true
-                    }
-                ],
-                "p_person_role_id": 1,
-                "p_additional_data": {
-                    "phone_number": "809-555-9999",
-                    "email": "desarrollo@empresa-este.com",
-                    "company_type": "Sociedad Anonima",
-                    "legal_representative": "RAFAEL ANTONIO MARTINEZ GARCIA",
-                    "representative_document": "023-0099999-9"
-                }
-            }
-        }
+      
     ],
     "investors": [
         {

@@ -179,46 +179,7 @@
             }
         }
     ],
-    "witnesses": [
-        {
-            "person": {
-                "p_first_name": "FRANCISCO JOSE",
-                "p_last_name": "TORRES RODRIGUEZ",
-                "p_middle_name": "",
-                "p_date_of_birth": "1977-04-05",
-                "p_gender": "Masculino",
-                "p_nationality_country": "Republica Dominicana",
-                "p_marital_status": "Casado",
-                "p_occupation": "NOTARIO",
-                "p_documents": [
-                    {
-                        "is_primary": true,
-                        "document_type": "Cédula",
-                        "document_number": "023-0088888-8",
-                        "issuing_country_id": "1",
-                        "document_issue_date": "2007-04-05",
-                        "document_expiry_date": "2017-04-05"
-                    }
-                ],
-                "p_addresses": [
-                    {
-                        "address_line1": "CALLE NOTARIAL 456, EDIFICIO PROFESIONAL",
-                        "address_line2": "LA ROMANA",
-                        "city_id": "4",
-                        "postal_code": "22001",
-                        "address_type": "Oficina",
-                        "is_principal": true
-                    }
-                ],
-                "p_person_role_id": 3,
-                "p_additional_data": {
-                    "phone_number": "809-555-8888",
-                    "email": "francisco.torres@notarios.com",
-                    "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755142150000.jpg"
-                }
-            }
-        }
-    ],
+    "witnesses": [],
     "referents": [],
     "notary": [
         {

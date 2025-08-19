@@ -1,13 +1,13 @@
 {
   "contract_id": "contract_CNT-000027-2025",
-  "created_at": "2025-08-14T00:15:56.024993",
-  "modified_at": "2025-08-14T00:15:56.025005",
+  "created_at": "2025-08-16T18:19:26.578969",
+  "modified_at": "2025-08-16T18:19:26.578983",
   "original_data": {
     "contract_type": "Contrato de préstamo con garantía real",
     "contract_date": "13/08/2025",
     "description": null,
     "contract_number": "CNT-000027-2025",
-    "generated_at": "2025-08-14T00:15:55.611718",
+    "generated_at": "2025-08-16T18:19:26.187222",
     "loan_amount": "45,000.00",
     "loan_amount_raw": 45000.0,
     "loan_amount_text": "CUARENTA Y CINCO MIL DÓLARES ESTADOUNIDENSES (USD 45,000.00)",
@@ -33,10 +33,10 @@
     "bank_account_number": "987654321",
     "bank_account_type": "corriente",
     "bank_currency": "DOP",
-    "bank_account_id": 50,
+    "bank_account_id": 30,
     "property_type": "inmueble",
-    "property_cadastral": "CAD-2025-004",
-    "property_title": "8000789012",
+    "property_cadastral": "CAD-2025-005",
+    "property_title": "9000890123",
     "property_surface_area": 800.5,
     "property_covered_area": 550.25,
     "property_address": "CALLE TURISTICA 321",
@@ -44,18 +44,18 @@
     "property_value": "90,000.00",
     "property_value_raw": 90000.0,
     "property_currency": "DOP",
-    "property_description": "UN INMUEBLE IDENTIFICADO COMO 4053688081361, QUE TIENE UNA SUPERFICIE DE 800.50 METROS CUADRADOS, CON ÁREA CUBIERTA DE 550.25 METROS CUADRADOS, MATRÍCULA NO.8000789012, UBICADO EN LA ROMANA, LA ROMANA",
+    "property_description": "UN INMUEBLE IDENTIFICADO COMO 4053688081362, QUE TIENE UNA SUPERFICIE DE 800.50 METROS CUADRADOS, CON ÁREA CUBIERTA DE 550.25 METROS CUADRADOS, MATRÍCULA NO.9000890123, UBICADO EN LA ROMANA, LA ROMANA",
     "property_owner": "",
     "all_properties": [
       {
         "property_type": "inmueble",
-        "cadastral_number": "CAD-2025-004",
-        "title_number": "8000789012",
+        "cadastral_number": "CAD-2025-005",
+        "title_number": "9000890123",
         "surface_area": 800.5,
         "covered_area": 550.25,
         "property_value": 90000.0,
         "currency": "DOP",
-        "description": "UN INMUEBLE IDENTIFICADO COMO 4053688081361, QUE TIENE UNA SUPERFICIE DE 800.50 METROS CUADRADOS, CON ÁREA CUBIERTA DE 550.25 METROS CUADRADOS, MATRÍCULA NO.8000789012, UBICADO EN LA ROMANA, LA ROMANA",
+        "description": "UN INMUEBLE IDENTIFICADO COMO 4053688081362, QUE TIENE UNA SUPERFICIE DE 800.50 METROS CUADRADOS, CON ÁREA CUBIERTA DE 550.25 METROS CUADRADOS, MATRÍCULA NO.9000890123, UBICADO EN LA ROMANA, LA ROMANA",
         "address_line1": "CALLE TURISTICA 321",
         "address_line2": "LA ROMANA, LA ROMANA",
         "city_id": "4",
@@ -178,56 +178,6 @@
     "investor2_address": "CALLE TURISTICA 321, URBANIZACION COSTA AZUL",
     "investor2_address2": "LA ROMANA",
     "investor2_city": "4",
-    "witness_name": "FRANCISCO JOSE TORRES RODRIGUEZ",
-    "witness_full_name": "FRANCISCO JOSE TORRES RODRIGUEZ",
-    "witness_first_name": "FRANCISCO JOSE",
-    "witness_last_name": "TORRES RODRIGUEZ",
-    "witness_document_number": "023-0088888-8",
-    "witness_address": "CALLE NOTARIAL 456, EDIFICIO PROFESIONAL",
-    "witness_address2": "LA ROMANA",
-    "witness_phone": "809-555-8888",
-    "witness_email": "francisco.torres@notarios.com",
-    "witnesses": [
-      {
-        "person": {
-          "p_first_name": "FRANCISCO JOSE",
-          "p_last_name": "TORRES RODRIGUEZ",
-          "p_middle_name": "",
-          "p_date_of_birth": "1977-04-05",
-          "p_gender": "Masculino",
-          "p_nationality_country": "Republica Dominicana",
-          "p_marital_status": "Casado",
-          "p_occupation": "NOTARIO",
-          "p_documents": [
-            {
-              "is_primary": true,
-              "document_type": "Cédula",
-              "document_number": "023-0088888-8",
-              "issuing_country_id": "1",
-              "document_issue_date": "2007-04-05",
-              "document_expiry_date": "2017-04-05"
-            }
-          ],
-          "p_addresses": [
-            {
-              "address_line1": "CALLE NOTARIAL 456, EDIFICIO PROFESIONAL",
-              "address_line2": "LA ROMANA",
-              "city_id": "4",
-              "postal_code": "22001",
-              "address_type": "Oficina",
-              "is_principal": true
-            }
-          ],
-          "p_person_role_id": 3,
-          "p_additional_data": {
-            "phone_number": "809-555-8888",
-            "email": "francisco.torres@notarios.com",
-            "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755142150000.jpg"
-          }
-        }
-      }
-    ],
-    "witnesses_count": 1,
     "notary_name": "LUIS FRANKLIN DIAZ HERRERA",
     "notary_full_name": "LUIS FRANKLIN DIAZ HERRERA",
     "notary_first_name": "LUIS FRANKLIN",
@@ -280,10 +230,10 @@
         }
       }
     ],
-    "current_date": "14 de August de 2025",
+    "current_date": "16 de August de 2025",
     "current_year": 2025,
     "current_month": "August",
-    "current_day": 14,
+    "current_day": 16,
     "loan_start_date_text": "TRECE (13) del mes de AGOSTO del año DOS MIL VEINTICINCO (2025)",
     "loan_start_date_simple": "TRECE (13) del mes de AGOSTO de 2025",
     "first_payment_date_text": "TRECE (13) del mes de SEPTIEMBRE del año DOS MIL VEINTICINCO (2025)",
@@ -292,7 +242,7 @@
     "last_payment_date_simple": "TRECE (13) del mes de AGOSTO de 2026",
     "contract_type_id": 1,
     "contract_end_date": "13/08/2026",
-    "contract_id": "b7fbfefa-68fd-4058-b967-ab53a9ddef96",
+    "contract_id": "f5f34a0a-be41-4ca7-968a-5ae1983850a5",
     "client_full_name": "DIEGO ALEJANDRO RAMIREZ LOPEZ",
     "paragraphs_result": {
       "client_juridica_identification": "De la otra parte, la sociedad de comercio FONDO DE INVERSIONES INMOBILIARIAS DEL CARIBE, S.A., organizada de acuerdo con las leyes de la República Dominicana, RNC No. 1-30-55555-5, RM. RM-2021-005555, con domicilio social en AVENIDA FINANCIERA 999, TORRE CORPORATIVA, debidamente representada en este contrato por su gerente, DIEGO ALEJANDRO RAMIREZ LOPEZ, Dominicana, mayor de edad, Casado, portador de la cédula de identidad y electoral No.023-0077777-7, con domicilio en AVENIDA FINANCIERA 999, TORRE CORPORATIVA, SANTO DOMINGO, sociedad que en lo que sigue del presente contrato se denominará LA SEGUNDA PARTE o EL DEUDOR;",

@@ -4,6 +4,7 @@ from app.auth.router import router as auth_router
 from app.person.router import router as person_router, router_referrers as referrer_router
 from app.users.router import router as users_router
 from app.contracts.router import router as contract_router
+from app.loan_payments.router import router as loan_payments_router
 
 from app.email_config.router import router as email_router
 from app.company.router import router as company_router
@@ -24,6 +25,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(person_router)
     app.include_router(referrer_router)
     app.include_router(contract_router)
+    app.include_router(loan_payments_router)
 
     app.include_router(email_router)
     app.include_router(company_router)

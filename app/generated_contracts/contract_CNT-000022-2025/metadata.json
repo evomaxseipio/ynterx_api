@@ -1,13 +1,13 @@
 {
   "contract_id": "contract_CNT-000022-2025",
-  "created_at": "2025-08-14T00:09:10.373690",
-  "modified_at": "2025-08-14T00:09:10.373697",
+  "created_at": "2025-08-16T18:03:59.586104",
+  "modified_at": "2025-08-16T18:03:59.586113",
   "original_data": {
     "contract_type": "Contrato de préstamo con garantía real",
     "contract_date": "13/08/2025",
     "description": null,
     "contract_number": "CNT-000022-2025",
-    "generated_at": "2025-08-14T00:09:10.008904",
+    "generated_at": "2025-08-16T18:03:59.154353",
     "loan_amount": "45,000.00",
     "loan_amount_raw": 45000.0,
     "loan_amount_text": "CUARENTA Y CINCO MIL DÓLARES ESTADOUNIDENSES (USD 45,000.00)",
@@ -33,7 +33,7 @@
     "bank_account_number": "987654321",
     "bank_account_type": "corriente",
     "bank_currency": "DOP",
-    "bank_account_id": 45,
+    "bank_account_id": 25,
     "property_type": "inmueble",
     "property_cadastral": "CAD-2025-004",
     "property_title": "8000789012",
@@ -304,10 +304,10 @@
         }
       }
     ],
-    "current_date": "14 de August de 2025",
+    "current_date": "16 de August de 2025",
     "current_year": 2025,
     "current_month": "August",
-    "current_day": 14,
+    "current_day": 16,
     "loan_start_date_text": "TRECE (13) del mes de AGOSTO del año DOS MIL VEINTICINCO (2025)",
     "loan_start_date_simple": "TRECE (13) del mes de AGOSTO de 2025",
     "first_payment_date_text": "TRECE (13) del mes de SEPTIEMBRE del año DOS MIL VEINTICINCO (2025)",
@@ -316,7 +316,7 @@
     "last_payment_date_simple": "TRECE (13) del mes de AGOSTO de 2026",
     "contract_type_id": 1,
     "contract_end_date": "13/08/2026",
-    "contract_id": "5d1d2f43-8d10-44bd-8d39-d90adb21eb13",
+    "contract_id": "e8b55393-eae9-4e6d-b6d3-b408cc3705b2",
     "investor_full_name": "DIEGO ALEJANDRO RAMIREZ LOPEZ",
     "paragraphs_result": {
       "investor_juridica_identification": "De una parte, la sociedad de comercio FONDO DE INVERSIONES INMOBILIARIAS DEL CARIBE, S.A., organizada de acuerdo con las leyes de la República Dominicana, RNC No. 1-30-55555-5, RM. RM-2021-005555, con domicilio social en AVENIDA FINANCIERA 999, TORRE CORPORATIVA, debidamente representada en este contrato por su gerente, DIEGO ALEJANDRO RAMIREZ LOPEZ, Dominicana, mayor de edad, Casado, portador de la cédula de identidad y electoral No.023-0077777-7, con domicilio en AVENIDA FINANCIERA 999, TORRE CORPORATIVA, SANTO DOMINGO, sociedad que en lo que sigue del presente contrato se denominará LA PRIMERA PARTE o LA ACREEDORA;",

@@ -1,0 +1,215 @@
+{
+    "contract_type": "mortgage",
+    "contract_type_id": 1,
+    "description": "Contrato de Hipoteca - Préstamo $25,000",
+    "contract_date": "20/08/2025",
+    "contract_end_date": "20/08/2026",
+    "paragraph_request": [
+        {
+            "person_role": "client",
+            "contract_type": "fisica_soltera",
+            "section": "identification",
+            "contract_services": "mortgage"
+        },
+        {
+            "person_role": "investor",
+            "contract_type": "fisica_casada",
+            "section": "identification",
+            "contract_services": "mortgage"
+        }
+    ],
+    "loan": {
+        "amount": 25000.0,
+        "currency": "USD",
+        "interest_rate": 2.5,
+        "term_months": 18,
+        "loan_type": "Hipotecario",
+        "loan_payments_details": {
+            "monthly_payment": 550.0,
+            "final_payment": 25900.0,
+            "discount_rate": 0.2,
+            "payment_qty_quotes": 17,
+            "payment_type": "Mensual"
+        },
+        "bank_account": {
+            "bank_name": "Banco Popular",
+            "bank_account_number": "9876543210",
+            "bank_account_type": "Corriente",
+            "bank_account_currency": "USD"
+        }
+    },
+    "properties": [
+        {
+            "property_type": "apartamento",
+            "cadastral_number": "TEST-002",
+            "title_number": "4000000002",
+            "surface_area": 120.0,
+            "covered_area": 95.0,
+            "property_value": 25000.0,
+            "currency": "USD",
+            "description": "Apartamento hipotecado como garantía",
+            "address_line1": "Avenida Principal 789",
+            "address_line2": "Edificio Residencial",
+            "city_id": "1",
+            "postal_code": "21000",
+            "property_role": "garantia"
+        }
+    ],
+    "clients": [
+        {
+            "person": {
+                "p_first_name": "Roberto",
+                "p_last_name": "Martínez",
+                "p_middle_name": "",
+                "p_date_of_birth": "1992-06-15",
+                "p_gender": "Masculino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Soltero",
+                "p_occupation": "Ingeniero",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "444-5556666-7",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2012-01-01",
+                        "document_expiry_date": "2032-01-01"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "Calle Residencial 456",
+                        "address_line2": "Sector Norte",
+                        "city_id": "1",
+                        "postal_code": "21000",
+                        "address_type": "Casa",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 1,
+                "p_additional_data": {
+                    "phone_number": "8094445555",
+                    "email": "roberto.martinez@test.com"
+                }
+            }
+        }
+    ],
+    "investors": [
+        {
+            "person": {
+                "p_first_name": "Carmen",
+                "p_last_name": "Rodríguez",
+                "p_middle_name": "",
+                "p_date_of_birth": "1988-03-22",
+                "p_gender": "Femenino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Casada",
+                "p_occupation": "Abogada",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "888-9990000-1",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2015-01-01",
+                        "document_expiry_date": "2035-01-01"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "Avenida Ejecutiva 123",
+                        "address_line2": "Sector Corporativo",
+                        "city_id": "1",
+                        "postal_code": "21000",
+                        "address_type": "Casa",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 2,
+                "p_additional_data": {
+                    "phone_number": "8098889999",
+                    "email": "carmen.rodriguez@test.com"
+                }
+            }
+        }
+    ],
+    "witnesses": [
+        {
+            "person": {
+                "p_first_name": "Pedro",
+                "p_last_name": "González",
+                "p_middle_name": "",
+                "p_date_of_birth": "1970-11-08",
+                "p_gender": "Masculino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Casado",
+                "p_occupation": "Testigo",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "111-2223333-4",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2000-01-01",
+                        "document_expiry_date": "2020-01-01"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "Calle Testigo 100",
+                        "address_line2": "Sector Testigo",
+                        "city_id": "1",
+                        "postal_code": "21000",
+                        "address_type": "Casa",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 3,
+                "p_additional_data": {
+                    "phone_number": "8091112222",
+                    "email": "pedro.gonzalez@test.com"
+                }
+            }
+        }
+    ],
+    "referents": [],
+    "notary": [
+        {
+            "person": {
+                "p_first_name": "Dr. Juan",
+                "p_last_name": "Pérez",
+                "p_middle_name": "",
+                "p_date_of_birth": "1965-04-12",
+                "p_gender": "Masculino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Casado",
+                "p_occupation": "Notario",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "222-3334444-5",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "1990-01-01",
+                        "document_expiry_date": "2010-01-01"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "Calle Notario 200",
+                        "address_line2": "Sector Notario",
+                        "city_id": "1",
+                        "postal_code": "21000",
+                        "address_type": "Oficina",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 7,
+                "p_additional_data": {
+                    "notary_id": "test-notary-id-2",
+                    "license_number": "5678"
+                }
+            }
+        }
+    ]
+}

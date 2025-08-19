@@ -47,7 +47,7 @@ contract_participant = Table(
     Column("contract_id", UUID, ForeignKey("contract.contract_id", ondelete="CASCADE"), nullable=False),
     Column("person_id", UUID, ForeignKey("person.person_id"), nullable=False),
     Column("person_type_id", Integer),
-    Column("company_id", Integer),
+    Column("company_id", UUID),
     Column("is_primary", Boolean, server_default=text("false")),
     Column("participation_percentage", Numeric(5,2)),
     Column("notes", Text),

@@ -5,7 +5,7 @@ Servicio para manejar la creación de loans y properties en contratos
 
 from typing import Dict, Any, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy import text as sql_text  # ← AGREGAR ESTE IMPORT
 
@@ -49,9 +49,66 @@ class ContractLoanPropertyService:
             loan_id = result["contract_loan_id"]
 
             print(f"✅ Loan creado con ID: {loan_id}")
+            
+            # Obtener las fechas del contrato para el cronograma de pagos
+            try:
+                from app.contracts.models import contract
+                from sqlalchemy import select
+                
+                # Consultar las fechas del contrato
+                contract_query = select(contract.c.contract_date, contract.c.start_date, contract.c.end_date).where(
+                    contract.c.contract_id == contract_id
+                )
+                contract_result = await fetch_one(contract_query, connection=connection)
+                
+                if contract_result:
+                    contract_date = contract_result.get("contract_date")
+                    start_date = contract_result.get("start_date") or contract_date
+                    end_date = contract_result.get("end_date")
+                    
+                    print(f"📅 Fechas del contrato: contract_date={contract_date}, start_date={start_date}, end_date={end_date}")
+                else:
+                    print("⚠️ No se encontraron fechas del contrato, usando fechas por defecto")
+                    contract_date = date.today()
+                    start_date = date.today()
+                    end_date = date.today()
+                
+            except Exception as e:
+                print(f"⚠️ Error obteniendo fechas del contrato: {str(e)}, usando fechas por defecto")
+                contract_date = date.today()
+                start_date = date.today()
+                end_date = date.today()
+            
+            # Generar automáticamente el cronograma de pagos
+            try:
+                from app.loan_payments.service import LoanPaymentService
+                from app.loan_payments.schemas import GeneratePaymentScheduleRequest
+                from decimal import Decimal
+                from datetime import date
+                
+                loan_payment_service = LoanPaymentService(connection)
+                
+                payment_request = GeneratePaymentScheduleRequest(
+                    contract_loan_id=loan_id,
+                    monthly_quotes=loan_data.get("term_months", 12),
+                    monthly_amount=Decimal(str(loan_data.get("loan_payments_details", {}).get("monthly_payment", 0))),
+                    interest_amount=Decimal(str(loan_data.get("loan_payments_details", {}).get("monthly_payment", 0))),
+                    start_date=start_date,
+                    end_date=end_date,
+                    last_payment_date=end_date,
+                    last_principal=Decimal(str(loan_data.get("loan_payments_details", {}).get("final_payment", 0))),
+                    last_interest=Decimal("0")
+                )
+                
+                await loan_payment_service.generate_payment_schedule(payment_request)
+                print(f"✅ Cronograma de pagos generado para loan_id: {loan_id}")
+                
+            except Exception as e:
+                print(f"⚠️ Error generando pagos: {str(e)}")
+
             return {
                 "success": True,
-                "message": "Loan created successfully",
+                "message": "Loan created successfully with payment schedule",
                 "loan_id": loan_id
             }
 

@@ -1,0 +1,336 @@
+{
+    "contract_number": "",
+    "contract_type": "Contrato de préstamo con garantía real",
+    "contract_type_id": 1,
+    "description": null,
+    "contract_date": "13/01/2025",
+    "contract_end_date": "13/01/2026",
+    "client_company": {
+        "company_name": "",
+        "company_rnc": "",
+        "company_mercantil_number": "",
+        "company_phone": "",
+        "company_email": "",
+        "company_type": "",
+        "company_address": {
+            "address_line1": "",
+            "city": "",
+            "postal_code": "",
+            "phone_number": "",
+            "email": ""
+        },
+        "company_manager": []
+    },
+    "investor_company": {
+        "company_name": "",
+        "company_rnc": "",
+        "company_mercantil_number": "",
+        "company_phone": "",
+        "company_email": "",
+        "company_type": "",
+        "company_address": {
+            "address_line1": "",
+            "city": "",
+            "postal_code": "",
+            "phone_number": "",
+            "email": ""
+        },
+        "company_manager": []
+    },
+    "paragraph_request": [
+        {
+            "person_role": "investor",
+            "contract_type": "fisica_casada",
+            "section": "identification",
+            "contract_services": "mortgage"
+        },
+        {
+            "person_role": "client",
+            "contract_type": "fisica_soltera",
+            "section": "identification",
+            "contract_services": "mortgage"
+        }
+    ],
+    "loan": {
+        "amount": 60000.0,
+        "currency": "DOP",
+        "interest_rate": 2.2,
+        "term_months": 12,
+        "loan_type": "Hipotecario",
+        "loan_payments_details": {
+            "monthly_payment": 1320.0,
+            "final_payment": 61320.0,
+            "discount_rate": 0.2,
+            "payment_qty_quotes": 12,
+            "payment_type": "Mensual"
+        },
+        "bank_account": {
+            "bank_name": "Banco BHD León",
+            "bank_account_number": "123456789",
+            "bank_account_type": "Ahorro",
+            "bank_account_currency": "DOP"
+        }
+    },
+    "properties": [
+        {
+            "property_type": "inmueble",
+            "cadastral_number": "CAD-2025-003",
+            "title_number": "7000678901",
+            "surface_area": 950.25,
+            "covered_area": 650.50,
+            "property_value": 120000.0,
+            "currency": "DOP",
+            "description": "UN INMUEBLE IDENTIFICADO COMO 4053688081360, QUE TIENE UNA SUPERFICIE DE 950.25 METROS CUADRADOS, CON ÁREA CUBIERTA DE 650.50 METROS CUADRADOS, MATRÍCULA NO.7000678901, UBICADO EN SANTIAGO, SANTIAGO",
+            "address_line1": "CALLE RESIDENCIAL 789",
+            "address_line2": "SANTIAGO, SANTIAGO",
+            "city_id": 3,
+            "postal_code": "51000",
+            "property_role": "garantia",
+            "owner_name": "JOSE ANTONIO GARCIA LOPEZ",
+            "owner_document_number": "023-0011111-1",
+            "owner_nationality": "Republica Dominicana",
+            "owner_civil_status": "Casado"
+        }
+    ],
+    "clients": [
+        {
+            "person": {
+                "p_first_name": "JOSE ANTONIO",
+                "p_last_name": "GARCIA LOPEZ",
+                "p_middle_name": "",
+                "p_date_of_birth": "1982-05-20",
+                "p_gender": "Masculino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Casado",
+                "p_occupation": "INGENIERO",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0011111-1",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2012-05-20",
+                        "document_expiry_date": "2022-05-20"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "CALLE RESIDENCIAL 789, URBANIZACION LAS FLORES",
+                        "address_line2": "SANTIAGO",
+                        "city_id": "3",
+                        "postal_code": "51000",
+                        "address_type": "Casa",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 1,
+                "p_additional_data": {
+                    "phone_number": "809-555-1111",
+                    "email": "jose.garcia@email.com",
+                    "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755141800000.jpg"
+                }
+            }
+        },
+        {
+            "person": {
+                "p_first_name": "MARIA ISABEL",
+                "p_last_name": "GARCIA LOPEZ",
+                "p_middle_name": "RODRIGUEZ",
+                "p_date_of_birth": "1985-08-15",
+                "p_gender": "Femenino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Casado",
+                "p_occupation": "MEDICA",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0022222-2",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2015-08-15",
+                        "document_expiry_date": "2025-08-15"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "CALLE RESIDENCIAL 789, URBANIZACION LAS FLORES",
+                        "address_line2": "SANTIAGO",
+                        "city_id": "3",
+                        "postal_code": "51000",
+                        "address_type": "Casa",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 1,
+                "p_additional_data": {
+                    "phone_number": "809-555-2222",
+                    "email": "maria.garcia@email.com",
+                    "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755141850000.jpg"
+                }
+            }
+        }
+    ],
+    "investors": [
+        {
+            "person": {
+                "p_first_name": "CARLOS MANUEL",
+                "p_last_name": "MARTINEZ SANTOS",
+                "p_middle_name": "",
+                "p_date_of_birth": "1978-12-10",
+                "p_gender": "Masculino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Casado",
+                "p_occupation": "INVERSIONISTA",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0033333-3",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2008-12-10",
+                        "document_expiry_date": "2018-12-10"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "AVENIDA PRINCIPAL 456, EDIFICIO LUXURY",
+                        "address_line2": "SANTO DOMINGO",
+                        "city_id": "1",
+                        "postal_code": "10103",
+                        "address_type": "Casa",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 2,
+                "p_additional_data": {
+                    "phone_number": "809-555-3333",
+                    "email": "carlos.martinez@email.com",
+                    "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755141900000.jpg"
+                }
+            }
+        },
+        {
+            "person": {
+                "p_first_name": "ANA PATRICIA",
+                "p_last_name": "MARTINEZ SANTOS",
+                "p_middle_name": "GONZALEZ",
+                "p_date_of_birth": "1980-03-25",
+                "p_gender": "Femenino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Casado",
+                "p_occupation": "ARQUITECTA",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0044444-4",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2010-03-25",
+                        "document_expiry_date": "2020-03-25"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "AVENIDA PRINCIPAL 456, EDIFICIO LUXURY",
+                        "address_line2": "SANTO DOMINGO",
+                        "city_id": "1",
+                        "postal_code": "10103",
+                        "address_type": "Casa",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 2,
+                "p_additional_data": {
+                    "phone_number": "809-555-4444",
+                    "email": "ana.martinez@email.com",
+                    "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755141950000.jpg"
+                }
+            }
+        }
+    ],
+    "witnesses": [
+       
+    ],
+    "referents": [
+        {
+            "person": {
+                "p_first_name": "ROBERTO CARLOS",
+                "p_last_name": "HERNANDEZ PEREZ",
+                "p_middle_name": "",
+                "p_date_of_birth": "1975-06-18",
+                "p_gender": "Masculino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Casado",
+                "p_occupation": "ABOGADO",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0055555-5",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2005-06-18",
+                        "document_expiry_date": "2015-06-18"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "CALLE PROFESIONAL 123, EDIFICIO JURIDICO",
+                        "address_line2": "SANTO DOMINGO",
+                        "city_id": "1",
+                        "postal_code": "10104",
+                        "address_type": "Oficina",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 3,
+                "p_additional_data": {
+                    "phone_number": "809-555-5555",
+                    "email": "roberto.hernandez@abogados.com",
+                    "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755142000000.jpg"
+                }
+            }
+        }],
+    "notary": [
+        {
+            "person": {
+                "p_first_name": "LUIS FRANKLIN",
+                "p_last_name": "DIAZ HERRERA",
+                "p_middle_name": "",
+                "p_date_of_birth": "1900-01-01",
+                "p_gender": "MASCULINO",
+                "p_nationality_country": "REPÚBLICA DOMINICANA",
+                "p_marital_status": "SOLTERO",
+                "p_occupation": "ABOGADO",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0027895-5",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2018-05-18",
+                        "document_expiry_date": "2028-05-18"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "CALLE ALTAGRACIA 39",
+                        "address_line2": "VILLA VELASQUEZ",
+                        "city_id": "1",
+                        "postal_code": "10210",
+                        "address_type": "Oficina",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 7,
+                "p_additional_data": {
+                    "notary_id": "9baf6c75-ee86-4c15-9e30-ae479ffb139b",
+                    "office_name": "Oficina Jurídica Luis Herrera",
+                    "jurisdiction": "San Pedro de Macoris",
+                    "license_number": "1778",
+                    "professional_email": "notario.herrera@oficina.com",
+                    "professional_phone": "809.529.2589"
+                }
+            }
+        }
+    ]
+}
