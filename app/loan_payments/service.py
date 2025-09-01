@@ -137,7 +137,12 @@ class LoanPaymentService:
                 "data": None
             }
 
-    async def register_auto_payment(self, contract_loan_id: int, amount: float, payment_method: str = "Cash", reference: Optional[str] = None, transaction_date: Optional[datetime] = None, notes: Optional[str] = None) -> Dict[str, Any]:
+    async def register_auto_payment(self, contract_loan_id: int, amount: float,
+                                     payment_method: str = "Cash", reference: Optional[str] = None, 
+                                     transaction_date: Optional[datetime] = None, 
+                                     notes: Optional[str] = None,
+                                     url_bank_receipt: Optional[str] = None,
+                                     url_payment_receipt: Optional[str] = None) -> Dict[str, Any]:
         """
         Registra un pago automático usando la función SQL sp_register_payment_transaction
         """
@@ -165,7 +170,9 @@ class LoanPaymentService:
                     "payment_method": payment_method,
                     "reference": reference,
                     "transaction_date": transaction_date,
-                    "notes": notes
+                    "notes": notes,
+                    "url_bank_receipt": url_bank_receipt,
+                    "url_payment_receipt": url_payment_receipt
                 }
             )
             
@@ -207,7 +214,12 @@ class LoanPaymentService:
                 "data": None
             }
 
-    async def register_specific_payments(self, contract_loan_id: int, payment_ids: List[str], amount: float, payment_method: str = "Cash", reference: Optional[str] = None, transaction_date: Optional[datetime] = None, notes: Optional[str] = None) -> Dict[str, Any]:
+    async def register_specific_payments(self, contract_loan_id: int, payment_ids: List[str], amount: float,
+                                         payment_method: str = "Cash", reference: Optional[str] = None, 
+                                         transaction_date: Optional[datetime] = None, 
+                                         notes: Optional[str] = None,
+                                         url_bank_receipt: Optional[str] = None,
+                                         url_payment_receipt: Optional[str] = None) -> Dict[str, Any]:
         """
         Registra pagos específicos usando la función SQL sp_register_specific_payments
         """
@@ -220,6 +232,8 @@ class LoanPaymentService:
                     :payment_method,
                     :reference,
                     :transaction_date,
+                    :url_bank_receipt,
+                    :url_payment_receipt,
                     :notes
                 )
             """)
@@ -237,6 +251,8 @@ class LoanPaymentService:
                     "payment_method": payment_method,
                     "reference": reference,
                     "transaction_date": transaction_date,
+                    "url_bank_receipt": url_bank_receipt,
+                    "url_payment_receipt": url_payment_receipt,
                     "notes": notes
                 }
             )
@@ -291,9 +307,14 @@ class LoanPaymentService:
                     :payment_method,
                     :reference,
                     :transaction_date,
+                    :url_bank_receipt,
+                    :url_payment_receipt,
                     :notes
                 )
             """)
+            
+            # Usar payment_image_url como url_bank_receipt si está disponible
+            url_bank_receipt = request.payment_image_url if request.payment_image_url else request.url_bank_receipt
             
             result = await self.db.execute(
                 query,
@@ -303,6 +324,8 @@ class LoanPaymentService:
                     "payment_method": request.payment_method,
                     "reference": request.reference,
                     "transaction_date": datetime.fromisoformat(request.transaction_date) if request.transaction_date else datetime.now(),
+                    "url_bank_receipt": url_bank_receipt,
+                    "url_payment_receipt": request.url_payment_receipt,
                     "notes": request.notes
                 }
             )

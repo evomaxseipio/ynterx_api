@@ -44,6 +44,8 @@ payment_transactions = Table(
     Column("transaction_date", Date, nullable=False),
     Column("processed_by", UUID),
     Column("notes", Text),
+    Column("url_bank_receipt", Text, nullable=False),
+    Column("url_payment_receipt", Text, nullable=False),
     Column("is_active", Boolean, server_default=text("true")),
     Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
     Column("updated_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),

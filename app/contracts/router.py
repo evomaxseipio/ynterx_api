@@ -186,23 +186,29 @@ async def generate_contract_complete(
         }
 
     # 8. RESPUESTA FINAL
+    # Determinar qué URLs usar: Google Drive si está disponible, sino rutas locales
+    file_path = document_result.get("path", "")
+    folder_path = document_result.get("folder_path", "")
+    
+    # Si Google Drive está habilitado y se subió exitosamente, usar URLs de Drive
+    if document_result.get("drive_success") and document_result.get("drive_link"):
+        file_path = document_result.get("drive_view_link", file_path)
+        folder_path = document_result.get("drive_link", folder_path)
+    
     return ContractResponse(
         success=True,
         message="Contrato completo generado exitosamente",
         contract_id=str(contract_id),
         contract_number=contract_number,
         filename=document_result.get("filename", f"{contract_number}.docx"),
-        path=document_result.get("path", ""),
-        folder_path=document_result.get("folder_path", ""),
-        template_used=document_result.get("template_used", ""),
+        path=file_path,
+        folder_path=folder_path,
         processed_data={
             "persons_summary": processed_persons_summary,
             "participants_count": len(participants_for_contract),
             "contract_type": data.get("contract_type", "unknown"),
             "loan_amount": data.get("loan", {}).get("amount"),
             "properties_count": len(data.get("properties", [])),
-            "document_generation": document_result,
-            "loan_property_result": loan_property_result,
             "persons_detail": {
                 "new_persons": processed_persons_summary['successful'] - processed_persons_summary['existing'] - processed_persons_summary['reused'],
                 "existing_persons": processed_persons_summary['existing'],
@@ -210,6 +216,12 @@ async def generate_contract_complete(
                 "total_successful": processed_persons_summary['successful']
             }
         },
+        # Incluir información de Google Drive
+        drive_success=document_result.get("drive_success"),
+        drive_folder_id=document_result.get("drive_folder_id"),
+        drive_file_id=document_result.get("drive_file_id"),
+        drive_link=document_result.get("drive_link"),
+        drive_view_link=document_result.get("drive_view_link"),
         warnings={
             "person_errors": participant_errors,
             "message": f"Se procesaron {processed_persons_summary['successful']} personas exitosamente ({processed_persons_summary['reused']} reutilizadas), {processed_persons_summary['errors']} errores reales"
@@ -293,6 +305,32 @@ async def download_contract(
         filename=f"{contract_id}.docx",
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
+
+@router.patch("/{contract_id}/update", response_model=UpdateResponse)
+async def update_contract(
+    contract_id: str,
+    updates: Dict[str, Any],
+    db: DepDatabase,
+    service: ContractService = Depends(get_contract_service),
+    contract_creation_service: ContractCreationService = Depends(get_contract_creation_service)
+) -> Dict[str, Any]:
+    """
+    Modificar contrato existente
+
+    Actualiza campos específicos y regenera el documento
+    con nueva versión automáticamente.
+    """
+    try:
+        # Actualizar contrato usando el servicio
+        document_result = await service.update_contract(contract_id, updates, connection=db)
+        
+        # Actualizar información en la base de datos con URLs de Google Drive
+        await contract_creation_service.update_contract_with_document_info(contract_id, document_result, db)
+        
+        return document_result
+    except Exception as e:
+        raise HTTPException(500, f"Error actualizando contrato: {str(e)}")
 
 
 @router.delete("/{contract_id}", response_model=DeleteResponse)

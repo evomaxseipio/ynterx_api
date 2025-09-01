@@ -1,7 +1,9 @@
 {
-    "contract_type": "mortgage",
+    "contract_type": "",
     "contract_type_id": 1,
     "contract_number": "TEST-001-2025",
+    "contract_date": "13/01/2025",
+    "contract_end_date": "13/01/2026",
     "description": "Contrato de Hipoteca - Préstamo $20,000",
     "client_company": {
         "company_name": "Grupo Inmobiliario Dolis",

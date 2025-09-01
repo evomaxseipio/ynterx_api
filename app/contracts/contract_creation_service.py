@@ -201,12 +201,30 @@ class ContractCreationService:
         """Actualizar contrato con información del documento generado"""
         
         if document_result.get("success"):
+            # Determinar qué URLs usar: Google Drive si está disponible, sino rutas locales
+            file_path = document_result.get("path")  # Ruta local por defecto
+            folder_path = document_result.get("folder_path")  # Ruta local por defecto
+            
+            # Si Google Drive está habilitado y se subió exitosamente, usar URLs de Drive
+            if document_result.get("drive_success") and document_result.get("drive_link"):
+                # Usar URL de Google Drive para el archivo (drive_view_link)
+                file_path = document_result.get("drive_view_link", file_path)
+                # Usar URL de Google Drive para la carpeta (drive_link)
+                folder_path = document_result.get("drive_link", folder_path)
+                print(f"✅ URLs de Google Drive almacenadas en BD:")
+                print(f"   - file_path: {file_path}")
+                print(f"   - folder_path: {folder_path}")
+            else:
+                print(f"📁 Rutas locales almacenadas en BD:")
+                print(f"   - file_path: {file_path}")
+                print(f"   - folder_path: {folder_path}")
+            
             update_query = contract_table.update().where(
                 contract_table.c.contract_id == contract_id
             ).values(
                 generated_filename=document_result.get("filename"),
-                file_path=document_result.get("path"),
-                folder_path=document_result.get("folder_path"),
+                file_path=file_path,
+                folder_path=folder_path,
                 updated_at=datetime.now()
             )
             await execute(update_query, connection=db, commit_after=True)

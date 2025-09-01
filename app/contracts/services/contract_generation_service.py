@@ -130,13 +130,24 @@ class ContractGenerationService:
         new_version = self.metadata_service.increment_version(contract_id)
         self.metadata_service.save_contract_metadata(contract_id, processed_data, new_version)
 
-        return {
+        # Respuesta base
+        response = {
             "success": True,
             "message": "Contrato actualizado exitosamente",
             "contract_id": contract_id,
             "version": new_version,
-            "updated_fields": list(updates.keys())
+            "updated_fields": list(updates.keys()),
+            "filename": output_filename,
+            "path": str(output_path),
+            "folder_path": str(contract_folder)
         }
+
+        # Subir a Google Drive si está habilitado
+        if self.use_google_drive:
+            drive_result = self.gdrive_utils.upload_contract(contract_id, output_path, processed_data)
+            response.update(drive_result)
+
+        return response
 
     async def _process_paragraphs_from_db(self, connection: Any, data: Dict[str, Any], processed_data: Dict[str, Any]) -> None:
         """Procesar párrafos desde la base de datos"""
@@ -147,6 +158,20 @@ class ContractGenerationService:
             if "paragraph_request" in data:
                 paragraphs_result = {}
                 paragraph_errors = []
+                
+                # Mapeo de secciones a variables de Word (igual que en get_all_paragraphs_for_contract)
+                section_mapping = {
+                    'identification': 'client_paragraph',  # Se sobrescribirá según person_role
+                    'investors': 'investor_paragraph',
+                    'clients': 'client_paragraph',
+                    'witnesses': 'witness_paragraph',
+                    'notaries': 'notary_paragraph',
+                    'guarantees': 'guarantee_paragraph',
+                    'terms_conditions': 'terms_paragraph',
+                    'payment_terms': 'payment_paragraph',
+                    'legal_clauses': 'legal_paragraph',
+                    'signatures': 'signature_paragraph'
+                }
 
                 for req in data["paragraph_request"]:
                     try:
@@ -165,13 +190,36 @@ class ContractGenerationService:
 
                         if template:
                             processed = process_paragraph(template, processed_data)
-                            key = f"{person_role}_{contract_type_db}_{section}"
-                            paragraphs_result[key] = processed
+                            
+                            # Usar el mapeo de secciones para obtener la variable correcta de Word
+                            word_variable = section_mapping.get(section)
+                            if section == 'identification':
+                                # Para identification, usar el person_role para determinar la variable
+                                word_variable = 'client_paragraph' if person_role == 'client' else 'investor_paragraph'
+                            
+                            if word_variable:
+                                paragraphs_result[word_variable] = processed
+                                # También agregar directamente al processed_data para compatibilidad con la plantilla
+                                processed_data[word_variable] = processed
+                                print(f"✅ Párrafo procesado: {word_variable} (desde {person_role}_{contract_type_db}_{section})")
+                            else:
+                                # Si no hay mapeo, usar la clave original
+                                key = f"{person_role}_{contract_type_db}_{section}"
+                                paragraphs_result[key] = processed
                         else:
                             # Si no se encuentra el párrafo, usar uno por defecto
                             default_template = f"Párrafo por defecto para {person_role} - {section}"
-                            key = f"{person_role}_{contract_type_db}_{section}"
-                            paragraphs_result[key] = default_template
+                            word_variable = section_mapping.get(section)
+                            if section == 'identification':
+                                word_variable = 'client_paragraph' if person_role == 'client' else 'investor_paragraph'
+                            
+                            if word_variable:
+                                paragraphs_result[word_variable] = default_template
+                                processed_data[word_variable] = default_template
+                            else:
+                                key = f"{person_role}_{contract_type_db}_{section}"
+                                paragraphs_result[key] = default_template
+                            
                             paragraph_errors.append({
                                 "type": "missing_paragraph",
                                 "person_role": person_role,

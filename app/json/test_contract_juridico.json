@@ -3,8 +3,8 @@
     "contract_type": "Contrato de préstamo con garantía real",
     "contract_type_id": 1,
     "description": null,
-    "contract_date": "13/08/2025",
-    "contract_end_date": "13/08/2026",
+    "contract_date": "25/04/2025",
+    "contract_end_date": "25/04/2026",
     "client_company": {
         "company_name": "EMPRESA CONSTRUCTORA DEL CARIBE, S.A.",
         "company_rnc": "1-30-12345-6",
@@ -91,46 +91,7 @@
         }
     ],
     "clients": [
-        {
-            "person": {
-                "p_first_name": "EMPRESA CONSTRUCTORA DEL CARIBE",
-                "p_last_name": "S.A.",
-                "p_middle_name": "",
-                "p_date_of_birth": null,
-                "p_gender": "Juridica",
-                "p_nationality_country": "Republica Dominicana",
-                "p_marital_status": "Juridica",
-                "p_occupation": "Construccion",
-                "p_documents": [
-                    {
-                        "is_primary": true,
-                        "document_type": "RNC",
-                        "document_number": "1-30-12345-6",
-                        "issuing_country_id": "1",
-                        "document_issue_date": "2020-01-15",
-                        "document_expiry_date": "2030-01-15"
-                    }
-                ],
-                "p_addresses": [
-                    {
-                        "address_line1": "CALLE PRINCIPAL 456, EDIFICIO CORPORATIVO",
-                        "address_line2": "SANTO DOMINGO",
-                        "city_id": "1",
-                        "postal_code": "10101",
-                        "address_type": "Oficina",
-                        "is_principal": true
-                    }
-                ],
-                "p_person_role_id": 1,
-                "p_additional_data": {
-                    "phone_number": "809-555-1234",
-                    "email": "info@constructora-caribe.com",
-                    "company_type": "Sociedad Anonima",
-                    "legal_representative": "JUAN CARLOS PEREZ GARCIA",
-                    "representative_document": "023-0012345-6"
-                }
-            }
-        }
+       
     ],
     "investors": [
         {

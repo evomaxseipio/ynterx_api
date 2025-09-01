@@ -40,7 +40,11 @@ class RegisterPaymentTransactionRequest(BaseModel):
     payment_method: str = "Cash"
     reference: Optional[str] = None
     transaction_date: Optional[str] = None
+    url_bank_receipt: Optional[str] = None
+    url_payment_receipt: Optional[str] = None
     notes: Optional[str] = None
+    payment_image_url: Optional[str] = None  # URL de la imagen subida
+    image_file: Optional[Any] = None  # Campo para recibir el archivo de imagen
 
 
 class RegisterPaymentTransactionResponse(BaseModel):
@@ -80,7 +84,10 @@ class AutoPaymentRequest(BaseModel):
     reference: Optional[str] = Field(None, description="Número de referencia del pago")
     transaction_date: Optional[str] = Field(None, description="Fecha de la transacción (ISO format)")
     notes: Optional[str] = Field(None, description="Notas adicionales del pago")
-
+    url_bank_receipt: Optional[str] = Field(None, description="URL del recibo del banco")
+    url_payment_receipt: Optional[str] = Field(None, description="URL del recibo de la transacción")
+    payment_image_url: Optional[str] = Field(None, description="URL de la imagen del voucher subida")
+    image_file: Optional[Any] = Field(None, description="Archivo de imagen del voucher")
 
 class AutoPaymentResponse(BaseModel):
     """Response model for automatic payment registration"""
@@ -88,6 +95,7 @@ class AutoPaymentResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     message: Optional[str] = None
+    receipt: Optional[Dict[str, Any]] = None  # Información del recibo generado
 
 
 class SpecificPaymentRequest(BaseModel):
@@ -99,7 +107,10 @@ class SpecificPaymentRequest(BaseModel):
     reference: Optional[str] = Field(None, description="Número de referencia del pago")
     transaction_date: Optional[str] = Field(None, description="Fecha de la transacción (ISO format)")
     notes: Optional[str] = Field(None, description="Notas adicionales del pago")
-
+    url_bank_receipt: Optional[str] = Field(None, description="URL del recibo del banco")
+    url_payment_receipt: Optional[str] = Field(None, description="URL del recibo de la transacción")
+    payment_image_url: Optional[str] = Field(None, description="URL de la imagen del voucher subida")
+    image_file: Optional[Any] = Field(None, description="Archivo de imagen del voucher")
 
 class SpecificPaymentResponse(BaseModel):
     """Response model for specific payment registration"""
@@ -107,3 +118,20 @@ class SpecificPaymentResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     error: Optional[Dict[str, Any]] = None
     message: Optional[str] = None
+
+
+class PaymentImageUploadRequest(BaseModel):
+    """Request model for payment image upload"""
+    contract_id: str = Field(..., description="ID del contrato")
+    reference: str = Field(..., description="Referencia del pago (usado como nombre del archivo)")
+
+
+class PaymentImageUploadResponse(BaseModel):
+    """Response model for payment image upload"""
+    success: bool
+    message: str
+    filename: Optional[str] = None
+    local_path: Optional[str] = None
+    drive_success: Optional[bool] = None
+    drive_view_link: Optional[str] = None
+    drive_error: Optional[str] = None

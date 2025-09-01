@@ -257,3 +257,4 @@ docs/
 scripts/generate_contract.py
 scripts/setup_admin_user.py
 test/
+app/generated_contracts
