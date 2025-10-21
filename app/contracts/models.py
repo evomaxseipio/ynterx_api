@@ -1,11 +1,7 @@
 from sqlalchemy import (
     TIMESTAMP,
-<<<<<<< HEAD
-    Table, Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Date, Numeric,    text,
-=======
     Table, Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Date, Numeric,
-    BigInteger, text, CheckConstraint,
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
+    BigInteger, text, CheckConstraint, UniqueConstraint,
  UUID as SA_UUID
 )
 from sqlalchemy.ext.declarative import declarative_base
@@ -51,7 +47,7 @@ contract_participant = Table(
     Column("contract_id", UUID, ForeignKey("contract.contract_id", ondelete="CASCADE"), nullable=False),
     Column("person_id", UUID, ForeignKey("person.person_id"), nullable=False),
     Column("person_type_id", Integer),
-    Column("company_id", Integer),
+    Column("company_id", UUID),
     Column("is_primary", Boolean, server_default=text("false")),
     Column("participation_percentage", Numeric(5,2)),
     Column("notes", Text),
@@ -136,30 +132,22 @@ property_table = Table(
         autoincrement=True
     ),
     Column("property_type", String(50), nullable=False),
-<<<<<<< HEAD
     Column("cadastral_number", String(50), nullable=True),
-    Column("title_number", String(50), nullable=True),
+    Column("title_number", Text, nullable=True),
     Column("surface_area", Numeric(12, 2), nullable=True),
     Column("covered_area", Numeric(12, 2), nullable=True),
     Column("property_value", Numeric(15, 2), nullable=True),
+    Column("property_owner", String(100), nullable=True),
+    Column("owner_civil_status", String(50), nullable=True),
+    Column("owner_document_number", String(50), nullable=True),
+    Column("owner_nationality", String(50), nullable=True),
     Column("currency", String(3), nullable=False, server_default="USD"),
-    Column("description", Text, nullable=True),
-    Column("address_line1", String(100), nullable=True),
-    Column("address_line2", String(100), nullable=True),
+    Column("property_description", Text, nullable=True),
+    Column("address_line1", Text, nullable=True),
+    Column("address_line2", Text, nullable=True),
     Column("city_id", Integer, ForeignKey("city.city_id"), nullable=True),
     Column("postal_code", String(20), nullable=True),
-=======
-    Column("cadastral_number", String(50), nullable=False),
-    Column("title_number", String(50), nullable=False),
-    Column("surface_area", Numeric(12, 2), nullable=False),
-    Column("covered_area", Numeric(12, 2), nullable=True),
-    Column("property_value", Numeric(15, 2), nullable=True),
-    Column("property_owner", String(100), nullable=True),
-    Column("currency", String(3), nullable=False, server_default="USD"),
-    Column("address_line1", String(100), nullable=True),
-    Column("address_line2", String(100), nullable=True),
-    Column("city_id", Integer, ForeignKey("city.city_id"), nullable=True),
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
+    Column("image_path", Text, nullable=True),
     Column(
         "is_active",
         Boolean,
@@ -178,6 +166,8 @@ property_table = Table(
         server_default=text("CURRENT_TIMESTAMP"),
         nullable=False,
     ),
+    Column("created_by", UUID, ForeignKey("person.person_id"), nullable=True),
+    Column("updated_by", UUID, ForeignKey("person.person_id"), nullable=True),
 )
 
 # Modelo para contract_property (relación many-to-many)
@@ -224,8 +214,68 @@ contract_property = Table(
         nullable=False,
     ),
 )
-<<<<<<< HEAD
-=======
+
+# Modelo para client_referrer (relación Cliente ↔ Referidor)
+client_referrer = Table(
+    "client_referrer",
+    metadata,
+    Column(
+        "client_referrer_id",
+        BigInteger,
+        primary_key=True,
+        autoincrement=True
+    ),
+    Column(
+        "client_id",
+        UUID,
+        ForeignKey("client.client_id", ondelete="CASCADE"),
+        nullable=False
+    ),
+    Column(
+        "referrer_id",
+        UUID,
+        ForeignKey("person.person_id", ondelete="CASCADE"),
+        nullable=False
+    ),
+    Column(
+        "relation_date",
+        TIMESTAMP,
+        server_default=text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    ),
+    Column(
+        "is_active",
+        Boolean,
+        server_default=expression.true(),
+        nullable=False,
+    ),
+    Column(
+        "created_at",
+        TIMESTAMP,
+        server_default=text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    ),
+    Column(
+        "created_by",
+        UUID,
+        ForeignKey("person.person_id"),
+        nullable=True,
+    ),
+    Column(
+        "updated_at",
+        TIMESTAMP,
+        server_default=text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    ),
+    Column(
+        "updated_by",
+        UUID,
+        ForeignKey("person.person_id"),
+        nullable=True,
+    ),
+    # Índice único para evitar duplicados
+    UniqueConstraint('client_id', 'referrer_id', 'is_active', name='uq_client_referrer_active')
+)
 
 # New contract_bank_account table
 contract_bank_account = Table(
@@ -282,4 +332,3 @@ class ContractParagraph(Base):
 
     def __repr__(self):
         return f"<ContractParagraph(id={self.id}, section='{self.section}', title='{self.title}')>"
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f

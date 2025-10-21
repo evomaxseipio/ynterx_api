@@ -138,6 +138,20 @@ class UserService:
             if not existing_user:
                 return None
 
+            # Si se está actualizando la contraseña, verificar permisos
+            if user_data.new_password is not None and len(user_data.new_password.strip()) > 0:
+                # Permitir si:
+                # 1. El usuario está cambiando su propia contraseña, O
+                # 2. El usuario es administrador
+                is_self_update = (str(user_id) == str(updated_by))
+                is_admin = await self._is_admin(updated_by)
+
+                if not is_self_update and not is_admin:
+                    raise Exception("Solo puedes cambiar tu propia contraseña o debes ser administrador para cambiar la de otros usuarios")
+
+                # Actualizar contraseña
+                await self._update_password(user_id, user_data.new_password)
+
             # If updating username, check it's not taken
             if user_data.username and user_data.username != existing_user["username"]:
                 if await self._exists_user_by_username(user_data.username, connection):
@@ -147,20 +161,25 @@ class UserService:
             if not p_updated_by:
                 raise Exception("Current user not found")
 
-        update_data = user_data.model_dump(exclude_unset=True)
-        if update_data:
+        # Actualizar otros campos (excluyendo new_password que ya se manejó arriba)
+        update_data = user_data.model_dump(exclude_unset=True, exclude={'new_password'})
+
+        # Siempre actualizar updated_by y updated_at si hay algún cambio
+        if update_data or user_data.new_password:
             update_data["updated_by"] = p_updated_by
             update_data["updated_at"] = datetime.utcnow()
 
-            query = (
-                users.update()
-                .where(users.c.user_id == user_id)
-                .values(**update_data)
-                .returning(users)
-            )
-            result = await fetch_one(query, connection=self.db, commit_after=True)
-            return result
-        return None
+            if update_data:
+                query = (
+                    users.update()
+                    .where(users.c.user_id == user_id)
+                    .values(**update_data)
+                    .returning(users)
+                )
+                await fetch_one(query, connection=self.db, commit_after=True)
+
+        # Retornar el usuario completo con relaciones después de la actualización
+        return await self.get_user(user_id)
 
     async def delete_user(self, user_id: UUID) -> bool | None:
         """Delete a user (soft delete by setting is_active to False)."""
@@ -172,6 +191,35 @@ class UserService:
         await execute(query, connection=self.db, commit_after=True)
 
         return True
+
+    async def _is_admin(self, user_id: UUID) -> bool:
+        """Verificar si el usuario es administrador"""
+        async with self.pool.acquire() as connection:
+            result = await connection.fetchrow(
+                """
+                SELECT ur.role_name 
+                FROM users u
+                JOIN user_roles ur ON u.user_role_id = ur.user_role_id
+                WHERE u.user_id = $1 AND u.is_active = true
+                """,
+                user_id
+            )
+            return result and result["role_name"] == "Administrador"
+
+    async def _update_password(self, user_id: UUID, new_password: str) -> None:
+        """Actualizar contraseña del usuario"""
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                UPDATE users
+                SET password_hash = crypt($1, gen_salt('bf', 12)),
+                    password_salt = encode(gen_random_bytes(16), 'hex'),
+                    updated_at = NOW()
+                WHERE user_id = $2
+                """,
+                new_password,
+                user_id
+            )
 
     async def _exists_user_by_username(self, username: str, connection) -> bool:
         return (

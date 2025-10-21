@@ -98,11 +98,11 @@ class GenericHTTPException(HTTPException):
 
 
 class NotAuthenticated(GenericHTTPException):
-    def __init__(self) -> None:
+    def __init__(self, message: str = "Not authenticated") -> None:
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
             error_code=ErrorCodeEnum.UNAUTHORIZED,
-            message="Not authenticated",
+            message=message,
             success=False,
             headers={"WWW-Authenticate": "Bearer"},
         )

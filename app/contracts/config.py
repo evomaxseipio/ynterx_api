@@ -7,19 +7,13 @@ from typing import Optional
 class ContractConfig:
     """Configuración centralizada del sistema de contratos"""
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
     # Configuración de Google Drive
     USE_GOOGLE_DRIVE: bool = os.getenv("USE_GOOGLE_DRIVE", "false").lower() == "true"
     GOOGLE_CREDENTIALS_PATH: Optional[str] = os.getenv("GOOGLE_CREDENTIALS_PATH")
     GOOGLE_DRIVE_FOLDER_ID: Optional[str] = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
     # Configuración de archivos
     MAX_FILE_SIZE: int = int(os.getenv("MAX_FILE_SIZE", "10485760"))  # 10MB por defecto
     ALLOWED_EXTENSIONS: set = {
@@ -38,11 +32,8 @@ class ContractConfig:
     DEFAULT_TEMPLATE: str = "default_template.docx"
     MORTGAGE_TEMPLATE: str = "mortgage_template.docx"
 
-<<<<<<< HEAD
-=======
 
 
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
     @classmethod
     def validate_config(cls) -> dict:
         """Validar configuración y retornar estado"""
@@ -64,11 +55,8 @@ class ContractConfig:
         if not templates:
             issues.append("No Word templates found in templates directory")
 
-<<<<<<< HEAD
-=======
 
 
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
         return {
             "valid": len(issues) == 0,
             "issues": issues,

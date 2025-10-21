@@ -41,10 +41,6 @@ async def get_paragraph_from_db(
             return row[0]
         return None
     except Exception as e:
-<<<<<<< HEAD
-        print(f"Error getting paragraph from DB: {e}")
-        return None
-=======
         # Manejar específicamente errores de transacción abortada
         error_str = str(e).lower()
         if "transaction is aborted" in error_str or "infailedsqltransaction" in error_str:
@@ -53,7 +49,6 @@ async def get_paragraph_from_db(
         else:
             print(f"Error getting paragraph from DB: {e}")
             return None
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
 
 def process_paragraph(paragraph_template: str, data: Dict[str, Any]) -> str:
@@ -71,15 +66,10 @@ def process_paragraph(paragraph_template: str, data: Dict[str, Any]) -> str:
         return ""
 
     try:
-<<<<<<< HEAD
-        # Encontrar todas las variables en el template {{variable}}
-        variables = re.findall(r'\{\{(\w+)\}\}', paragraph_template)
-=======
         # Encontrar todas las variables en el template {{variable}} o [variable]
         variables_curly = re.findall(r'\{\{(\w+)\}\}', paragraph_template)
         variables_brackets = re.findall(r'\[(\w+)\]', paragraph_template)
         variables = list(set(variables_curly + variables_brackets))
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
         processed_paragraph = paragraph_template
 
@@ -93,24 +83,17 @@ def process_paragraph(paragraph_template: str, data: Dict[str, Any]) -> str:
             else:
                 value_str = f"[{variable}]"
 
-<<<<<<< HEAD
-            # Reemplazar en el párrafo
-=======
             # Reemplazar variables con formato {{variable}}
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
             processed_paragraph = processed_paragraph.replace(
                 f"{{{{{variable}}}}}",
                 value_str
             )
-<<<<<<< HEAD
-=======
             
             # Reemplazar variables con formato [variable]
             processed_paragraph = processed_paragraph.replace(
                 f"[{variable}]",
                 value_str
             )
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
         return processed_paragraph
 
@@ -130,10 +113,7 @@ async def get_all_paragraphs_for_contract(
     Obtener y procesar todos los párrafos para un tipo de contrato y rol de persona
     """
     section_mapping = {
-<<<<<<< HEAD
-=======
         'identification': 'client_paragraph' if person_role == 'client' else 'investor_paragraph',
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
         'investors': 'investor_paragraph',
         'clients': 'client_paragraph',
         'witnesses': 'witness_paragraph',

@@ -1,11 +1,7 @@
 from uuid import UUID
 
-<<<<<<< HEAD
-from fastapi import APIRouter, Request, HTTPException, Query
-=======
 from fastapi import APIRouter, Request, HTTPException, Query, Depends
 from typing import List, Optional
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
 from app.auth.dependencies import DepCurrentUser
 from app.database import DepDatabase
@@ -19,12 +15,9 @@ from app.person.schemas import (
     PersonUpdate,
     PersonCompleteCreate,
     PersonCompleteResponse,
-<<<<<<< HEAD
-=======
     ReferrerCreate,
     ReferrerUpdate,
     ReferrerResponse,
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 )
 from app.person.service import (
     CountryService,
@@ -44,21 +37,21 @@ router = APIRouter(prefix="/persons", tags=["persons"])
 ######################################################################################################
 
 
-@router.get("", response_model=list[PersonSchema])
+@router.get("", response_model=dict)
 async def list_persons(
     _: DepCurrentUser,
     request: Request,
-    skip: int = 0,
-    limit: int = 100,
-    is_active: bool | None = None,
-) -> list[dict]:
-    """List all persons with pagination."""
+    search_term: Optional[str] = Query(None, description="Buscar por nombre, apellido, cédula, etc."),
+    limit: int = Query(20, ge=1, le=100, description="Número de registros por página"),
+    offset: int = Query(0, ge=0, description="Número de registros a saltar"),
+) -> dict:
+    """List all persons with pagination using stored procedure."""
     async with request.app.state.db_pool.acquire() as connection:
         return await PersonService.list_persons(
             connection=connection,
-            skip=skip,
+            search_term=search_term,
             limit=limit,
-            is_active=is_active
+            offset=offset
         )
 
 
@@ -470,8 +463,6 @@ async def get_persons_stats(
             "by_gender": [dict(row) for row in gender_result],
             "by_marital_status": [dict(row) for row in marital_result]
         }
-<<<<<<< HEAD
-=======
 
 
 router_referrers = APIRouter(prefix="/referrers", tags=["referrers"])
@@ -546,4 +537,3 @@ async def increment_referred_clients_count(
         raise HTTPException(400, result["message"])
     
     return result
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f

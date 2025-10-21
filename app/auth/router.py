@@ -6,6 +6,7 @@ import asyncpg
 from asyncpg import Pool
 from fastapi import APIRouter, Header, Request, status
 
+from app.config import settings
 from app.email import send_email
 from app.enums import ErrorCodeEnum
 from app.exceptions import BadRequest, GenericHTTPException
@@ -13,7 +14,10 @@ from app.session_cache import create_session, remove_session
 from app.utils.alphanum import generate_random_alphanum
 
 from .dependencies import DepCurrentUser
+from .jwt_service import jwt_service
+from .jwt_schemas import TokenResponse, RefreshTokenRequest, RefreshTokenResponse
 from .models import LoginUserQueryResult
+from .test_endpoints import router as test_router
 from .schemas import (
     AuthLoginRequest,
     AuthLoginResponse,
@@ -23,6 +27,9 @@ from .schemas import (
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# Incluir router de pruebas
+router.include_router(test_router)
 
 
 @router.post(
@@ -65,7 +72,11 @@ async def login(request: Request, login_data: AuthLoginRequest) -> Any:
             log.error("User data is missing or invalid in the login response")
             raise raise_error
 
-        # Create a session in the cache
+        # Create JWT tokens
+        access_token = jwt_service.create_access_token(user_data)
+        refresh_token = jwt_service.create_refresh_token(user_data)
+        
+        # Create a session in the cache as backup
         await create_session(session.session_token, user.user_id)
 
         return AuthLoginResponse.model_validate(
@@ -74,8 +85,10 @@ async def login(request: Request, login_data: AuthLoginRequest) -> Any:
                 "message": user_query_result.message,
                 "success": user_query_result.success,
                 "data": {
-                    "access_token": session.session_token,
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
                     "token_type": "Bearer",
+                    "expires_in": settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
                     "user": user_data,
                 },
             },
@@ -88,6 +101,115 @@ async def login(request: Request, login_data: AuthLoginRequest) -> Any:
         message=user_query_result.message,
         success=user_query_result.success,
     )
+
+
+@router.post("/refresh", response_model=RefreshTokenResponse)
+async def refresh_token(request: Request, refresh_data: RefreshTokenRequest) -> Any:
+    """
+    Endpoint para refrescar el token de acceso usando refresh token.
+    """
+    try:
+        pool: Pool = request.app.state.db_pool
+        
+        # Verificar refresh token
+        payload = jwt_service.verify_token(refresh_data.refresh_token)
+        
+        if payload.get("type") != "refresh":
+            raise GenericHTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                error_code=ErrorCodeEnum.INVALID_CREDENTIALS,
+                message="Tipo de token inválido",
+                success=False,
+            )
+        
+        # Obtener datos del usuario del refresh token
+        user_id = payload["sub"]
+        
+        # OPTIMIZACIÓN: Reutilizar datos del token original si están disponibles
+        # Si el refresh token contiene datos del usuario, los usamos directamente
+        if "person_id" in payload and "username" in payload and "email" in payload:
+            # El refresh token tiene datos completos del usuario
+            user_data = {
+                "user_id": user_id,
+                "person_id": payload.get("person_id"),
+                "username": payload.get("username"),
+                "email": payload.get("email"),
+                "role": {
+                    "role_name": payload.get("role", "user"),
+                    "permissions": payload.get("permissions", [])
+                }
+            }
+        else:
+            # Fallback: consultar la base de datos solo si es necesario
+            async with pool.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute(
+                        """
+                        SELECT 
+                            u.user_id,
+                            u.person_id,
+                            u.username,
+                            u.email,
+                            r.role_name,
+                            r.role_description,
+                            r.user_role_id,
+                            COALESCE(
+                                json_agg(
+                                    DISTINCT jsonb_build_object(
+                                        'permission_name', p.permission_name,
+                                        'permission_description', p.permission_description
+                                    )
+                                ) FILTER (WHERE p.permission_name IS NOT NULL),
+                                '[]'::json
+                            ) as permissions
+                        FROM users u
+                        LEFT JOIN user_roles r ON u.user_role_id = r.user_role_id
+                        LEFT JOIN role_permissions rp ON r.user_role_id = rp.user_role_id
+                        LEFT JOIN permissions p ON rp.permission_id = p.permission_id
+                        WHERE u.user_id = %s
+                        GROUP BY u.user_id, u.person_id, u.username, u.email, r.role_name, r.role_description, r.user_role_id
+                        """,
+                        (user_id,)
+                    )
+                    result = await cursor.fetchone()
+                    
+                    if not result:
+                        raise GenericHTTPException(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            error_code=ErrorCodeEnum.INVALID_CREDENTIALS,
+                            message="Usuario no encontrado",
+                            success=False,
+                        )
+                    
+                    # Construir datos del usuario
+                    user_data = {
+                        "user_id": str(result[0]),
+                        "person_id": str(result[1]) if result[1] else None,
+                        "username": result[2],
+                        "email": result[3],
+                        "role": {
+                            "role_name": result[4],
+                            "role_description": result[5],
+                            "user_role_id": result[6],
+                            "permissions": result[7] if result[7] else []
+                        }
+                    }
+        
+        new_access_token = jwt_service.create_access_token(user_data)
+        
+        return RefreshTokenResponse(
+            access_token=new_access_token,
+            token_type="Bearer",
+            expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        )
+        
+    except ValueError as e:
+        raise GenericHTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code=ErrorCodeEnum.INVALID_CREDENTIALS,
+            message=str(e),
+            success=False,
+        )
 
 
 @router.post("/logout")

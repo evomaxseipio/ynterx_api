@@ -54,9 +54,18 @@ class Config(CustomBaseSettings):
     # SMTP_FROM_EMAIL: str = "maxseipio@gmail.com"
     # SMTP_TLS: bool = True
 
-    USE_GOOGLE_DRIVE: bool = False
+    USE_GOOGLE_DRIVE: bool = True
 
     CONTRACT_EMAIL_RECIPIENTS: list[str] = ["mseipio.evotechrd@gmail.com"]
+    
+    # Contract storage configuration
+    CONTRACTS_DIR: str = "contracts"
+
+    # JWT Configuration
+    JWT_SECRET_KEY: str = "your-super-secret-jwt-key-change-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # 1 hora
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7     # 7 días
 
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":

@@ -214,8 +214,6 @@ class PersonLegacyCreate(BaseModel):
     marital_status_id: int | None = None  # Para compatibilidad
     education_level_id: int | None = None  # Para compatibilidad
     is_active: bool = True
-<<<<<<< HEAD
-=======
 
 
 class ReferrerBase(BaseModel):
@@ -251,4 +249,3 @@ class ReferrerResponse(ReferrerBase):
 
     class Config:
         from_attributes = True
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f

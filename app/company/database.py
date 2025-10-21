@@ -2,7 +2,12 @@ from typing import List, Optional, Dict, Any
 import asyncpg
 from datetime import datetime
 
-from app.company.models import CompanyCreate, CompanyUpdate, CompanyResponse
+from app.company.models import (
+    CompanyCreate, CompanyUpdate, CompanyResponse,
+    CompanyAddressCreate, CompanyAddressUpdate, CompanyAddressResponse,
+    CompanyManagerCreate, CompanyManagerUpdate, CompanyManagerResponse,
+    CompanyCompleteData
+)
 
 
 class CompanyDatabase:
@@ -15,24 +20,27 @@ class CompanyDatabase:
         """Create a new company"""
         query = """
             INSERT INTO company (
-                company_name, rnc, rm, email, phone, website, 
-                company_type, tax_id, is_active
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            RETURNING company_id, company_name, rnc, rm, email, phone, website,
-                      company_type, tax_id, is_active, created_at, updated_at
+                company_name, company_rnc, mercantil_registry, nationality, email, phone, website, 
+                company_type, company_description, frontImagePath, backImagePath, is_active
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING company_id, company_name, company_rnc, mercantil_registry, nationality, email, phone, website,
+                      company_type, company_description, frontImagePath, backImagePath, is_active, created_at, updated_at
         """
         
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
                 query,
                 company_data.company_name,
-                company_data.rnc,
-                company_data.rm,
+                company_data.company_rnc,
+                company_data.mercantil_registry,
+                company_data.nationality,
                 company_data.email,
                 company_data.phone,
                 company_data.website,
                 company_data.company_type,
-                company_data.tax_id,
+                company_data.company_description,
+                company_data.frontImagePath,
+                company_data.backImagePath,
                 company_data.is_active
             )
             
@@ -41,8 +49,8 @@ class CompanyDatabase:
     async def get_company_by_id(self, company_id: int) -> Optional[CompanyResponse]:
         """Get company by ID"""
         query = """
-            SELECT company_id, company_name, rnc, rm, email, phone, website,
-                   company_type, tax_id, is_active, created_at, updated_at
+            SELECT company_id, company_name, company_rnc, mercantil_registry, nationality, email, phone, website,
+                   company_type, company_description, frontImagePath, backImagePath, is_active, created_at, updated_at
             FROM company
             WHERE company_id = $1 AND is_active = true
         """
@@ -54,15 +62,88 @@ class CompanyDatabase:
     async def get_company_by_rnc(self, rnc: str) -> Optional[CompanyResponse]:
         """Get company by RNC"""
         query = """
-            SELECT company_id, company_name, rnc, rm, email, phone, website,
-                   company_type, tax_id, is_active, created_at, updated_at
+            SELECT company_id, company_name, company_rnc, mercantil_registry, nationality, email, phone, website,
+                   company_type, company_description, frontImagePath, backImagePath, is_active, created_at, updated_at
             FROM company
-            WHERE rnc = $1 AND is_active = true
+            WHERE company_rnc = $1 AND is_active = true
         """
         
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(query, rnc)
             return CompanyResponse(**dict(row)) if row else None
+            
+    async def get_company_complete_by_rnc(self, rnc: str) -> CompanyCompleteData:
+        """Get complete company data by RNC with managers and addresses"""
+        async with self.pool.acquire() as conn:
+            # 1. Get company basic data
+            company_query = """
+                SELECT company_name, company_rnc, mercantil_registry, phone, email, company_type
+                FROM company
+                WHERE company_rnc = $1 AND is_active = true
+            """
+            company_row = await conn.fetchrow(company_query, rnc)
+            
+            if not company_row:
+                return None
+                
+            # 2. Get company address
+            address_query = """
+                SELECT address_line1, city, postal_code, phone, email
+                FROM company_address
+                WHERE company_id = (SELECT company_id FROM company WHERE company_rnc = $1 AND is_active = true)
+                AND is_active = true
+                ORDER BY is_principal DESC
+                LIMIT 1
+            """
+            address_row = await conn.fetchrow(address_query, rnc)
+            
+            # 3. Get company managers
+            managers_query = """
+                SELECT manager_full_name, manager_position, manager_document_number,
+                       manager_nationality, manager_civil_status, manager_address, is_principal
+                FROM company_manager
+                WHERE company_id = (SELECT company_id FROM company WHERE company_rnc = $1 AND is_active = true)
+                AND is_active = true
+                ORDER BY is_principal DESC, manager_full_name
+            """
+            managers_rows = await conn.fetch(managers_query, rnc)
+            
+            # 4. Build response
+            company_data = dict(company_row)
+            company_data['company_mercantil_number'] = company_data.pop('mercantil_registry')
+            company_data['company_phone'] = company_data.pop('phone')
+            company_data['company_email'] = company_data.pop('email')
+            
+            # Address data
+            if address_row:
+                address_data = dict(address_row)
+                address_data['phone_number'] = address_data.pop('phone')
+                company_data['company_address'] = address_data
+            else:
+                company_data['company_address'] = {
+                    'address_line1': '',
+                    'city': '',
+                    'postal_code': '',
+                    'phone_number': '',
+                    'email': ''
+                }
+            
+            # Managers data
+            managers_data = []
+            for manager_row in managers_rows:
+                manager_data = dict(manager_row)
+                manager_data['name'] = manager_data.pop('manager_full_name')
+                manager_data['position'] = manager_data.pop('manager_position')
+                manager_data['document_number'] = manager_data.pop('manager_document_number')
+                manager_data['nationality'] = manager_data.pop('manager_nationality')
+                manager_data['marital_status'] = manager_data.pop('manager_civil_status')
+                manager_data['address'] = manager_data.pop('manager_address')
+                manager_data['is_main_manager'] = manager_data.pop('is_principal')
+                managers_data.append(manager_data)
+            
+            company_data['company_manager'] = managers_data
+            
+            return CompanyCompleteData(**company_data)
 
     async def get_all_companies(
         self, 
@@ -79,7 +160,7 @@ class CompanyDatabase:
         
         if search:
             param_count += 1
-            where_clause += f" AND (company_name ILIKE ${param_count} OR rnc ILIKE ${param_count})"
+            where_clause += f" AND (company_name ILIKE ${param_count} OR company_rnc ILIKE ${param_count})"
             params.append(f"%{search}%")
         
         # Count total
@@ -95,8 +176,8 @@ class CompanyDatabase:
         offset_param = param_count
         
         query = f"""
-            SELECT company_id, company_name, rnc, rm, email, phone, website,
-                   company_type, tax_id, is_active, created_at, updated_at
+            SELECT company_id, company_name, company_rnc, mercantil_registry, nationality, email, phone, website,
+                   company_type, company_description, frontImagePath, backImagePath, is_active, created_at, updated_at
             FROM company
             {where_clause}
             ORDER BY company_name
@@ -138,8 +219,8 @@ class CompanyDatabase:
             UPDATE company
             SET {', '.join(update_fields)}, updated_at = CURRENT_TIMESTAMP
             WHERE company_id = ${param_count} AND is_active = true
-            RETURNING company_id, company_name, rnc, rm, email, phone, website,
-                      company_type, tax_id, is_active, created_at, updated_at
+            RETURNING company_id, company_name, company_rnc, mercantil_registry, nationality, email, phone, website,
+                      company_type, company_description, frontImagePath, backImagePath, is_active, created_at, updated_at
         """
         
         async with self.pool.acquire() as conn:
@@ -162,10 +243,10 @@ class CompanyDatabase:
     async def search_companies_by_rnc(self, rnc: str) -> List[CompanyResponse]:
         """Search companies by RNC (partial match)"""
         query = """
-            SELECT company_id, company_name, rnc, rm, email, phone, website,
-                   company_type, tax_id, is_active, created_at, updated_at
+            SELECT company_id, company_name, company_rnc, mercantil_registry, nationality, email, phone, website,
+                   company_type, company_description, frontImagePath, backImagePath, is_active, created_at, updated_at
             FROM company
-            WHERE rnc ILIKE $1 AND is_active = true
+            WHERE company_rnc ILIKE $1 AND is_active = true
             ORDER BY company_name
         """
         
@@ -176,8 +257,8 @@ class CompanyDatabase:
     async def get_companies_by_type(self, company_type: str) -> List[CompanyResponse]:
         """Get companies by type"""
         query = """
-            SELECT company_id, company_name, rnc, rm, email, phone, website,
-                   company_type, tax_id, is_active, created_at, updated_at
+            SELECT company_id, company_name, company_rnc, mercantil_registry, nationality, email, phone, website,
+                   company_type, company_description, frontImagePath, backImagePath, is_active, created_at, updated_at
             FROM company
             WHERE company_type = $1 AND is_active = true
             ORDER BY company_name
@@ -185,4 +266,220 @@ class CompanyDatabase:
         
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(query, company_type)
-            return [CompanyResponse(**dict(row)) for row in rows] 
+            return [CompanyResponse(**dict(row)) for row in rows]
+
+
+class CompanyAddressDatabase:
+    """Database operations for company_address table"""
+
+    def __init__(self, pool: asyncpg.Pool):
+        self.pool = pool
+
+    async def create_company_address(self, address_data: CompanyAddressCreate) -> CompanyAddressResponse:
+        """Create a new company address"""
+        query = """
+            INSERT INTO company_address (
+                company_id, address_line1, address_line2, city, postal_code, address_type,
+                email, phone, is_principal, is_active
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING company_address_id, company_id, address_line1, address_line2, city, postal_code,
+                      address_type, email, phone, is_principal, is_active, created_at, updated_at
+        """
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                query,
+                address_data.company_id,
+                address_data.address_line1,
+                address_data.address_line2,
+                address_data.city,
+                address_data.postal_code,
+                address_data.address_type,
+                address_data.email,
+                address_data.phone,
+                address_data.is_principal,
+                address_data.is_active
+            )
+            
+            return CompanyAddressResponse(**dict(row))
+
+    async def get_company_address_by_id(self, address_id: int) -> Optional[CompanyAddressResponse]:
+        """Get company address by ID"""
+        query = """
+            SELECT company_address_id, company_id, address_line1, address_line2, city, postal_code,
+                   address_type, email, phone, is_principal, is_active, created_at, updated_at
+            FROM company_address
+            WHERE company_address_id = $1 AND is_active = true
+        """
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, address_id)
+            return CompanyAddressResponse(**dict(row)) if row else None
+
+    async def get_addresses_by_company_id(self, company_id: int) -> List[CompanyAddressResponse]:
+        """Get all addresses for a company"""
+        query = """
+            SELECT company_address_id, company_id, address_line1, address_line2, city, postal_code,
+                   address_type, email, phone, is_principal, is_active, created_at, updated_at
+            FROM company_address
+            WHERE company_id = $1 AND is_active = true
+            ORDER BY is_principal DESC, address_line1
+        """
+        
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(query, company_id)
+            return [CompanyAddressResponse(**dict(row)) for row in rows]
+
+    async def update_company_address(self, address_id: int, address_data: CompanyAddressUpdate) -> Optional[CompanyAddressResponse]:
+        """Update company address"""
+        # Build dynamic update query
+        update_fields = []
+        params = []
+        param_count = 0
+        
+        for field, value in address_data.dict(exclude_unset=True).items():
+            if value is not None:
+                param_count += 1
+                update_fields.append(f"{field} = ${param_count}")
+                params.append(value)
+        
+        if not update_fields:
+            return await self.get_company_address_by_id(address_id)
+        
+        param_count += 1
+        params.append(address_id)
+        
+        query = f"""
+            UPDATE company_address
+            SET {', '.join(update_fields)}, updated_at = CURRENT_TIMESTAMP
+            WHERE company_address_id = ${param_count} AND is_active = true
+            RETURNING company_address_id, company_id, address_line1, address_line2, city, postal_code,
+                      address_type, email, phone, is_principal, is_active, created_at, updated_at
+        """
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, *params)
+            return CompanyAddressResponse(**dict(row)) if row else None
+
+    async def delete_company_address(self, address_id: int) -> bool:
+        """Soft delete company address (set is_active = false)"""
+        query = """
+            UPDATE company_address
+            SET is_active = false, updated_at = CURRENT_TIMESTAMP
+            WHERE company_address_id = $1
+            RETURNING company_address_id
+        """
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, address_id)
+            return row is not None
+
+
+class CompanyManagerDatabase:
+    """Database operations for company_manager table"""
+
+    def __init__(self, pool: asyncpg.Pool):
+        self.pool = pool
+
+    async def create_company_manager(self, manager_data: CompanyManagerCreate) -> CompanyManagerResponse:
+        """Create a new company manager"""
+        query = """
+            INSERT INTO company_manager (
+                company_id, manager_full_name, manager_position, manager_address, manager_document_number,
+                manager_nationality, manager_civil_status, is_principal, is_active, created_by
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING manager_id, company_id, manager_full_name, manager_position, manager_address,
+                      manager_document_number, manager_nationality, manager_civil_status, is_principal,
+                      is_active, created_at, updated_at, created_by, updated_by
+        """
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                query,
+                manager_data.company_id,
+                manager_data.manager_full_name,
+                manager_data.manager_position,
+                manager_data.manager_address,
+                manager_data.manager_document_number,
+                manager_data.manager_nationality,
+                manager_data.manager_civil_status,
+                manager_data.is_principal,
+                manager_data.is_active,
+                manager_data.created_by
+            )
+            
+            return CompanyManagerResponse(**dict(row))
+
+    async def get_company_manager_by_id(self, manager_id: int) -> Optional[CompanyManagerResponse]:
+        """Get company manager by ID"""
+        query = """
+            SELECT manager_id, company_id, manager_full_name, manager_position, manager_address,
+                   manager_document_number, manager_nationality, manager_civil_status, is_principal,
+                   is_active, created_at, updated_at, created_by, updated_by
+            FROM company_manager
+            WHERE manager_id = $1 AND is_active = true
+        """
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, manager_id)
+            return CompanyManagerResponse(**dict(row)) if row else None
+
+    async def get_managers_by_company_id(self, company_id: int) -> List[CompanyManagerResponse]:
+        """Get all managers for a company"""
+        query = """
+            SELECT manager_id, company_id, manager_full_name, manager_position, manager_address,
+                   manager_document_number, manager_nationality, manager_civil_status, is_principal,
+                   is_active, created_at, updated_at, created_by, updated_by
+            FROM company_manager
+            WHERE company_id = $1 AND is_active = true
+            ORDER BY is_principal DESC, manager_full_name
+        """
+        
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(query, company_id)
+            return [CompanyManagerResponse(**dict(row)) for row in rows]
+
+    async def update_company_manager(self, manager_id: int, manager_data: CompanyManagerUpdate) -> Optional[CompanyManagerResponse]:
+        """Update company manager"""
+        # Build dynamic update query
+        update_fields = []
+        params = []
+        param_count = 0
+        
+        for field, value in manager_data.dict(exclude_unset=True).items():
+            if value is not None:
+                param_count += 1
+                update_fields.append(f"{field} = ${param_count}")
+                params.append(value)
+        
+        if not update_fields:
+            return await self.get_company_manager_by_id(manager_id)
+        
+        param_count += 1
+        params.append(manager_id)
+        
+        query = f"""
+            UPDATE company_manager
+            SET {', '.join(update_fields)}, updated_at = CURRENT_TIMESTAMP
+            WHERE manager_id = ${param_count} AND is_active = true
+            RETURNING manager_id, company_id, manager_full_name, manager_position, manager_address,
+                      manager_document_number, manager_nationality, manager_civil_status, is_principal,
+                      is_active, created_at, updated_at, created_by, updated_by
+        """
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, *params)
+            return CompanyManagerResponse(**dict(row)) if row else None
+
+    async def delete_company_manager(self, manager_id: int) -> bool:
+        """Soft delete company manager (set is_active = false)"""
+        query = """
+            UPDATE company_manager
+            SET is_active = false, updated_at = CURRENT_TIMESTAMP
+            WHERE manager_id = $1
+            RETURNING manager_id
+        """
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, manager_id)
+            return row is not None 

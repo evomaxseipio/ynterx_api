@@ -1,0 +1,2 @@
+# Fixtures for contract tests
+

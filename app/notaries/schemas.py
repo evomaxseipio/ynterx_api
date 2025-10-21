@@ -8,6 +8,7 @@ from uuid import UUID
 
 class NotaryPersonSchema(BaseModel):
     """Schema for notary person data."""
+    person_id: Optional[UUID] = Field(None, description="Person ID")
     first_name: str = Field(..., description="First name of the notary")
     last_name: str = Field(..., description="Last name of the notary")
     middle_name: str = Field(..., description="Middle name of the notary")

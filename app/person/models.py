@@ -188,8 +188,6 @@ address = Table(
         nullable=False,
     ),
 )
-<<<<<<< HEAD
-=======
 
 # Tabla referrer
 referrer = Table(
@@ -225,4 +223,3 @@ referrer = Table(
         nullable=False,
     ),
 )
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f

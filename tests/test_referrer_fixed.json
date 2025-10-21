@@ -1,0 +1,228 @@
+{
+  "contract_type": "Contrato de préstamo con garantía real",
+  "contract_type_id": 1,
+  "description": null,
+  "contract_date": "07/08/2025",
+  "contract_end_date": "07/08/2026",
+  "paragraph_request": [
+    {
+      "person_role": "client",
+      "contract_type": "fisica_soltera",
+      "section": "identification",
+      "contract_services": "mortgage"
+    },
+    {
+      "person_role": "investor",
+      "contract_type": "fisica_soltera",
+      "section": "identification",
+      "contract_services": "mortgage"
+    }
+  ],
+  "loan": {
+    "amount": 350000.0,
+    "currency": "USD",
+    "interest_rate": 2.2,
+    "term_months": 12,
+    "loan_type": "Hipotecario",
+    "loan_payments_details": {
+      "monthly_payment": 7700.000000000001,
+      "final_payment": 357700.0,
+      "discount_rate": 0.2,
+      "payment_qty_quotes": 11,
+      "payment_type": "Mensual"
+    },
+    "bank_account": {
+      "bank_name": "Banco de Reservas",
+      "bank_account_number": "67677",
+      "bank_account_type": "Corriente",
+      "bank_account_currency": "DOP"
+    }
+  },
+  "properties": [
+    {
+      "property_type": "Inmueble",
+      "cadastral_number": "G401",
+      "title_number": "4000384526",
+      "surface_area": 12.0,
+      "covered_area": null,
+      "property_value": 0.0,
+      "currency": "USD",
+      "description": "LA UNIDAD FUNCIONAL G-401, IDENTIFICADA COMO 406481433280 G-401, MATRICULA NO.4000384526, DEL CONDOMINIO RESIDENCIAL ALTOS DE LA INDEPENDENCIA (2DA ETAPA), UBICADO EN SAN PEDRO DE MACORÍS, SAN PEDRO DE MACORIS, CON UN PORCENTAJE DE PARTICIPACIÓN SOBRE LAS ÁREAS COMUNES Y LA PARCELA DEL 2.38% Y 1 VOTO EN LA ASAMBLEA DE CONDÓMINES, CONFORMADA POR UN SECTOR PROPIO IDENTIFICADO COMO SP-00-01-052, DEL BLOQUE 00, UTBICADO EN EL NIVEL 01, DESTINADO A PARQUEO, CON UNA SUPERFICIE DE 12.00 METROS CUADRADOS; UN SECTOR PROPIO IDENTIFICADO COMO SP-00-01- O53, DEL BLOQUE 00, UBICADO EN EL NIVEL 01, DESTINADO A PARQUEO, CON UNA SUPERFICIE DE 12.00 METROS CUADRADOS; UN SECTOR PROPIO IDENTIFICADO COMO SP-07-04-001, DEL BLOQUE 07, UBICADO EN EL NIVEL 04, DESTINADO A APARTAMENTO, CON UNA SUPERFICIE DE 76.50 METROS CUADRADOS Y UN SECTOR COMÚN DE USO EXCLUSIVO IDENTIFICADO COMO SE-07-05-001, DEL BLOQUE 07, UBICADO EN EL NIVEL 05, DESTINADO A AZOTEA, CON UNA SUPERFICIE DE 32.40 METROS CUADRADOS.",
+      "address_line1": null,
+      "address_line2": "san pedro de macorís, san pedro de macoris",
+      "city_id": null,
+      "postal_code": "21008",
+      "property_role": "garantia",
+      "owner_name": "Julio Felix Silvestre Cabrera",
+      "owner_document_number": "023-0159687-6",
+      "owner_nationality": "Dominicana",
+      "owner_civil_status": "Soltero",
+      "image_path": "/path/to/property/image.jpg"
+    }
+  ],
+  "clients": [
+    {
+      "person": {
+        "first_name": "MAXIMILIANO",
+        "last_name": "Seipio Reyes",
+        "middle_name": "",
+        "date_of_birth": null,
+        "gender": "Masculino",
+        "nationality_country": "República Dominicana",
+        "marital_status": "Soltero",
+        "occupation": "",
+        "documents": [
+          {
+            "is_primary": true,
+            "document_type": "Cédula",
+            "document_number": "402-0019871-7",
+            "issuing_country_id": "1",
+            "document_issue_date": null,
+            "document_expiry_date": null
+          }
+        ],
+        "addresses": [
+          {
+            "address_line1": "ANGULO GURIDI CASA 13 VILLA PROVIDENCIA ",
+            "address_line2": "San Pedro de Macorís ",
+            "city_id": "1",
+            "postal_code": "21008",
+            "address_type": "Casa",
+            "is_principal": true
+          }
+        ],
+        "person_role_id": 1,
+        "additional_data": {
+          "phone_number": "4144",
+          "email": "maxseipio@gmail.com",
+          "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1754615490580.jpg"
+        }
+      }
+    }
+  ],
+  "investors": [
+    {
+      "person": {
+        "first_name": "ESTHER BISMARELIS",
+        "last_name": "PENA CORNIEL",
+        "middle_name": "",
+        "date_of_birth": null,
+        "gender": "Femenino",
+        "nationality_country": "República Dominicana",
+        "marital_status": "Soltero",
+        "occupation": "",
+        "documents": [
+          {
+            "is_primary": true,
+            "document_type": "Cédula",
+            "document_number": "071-0047479-5",
+            "issuing_country_id": "1",
+            "document_issue_date": null,
+            "document_expiry_date": null
+          }
+        ],
+        "addresses": [
+          {
+            "address_line1": "MANZ.C, PROY. LOS MAESTRO, EDIF. 2 PISO 1 APTO. 102 CENTRO DE LA CIUDAD ",
+            "address_line2": "Nagua",
+            "city_id": "1",
+            "postal_code": "33003",
+            "address_type": "Casa",
+            "is_principal": true
+          }
+        ],
+        "person_role_id": 2,
+        "additional_data": {
+          "phone_number": "58484",
+          "email": "babbsb@hhah.com",
+          "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1754615593126.jpg"
+        }
+      }
+    }
+  ],
+  "witnesses": [
+    {
+      "person": {
+        "first_name": "MAXIMILIANO",
+        "last_name": "SEIPIO MARTINS",
+        "middle_name": "",
+        "date_of_birth": null,
+        "gender": "Masculino",
+        "nationality_country": "República Dominicana",
+        "marital_status": "Soltero",
+        "occupation": "",
+        "documents": [
+          {
+            "is_primary": true,
+            "document_type": "Cédula",
+            "document_number": "023-0093859-0",
+            "issuing_country_id": "1",
+            "document_issue_date": null,
+            "document_expiry_date": null
+          }
+        ],
+        "addresses": [
+          {
+            "address_line1": "ANGULO GURIDI CASA 13 VILLA PROVIDENCIA ",
+            "address_line2": "San Pedro de Macorís ",
+            "city_id": "1",
+            "postal_code": "21008",
+            "address_type": "Casa",
+            "is_principal": true
+          }
+        ],
+        "person_role_id": 3,
+        "additional_data": {
+          "phone_number": "542484",
+          "email": "maxseipio@gmail.com",
+          "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1754615654386.jpg"
+        }
+      }
+    }
+  ],
+  "referents": [
+    {
+      "person": {
+        "first_name": "CARLOS",
+        "last_name": "RODRIGUEZ LOPEZ",
+        "middle_name": "Manuel",
+        "date_of_birth": null,
+        "gender": "Masculino",
+        "nationality_country": "República Dominicana",
+        "marital_status": "Casado",
+        "occupation": "Agente Inmobiliario",
+        "documents": [
+          {
+            "is_primary": true,
+            "document_type": "Cédula",
+            "document_number": "123-4567890-1",
+            "issuing_country_id": "1",
+            "document_issue_date": null,
+            "document_expiry_date": null
+          }
+        ],
+        "addresses": [
+          {
+            "address_line1": "CALLE PRINCIPAL 123",
+            "address_line2": "Santo Domingo",
+            "city_id": "1",
+            "postal_code": "10101",
+            "address_type": "Casa",
+            "is_principal": true
+          }
+        ],
+        "person_role_id": 8,
+        "additional_data": {
+          "phone_number": "809-555-0123",
+          "email": "carlos.rodriguez@inmobiliaria.com",
+          "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1754615754386.jpg",
+          "referral_code": "REF-2025-001",
+          "commission_percentage": "5.0",
+          "referral_channel": "Inmobiliaria",
+          "notes": "Referidor activo con buena reputación en el mercado"
+        }
+      }
+    }
+  ],
+  "notaries": []
+}

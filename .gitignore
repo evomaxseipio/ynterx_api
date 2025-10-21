@@ -245,9 +245,21 @@ tags
 # Ignore all local history of files
 .history
 .ionide
+.claude
+.pm2ignore
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode,python,vim
 
 # Custom ignores for ynterxal API
 app/utils/RNC_Contribuyentes_Actualizado_26_Jul_2025.csv
 sendgrid.env
+
+database/
+docs/
+scripts/generate_contract.py
+scripts/setup_admin_user.py
+scripts/clean_generated_contracts.sh
+scripts/clean_database.py
+scripts/clean_database_auto.py
+test/
+app/generated_contracts

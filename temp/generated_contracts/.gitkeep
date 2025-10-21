@@ -1,0 +1,3 @@
+# Este archivo mantiene la estructura del directorio en Git
+# Los contratos se almacenan en Google Drive cuando USE_GOOGLE_DRIVE=true
+# No se generan archivos locales en este directorio

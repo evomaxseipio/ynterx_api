@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 # app/contracts/loan_property_service.py
 """
 Servicio para manejar la creación de loans y properties en contratos
@@ -9,12 +5,9 @@ Servicio para manejar la creación de loans y properties en contratos
 
 from typing import Dict, Any, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy.ext.asyncio import AsyncConnection
-<<<<<<< HEAD
-=======
 from sqlalchemy import text as sql_text  # ← AGREGAR ESTE IMPORT
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
 from app.database import fetch_one, execute
 from app.contracts.models import contract_loan, contract_property, property_table
@@ -56,9 +49,66 @@ class ContractLoanPropertyService:
             loan_id = result["contract_loan_id"]
 
             print(f"✅ Loan creado con ID: {loan_id}")
+            
+            # Obtener las fechas del contrato para el cronograma de pagos
+            try:
+                from app.contracts.models import contract
+                from sqlalchemy import select
+                
+                # Consultar las fechas del contrato
+                contract_query = select(contract.c.contract_date, contract.c.start_date, contract.c.end_date).where(
+                    contract.c.contract_id == contract_id
+                )
+                contract_result = await fetch_one(contract_query, connection=connection)
+                
+                if contract_result:
+                    contract_date = contract_result.get("contract_date")
+                    start_date = contract_result.get("start_date") or contract_date
+                    end_date = contract_result.get("end_date")
+                    
+                    print(f"📅 Fechas del contrato: contract_date={contract_date}, start_date={start_date}, end_date={end_date}")
+                else:
+                    print("⚠️ No se encontraron fechas del contrato, usando fechas por defecto")
+                    contract_date = date.today()
+                    start_date = date.today()
+                    end_date = date.today()
+                
+            except Exception as e:
+                print(f"⚠️ Error obteniendo fechas del contrato: {str(e)}, usando fechas por defecto")
+                contract_date = date.today()
+                start_date = date.today()
+                end_date = date.today()
+            
+            # Generar automáticamente el cronograma de pagos
+            try:
+                from app.loan_payments.service import LoanPaymentService
+                from app.loan_payments.schemas import GeneratePaymentScheduleRequest
+                from decimal import Decimal
+                from datetime import date
+                
+                loan_payment_service = LoanPaymentService(connection)
+                
+                payment_request = GeneratePaymentScheduleRequest(
+                    contract_loan_id=loan_id,
+                    monthly_quotes=loan_data.get("term_months", 12),
+                    monthly_amount=Decimal(str(loan_data.get("loan_payments_details", {}).get("monthly_payment", 0))),
+                    interest_amount=Decimal(str(loan_data.get("loan_payments_details", {}).get("monthly_payment", 0))),
+                    start_date=start_date,
+                    end_date=end_date,
+                    last_payment_date=end_date,
+                    last_principal=Decimal(str(loan_data.get("loan_payments_details", {}).get("final_payment", 0))),
+                    last_interest=Decimal("0")
+                )
+                
+                await loan_payment_service.generate_payment_schedule(payment_request)
+                print(f"✅ Cronograma de pagos generado para loan_id: {loan_id}")
+                
+            except Exception as e:
+                print(f"⚠️ Error generando pagos: {str(e)}")
+
             return {
                 "success": True,
-                "message": "Loan created successfully",
+                "message": "Loan created successfully with payment schedule",
                 "loan_id": loan_id
             }
 
@@ -88,35 +138,41 @@ class ContractLoanPropertyService:
 
             for idx, prop_data in enumerate(properties_data):
                 try:
+                    print(f"🔍 Procesando propiedad {idx+1}: {prop_data}")
+                    print(f"📝 Campo 'description' recibido: '{prop_data.get('description', 'NO ENCONTRADO')}'")
                     # 1. Crear la propiedad en la tabla property
-                    property_insert = property_table.insert().values(
-                        property_type=prop_data.get("property_type"),
-                        cadastral_number=prop_data.get("cadastral_number"),
-                        title_number=prop_data.get("title_number"),
-                        surface_area=prop_data.get("surface_area"),
-                        covered_area=prop_data.get("covered_area"),
-                        property_value=prop_data.get("property_value"),
-<<<<<<< HEAD
-                        currency=prop_data.get("currency", "USD"),
-                        description=prop_data.get("description"),
-                        address_line1=prop_data.get("address_line1"),
-                        address_line2=prop_data.get("address_line2"),
-                        city_id=prop_data.get("city_id"),  # Puede ser None si no se mapea
-                        postal_code=prop_data.get("postal_code"),
-=======
-                        property_owner=prop_data.get("property_owner"),
-                        currency=prop_data.get("currency", "USD"),
-                        address_line1=prop_data.get("address_line1"),
-                        address_line2=prop_data.get("address_line2"),
-                        city_id=prop_data.get("city_id"),
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
-                        is_active=True,
-                        created_at=datetime.now(),
-                        updated_at=datetime.now()
-                    ).returning(property_table.c.property_id)
+                    # Preparar valores para insertar
+                    insert_values = {
+                        "property_type": prop_data.get("property_type"),
+                        "cadastral_number": prop_data.get("cadastral_number"),
+                        "title_number": prop_data.get("title_number"),
+                        "surface_area": prop_data.get("surface_area"),
+                        "covered_area": prop_data.get("covered_area"),
+                        "property_value": prop_data.get("property_value"),
+                        "property_owner": prop_data.get("owner_name"),
+                        "owner_civil_status": prop_data.get("owner_civil_status"),
+                        "owner_document_number": prop_data.get("owner_document_number"),
+                        "owner_nationality": prop_data.get("owner_nationality"),
+                        "currency": prop_data.get("currency", "USD"),
+                        "property_description": prop_data.get("description"),
+                        "address_line1": prop_data.get("address_line1"),
+                        "address_line2": prop_data.get("address_line2"),
+                        "city_id": int(prop_data.get("city_id")) if prop_data.get("city_id") else None,
+                        "postal_code": prop_data.get("postal_code"),
+                        "image_path": prop_data.get("image_path"),
+                        "is_active": True,
+                        "created_at": datetime.now(),
+                        "updated_at": datetime.now()
+                    }
+                    
+                    print(f"📝 Valores a insertar: {insert_values}")
+                    print(f"🎯 Campo 'property_description' a insertar: '{insert_values.get('property_description', 'VACÍO')}'")
+                    
+                    property_insert = property_table.insert().values(**insert_values).returning(property_table.c.property_id)
 
                     property_result = await fetch_one(property_insert, connection=connection, commit_after=True)
                     property_id = property_result["property_id"]
+                    print(f"✅ Propiedad insertada con ID: {property_id}")
 
                     # 2. Relacionar la propiedad con el contrato
                     contract_property_insert = contract_property.insert().values(
@@ -131,6 +187,7 @@ class ContractLoanPropertyService:
                     )
 
                     await execute(contract_property_insert, connection=connection, commit_after=True)
+                    print(f"✅ Relación contract_property creada para property_id: {property_id}")
 
                     created_properties.append({
                         "property_id": property_id,
@@ -148,6 +205,8 @@ class ContractLoanPropertyService:
                         "error": str(prop_error)
                     })
                     print(f"❌ Error creando propiedad {idx+1}: {str(prop_error)}")
+                    # Continuar con la siguiente propiedad en lugar de abortar
+                    continue
 
             # Resultado final
             if created_properties:
@@ -161,14 +220,9 @@ class ContractLoanPropertyService:
             else:
                 return {
                     "success": False,
-<<<<<<< HEAD
-                    "message": "No properties could be created",
-                    "property_ids": [],
-=======
                     "message": "No properties were created",
                     "property_ids": [],
                     "properties": [],
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
                     "errors": property_errors
                 }
 
@@ -185,30 +239,19 @@ class ContractLoanPropertyService:
         contract_id: UUID,
         loan_data: Dict[str, Any],
         properties_data: List[Dict[str, Any]],
-<<<<<<< HEAD
-        connection: AsyncConnection
-=======
         connection: AsyncConnection,
         contract_context: Dict[str, Any] = None  # ← AGREGAR ESTE PARÁMETRO
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
     ) -> Dict[str, Any]:
         """
         Crear tanto loan como properties para un contrato (método conveniente)
         """
-<<<<<<< HEAD
-        print(f"🏦 Procesando loan y properties para contrato {contract_id}")
-=======
         # print(f"🏦 Procesando loan y properties para contrato {contract_id}")
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
         results = {
             "contract_id": str(contract_id),
             "loan_result": None,
             "properties_result": None,
-<<<<<<< HEAD
-=======
             "bank_account_result": None,  # ← AGREGAR ESTA LÍNEA
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
             "overall_success": False
         }
 
@@ -218,9 +261,6 @@ class ContractLoanPropertyService:
                 contract_id, loan_data, connection
             )
             results["loan_result"] = loan_result
-<<<<<<< HEAD
-            print(f"🏦 Loan: {'✅' if loan_result['success'] else '❌'} {loan_result['message']}")
-=======
             # print(f"🏦 Loan: {'✅' if loan_result['success'] else '❌'} {loan_result['message']}")
 
             # ← AGREGAR ESTA SECCIÓN COMPLETA
@@ -231,7 +271,6 @@ class ContractLoanPropertyService:
                 )
                 results["bank_account_result"] = bank_account_result
                 # print(f"🏦 Bank Account: {'✅' if bank_account_result['success'] else '❌'} {bank_account_result.get('message', 'Created')}")
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
         # Crear properties
         if properties_data:
@@ -239,11 +278,7 @@ class ContractLoanPropertyService:
                 contract_id, properties_data, connection
             )
             results["properties_result"] = properties_result
-<<<<<<< HEAD
-            print(f"🏠 Properties: {'✅' if properties_result['success'] else '❌'} {properties_result['message']}")
-=======
             # print(f"🏠 Properties: {'✅' if properties_result['success'] else '❌'} {properties_result['message']}")
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
 
         # Determinar éxito general
         loan_ok = not loan_data or (results["loan_result"] and results["loan_result"]["success"])
@@ -252,8 +287,6 @@ class ContractLoanPropertyService:
         results["overall_success"] = loan_ok and properties_ok
 
         return results
-<<<<<<< HEAD
-=======
 
     # ← AGREGAR ESTE MÉTODO COMPLETO AL FINAL DE LA CLASE
     @staticmethod
@@ -372,4 +405,3 @@ class ContractLoanPropertyService:
                 "message": f"Error creating bank account: {str(e)}",
                 "bank_account_id": None
             }
->>>>>>> 8361536d74cf3c0bd77bab62df6e64a88738668f
