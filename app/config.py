@@ -64,8 +64,8 @@ class Config(CustomBaseSettings):
     # JWT Configuration
     JWT_SECRET_KEY: str = "your-super-secret-jwt-key-change-in-production"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # 1 hora
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7     # 7 días
 
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":

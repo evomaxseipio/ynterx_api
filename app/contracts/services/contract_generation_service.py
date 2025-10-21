@@ -36,7 +36,12 @@ class ContractGenerationService:
             raise HTTPException(400, "El número de contrato es requerido para generar el contrato.")
 
         contract_id = f"contract_{contract_number}"
-        contract_folder = get_contract_folder(self.contracts_dir, contract_id)
+        
+        # Solo crear carpeta local si NO se usa Google Drive
+        if not self.use_google_drive:
+            contract_folder = get_contract_folder(self.contracts_dir, contract_id)
+        else:
+            contract_folder = None
 
         try:
             # Seleccionar plantilla
@@ -52,60 +57,95 @@ class ContractGenerationService:
             # Generar documento
             doc_content = self.template_service.render_template(template_path, processed_data)
 
-            # Guardar archivo
-            output_filename = f"{contract_id}.docx"
-            output_path = contract_folder / output_filename
-            
-            with open(output_path, 'wb') as f:
-                f.write(doc_content)
-
-            # Guardar metadatos
-            storage_type = "google_drive" if self.use_google_drive else "local"
-            self.metadata_service.save_contract_metadata(contract_id, processed_data, 1, storage_type)
+            # Generar nombre descriptivo del archivo para la respuesta
+            contract_number = contract_id.replace("contract_", "")
+            descriptive_filename = f"{contract_number}.docx"
 
             # Respuesta base
             response = {
                 "success": True,
                 "message": "Contrato generado exitosamente",
                 "contract_id": contract_id,
-                "filename": output_filename,
-                "path": str(output_path),
-                "folder_path": str(contract_folder),
                 "template_used": template_path.name,
-                "processed_data": processed_data
+                "processed_data": processed_data,
+                "filename": descriptive_filename
             }
+
+            # Si NO se usa Google Drive, guardar localmente
+            if not self.use_google_drive:
+                output_filename = f"{contract_id}.docx"
+                output_path = contract_folder / output_filename
+                
+                with open(output_path, 'wb') as f:
+                    f.write(doc_content)
+                
+                # Guardar metadatos localmente
+                self.metadata_service.save_contract_metadata(contract_id, processed_data, 1, "local")
+                
+                response.update({
+                    "filename": output_filename,
+                    "path": str(output_path),
+                    "folder_path": str(contract_folder)
+                })
+            else:
+                # Si se usa Google Drive, NO guardar localmente
+                response.update({
+                    "filename": f"{contract_id}.docx",
+                    "path": None,
+                    "folder_path": None,
+                    "storage_type": "google_drive_only"
+                })
 
             # Subir a Google Drive si está habilitado
             if self.use_google_drive:
-                drive_result = self.gdrive_utils.upload_contract(contract_id, output_path, processed_data)
-                response.update(drive_result)
+                # Crear archivo temporal solo para subir a Drive
+                import tempfile
+                import os
                 
-                # Enviar email si hay enlace de Drive
-                if drive_result.get("drive_link"):
-                    await self._send_contract_email(contract_id, processed_data, drive_result['drive_link'])
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_file:
+                    temp_file.write(doc_content)
+                    temp_file_path = temp_file.name
+                
+                try:
+                    drive_result = self.gdrive_utils.upload_contract(contract_id, temp_file_path, processed_data)
+                    response.update(drive_result)
+                    
+                    # Enviar email si hay enlace de Drive
+                    if drive_result.get("drive_link"):
+                        await self._send_contract_email(contract_id, processed_data, drive_result['drive_link'])
+                finally:
+                    # Limpiar archivo temporal
+                    if os.path.exists(temp_file_path):
+                        os.unlink(temp_file_path)
 
             return response
 
         except Exception as e:
-            # Limpiar en caso de error
-            if contract_folder.exists():
+            # Limpiar en caso de error (solo si se creó carpeta local)
+            if contract_folder and contract_folder.exists():
                 shutil.rmtree(contract_folder)
             raise HTTPException(400, f"Error generando contrato: {str(e)}")
 
     async def update_contract(self, contract_id: str, updates: Dict[str, Any], connection=None) -> Dict[str, Any]:
         """Modificar contrato existente"""
-        contract_folder = self.contracts_dir / contract_id
+        
+        # Solo buscar carpeta local si NO se usa Google Drive
+        if not self.use_google_drive:
+            contract_folder = self.contracts_dir / contract_id
+            if not contract_folder.exists():
+                raise HTTPException(404, "Contrato no encontrado")
+        else:
+            contract_folder = None
 
-        if not contract_folder.exists():
-            raise HTTPException(404, "Contrato no encontrado")
-
-        # Cargar metadatos existentes
-        metadata = self.metadata_service.load_contract_metadata(contract_id)
-        if not metadata:
-            raise HTTPException(404, "Metadatos del contrato no encontrados")
+        # Cargar metadatos existentes (solo si no se usa Google Drive)
+        metadata = None
+        if not self.use_google_drive:
+            metadata = self.metadata_service.load_contract_metadata(contract_id)
+            if not metadata:
+                raise HTTPException(404, "Metadatos del contrato no encontrados")
 
         # Combinar datos existentes con actualizaciones
-        original_data = metadata["original_data"]
+        original_data = metadata["original_data"] if metadata else {}
         updated_data = {**original_data, **updates}
 
         # Regenerar contrato
@@ -119,33 +159,69 @@ class ContractGenerationService:
         # Renderizar plantilla
         doc_content = self.template_service.render_template(template_path, processed_data)
 
-        # Guardar archivo actualizado
-        output_filename = f"{contract_id}.docx"
-        output_path = contract_folder / output_filename
-        
-        with open(output_path, 'wb') as f:
-            f.write(doc_content)
-
-        # Actualizar metadatos
-        new_version = self.metadata_service.increment_version(contract_id)
-        self.metadata_service.save_contract_metadata(contract_id, processed_data, new_version)
-
         # Respuesta base
         response = {
             "success": True,
             "message": "Contrato actualizado exitosamente",
             "contract_id": contract_id,
-            "version": new_version,
             "updated_fields": list(updates.keys()),
-            "filename": output_filename,
-            "path": str(output_path),
-            "folder_path": str(contract_folder)
+            "filename": f"{contract_id}.docx"
         }
+
+        # Si NO se usa Google Drive, guardar localmente
+        if not self.use_google_drive:
+            # Generar nombre descriptivo del archivo
+            contract_number = contract_id.replace("contract_", "")
+            output_filename = f"{contract_number}.docx"
+            
+            # Guardar archivo localmente
+            output_path = contract_folder / output_filename
+            with open(output_path, 'wb') as f:
+                f.write(doc_content)
+                # Generar nombre descriptivo del archivo
+                contract_number = contract_id.replace("contract_", "")
+                output_filename = f"{contract_number}.docx"
+                output_path = contract_folder / output_filename
+                
+                with open(output_path, 'wb') as f:
+                    f.write(doc_content)
+
+                # Actualizar metadatos
+                new_version = self.metadata_service.increment_version(contract_id)
+                self.metadata_service.save_contract_metadata(contract_id, processed_data, new_version)
+                
+                response.update({
+                    "version": new_version,
+                    "path": str(output_path),
+                    "folder_path": str(contract_folder),
+                    "filename": output_filename
+                })
+        else:
+            # Si se usa Google Drive, NO guardar localmente
+            response.update({
+                "version": None,
+                "path": None,
+                "folder_path": None,
+                "storage_type": "google_drive_only"
+            })
 
         # Subir a Google Drive si está habilitado
         if self.use_google_drive:
-            drive_result = self.gdrive_utils.upload_contract(contract_id, output_path, processed_data)
-            response.update(drive_result)
+            # Crear archivo temporal solo para subir a Drive
+            import tempfile
+            import os
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_file:
+                temp_file.write(doc_content)
+                temp_file_path = temp_file.name
+            
+            try:
+                drive_result = self.gdrive_utils.upload_contract(contract_id, temp_file_path, processed_data)
+                response.update(drive_result)
+            finally:
+                # Limpiar archivo temporal
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
 
         return response
 

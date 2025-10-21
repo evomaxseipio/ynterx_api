@@ -219,10 +219,14 @@ class ContractCreationService:
                 print(f"   - file_path: {file_path}")
                 print(f"   - folder_path: {folder_path}")
             
+            # Generar nombre descriptivo como fallback
+            contract_number = contract_id.replace("contract_", "")
+            descriptive_filename = document_result.get("filename", f"{contract_number}.docx")
+            
             update_query = contract_table.update().where(
                 contract_table.c.contract_id == contract_id
             ).values(
-                generated_filename=document_result.get("filename"),
+                generated_filename=descriptive_filename,
                 file_path=file_path,
                 folder_path=folder_path,
                 updated_at=datetime.now()

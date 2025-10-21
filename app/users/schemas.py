@@ -23,11 +23,10 @@ class UserBase(BaseModel):
 
 
 class RolePermissionsSchema(BaseModel):
-    pagos: list[str]
-    usuarios: list[str]
-    prestamos: list[str]
-    propiedades: list[str]
-    configuracion: list[str]
+    model_config = ConfigDict(extra="allow")
+    
+    # Esquema completamente adaptable para cualquier estructura de permisos
+    # Permite campos adicionales automáticamente sin necesidad de modificar el código
 
 
 class RoleSchema(BaseModel):
@@ -97,3 +96,5 @@ class UserUpdate(BaseModel):
     is_active: bool | None = None
     user_role_id: int | None = None
     preferences: UserPreferencesSchema | None = None
+    # Nuevo campo para contraseña (solo para administradores)
+    new_password: constr(min_length=8) | None = None

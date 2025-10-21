@@ -129,9 +129,19 @@ async def update_user(
             "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
         }
     except Exception as e:
-        # Log any unexpected errors
-        log.error(f"Error updating user {user_id}: {e!s}")
-        raise BadRequest(f"Error updating user {user_id}: {e!s}") from e
+        error_message = str(e)
+        log.error(f"Error updating user {user_id}: {error_message}")
+        
+        # Manejar error específico de permisos de contraseña
+        if "Solo puedes cambiar tu propia contraseña" in error_message or "Solo administradores pueden cambiar contraseñas" in error_message:
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=403,
+                detail=error_message
+            )
+        
+        # Otros errores
+        raise BadRequest(f"Error updating user {user_id}: {error_message}") from e
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

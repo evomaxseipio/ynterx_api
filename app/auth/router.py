@@ -74,7 +74,7 @@ async def login(request: Request, login_data: AuthLoginRequest) -> Any:
 
         # Create JWT tokens
         access_token = jwt_service.create_access_token(user_data)
-        refresh_token = jwt_service.create_refresh_token(user.user_id)
+        refresh_token = jwt_service.create_refresh_token(user_data)
         
         # Create a session in the cache as backup
         await create_session(session.session_token, user.user_id)
@@ -122,43 +122,79 @@ async def refresh_token(request: Request, refresh_data: RefreshTokenRequest) -> 
                 success=False,
             )
         
-        # Obtener datos del usuario
+        # Obtener datos del usuario del refresh token
         user_id = payload["sub"]
         
-        # Obtener datos del usuario desde la DB
-        async with pool.acquire() as conn:
-            conn: asyncpg.Connection
-            user_record = await conn.fetchrow(
-                """
-                SELECT u.user_id, u.username, u.email, u.person_id,
-                       r.role_name, r.permissions
-                FROM users u
-                LEFT JOIN roles r ON u.role_id = r.role_id
-                WHERE u.user_id = $1 AND u.is_active = true
-                """,
-                user_id
-            )
-        
-        if not user_record:
-            raise GenericHTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                error_code=ErrorCodeEnum.INVALID_CREDENTIALS,
-                message="Usuario no encontrado o inactivo",
-                success=False,
-            )
-        
-        user_data = {
-            "user_id": user_record["user_id"],
-            "username": user_record["username"],
-            "email": user_record["email"],
-            "person_id": user_record["person_id"],
-            "role": {
-                "role_name": user_record["role_name"] or "user",
-                "permissions": user_record["permissions"] or []
+        # OPTIMIZACIÓN: Reutilizar datos del token original si están disponibles
+        # Si el refresh token contiene datos del usuario, los usamos directamente
+        if "person_id" in payload and "username" in payload and "email" in payload:
+            # El refresh token tiene datos completos del usuario
+            user_data = {
+                "user_id": user_id,
+                "person_id": payload.get("person_id"),
+                "username": payload.get("username"),
+                "email": payload.get("email"),
+                "role": {
+                    "role_name": payload.get("role", "user"),
+                    "permissions": payload.get("permissions", [])
+                }
             }
-        }
+        else:
+            # Fallback: consultar la base de datos solo si es necesario
+            async with pool.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute(
+                        """
+                        SELECT 
+                            u.user_id,
+                            u.person_id,
+                            u.username,
+                            u.email,
+                            r.role_name,
+                            r.role_description,
+                            r.user_role_id,
+                            COALESCE(
+                                json_agg(
+                                    DISTINCT jsonb_build_object(
+                                        'permission_name', p.permission_name,
+                                        'permission_description', p.permission_description
+                                    )
+                                ) FILTER (WHERE p.permission_name IS NOT NULL),
+                                '[]'::json
+                            ) as permissions
+                        FROM users u
+                        LEFT JOIN user_roles r ON u.user_role_id = r.user_role_id
+                        LEFT JOIN role_permissions rp ON r.user_role_id = rp.user_role_id
+                        LEFT JOIN permissions p ON rp.permission_id = p.permission_id
+                        WHERE u.user_id = %s
+                        GROUP BY u.user_id, u.person_id, u.username, u.email, r.role_name, r.role_description, r.user_role_id
+                        """,
+                        (user_id,)
+                    )
+                    result = await cursor.fetchone()
+                    
+                    if not result:
+                        raise GenericHTTPException(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            error_code=ErrorCodeEnum.INVALID_CREDENTIALS,
+                            message="Usuario no encontrado",
+                            success=False,
+                        )
+                    
+                    # Construir datos del usuario
+                    user_data = {
+                        "user_id": str(result[0]),
+                        "person_id": str(result[1]) if result[1] else None,
+                        "username": result[2],
+                        "email": result[3],
+                        "role": {
+                            "role_name": result[4],
+                            "role_description": result[5],
+                            "user_role_id": result[6],
+                            "permissions": result[7] if result[7] else []
+                        }
+                    }
         
-        # Generar nuevo access token
         new_access_token = jwt_service.create_access_token(user_data)
         
         return RefreshTokenResponse(

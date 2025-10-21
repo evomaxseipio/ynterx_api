@@ -1,6 +1,6 @@
 import jwt
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
 from uuid import UUID
 
@@ -27,20 +27,25 @@ class JWTService:
             "permissions": user_data.get("role", {}).get("permissions", []),
             "aud": "ynterxal-api",
             "iss": "ynterxal-auth",
-            "iat": datetime.utcnow(),
-            "exp": datetime.utcnow() + self.access_token_expire,
+            "iat": datetime.now(timezone.utc),
+            "exp": datetime.now(timezone.utc) + self.access_token_expire,
             "jti": str(uuid.uuid4()),  # JWT ID para revocación
             "type": "access"
         }
         return jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
     
-    def create_refresh_token(self, user_id: str) -> str:
-        """Crear token de refresco JWT."""
+    def create_refresh_token(self, user_data: Dict[str, Any]) -> str:
+        """Crear token de refresco JWT con datos del usuario."""
         payload = {
-            "sub": user_id,
+            "sub": user_data["user_id"],
+            "person_id": user_data.get("person_id"),
+            "username": user_data.get("username"),
+            "email": user_data.get("email"),
+            "role": user_data.get("role", {}).get("role_name"),
+            "permissions": user_data.get("role", {}).get("permissions", []),
             "type": "refresh",
-            "iat": datetime.utcnow(),
-            "exp": datetime.utcnow() + self.refresh_token_expire,
+            "iat": datetime.now(timezone.utc),
+            "exp": datetime.now(timezone.utc) + self.refresh_token_expire,
             "jti": str(uuid.uuid4())
         }
         return jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
@@ -48,12 +53,12 @@ class JWTService:
     def verify_token(self, token: str) -> Optional[Dict[str, Any]]:
         """Verificar y decodificar token JWT."""
         try:
+            # Decodificar sin verificar audience/issuer para refresh tokens
             payload = jwt.decode(
                 token, 
                 self.secret_key, 
                 algorithms=[self.algorithm],
-                audience="ynterxal-api",
-                issuer="ynterxal-auth"
+                options={"verify_aud": False, "verify_iss": False}
             )
             return payload
         except jwt.ExpiredSignatureError:
@@ -71,18 +76,16 @@ class JWTService:
     def is_token_expired(self, token: str) -> bool:
         """Verificar si el token está expirado."""
         try:
-            payload = jwt.decode(
-                token, 
-                self.secret_key, 
-                algorithms=[self.algorithm],
-                options={"verify_exp": False}
-            )
+            # Decodificar sin verificar firma ni audience/issuer
+            payload = jwt.decode(token, options={'verify_signature': False})
             exp = payload.get("exp")
             if not exp:
                 return True
             
-            exp_datetime = datetime.fromtimestamp(exp)
-            return datetime.utcnow() > exp_datetime
+            # Convertir timestamp a datetime y comparar
+            exp_datetime = datetime.fromtimestamp(exp, tz=timezone.utc)
+            now = datetime.now(timezone.utc)
+            return now > exp_datetime
         except:
             return True
     

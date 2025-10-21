@@ -211,7 +211,10 @@ def get_system_status() -> dict:
 def setup_directories():
     """Crear directorios necesarios al importar el módulo"""
     ContractConfig.TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
-    ContractConfig.CONTRACTS_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Solo crear directorio de contratos si Google Drive NO está habilitado
+    if not ContractConfig.USE_GOOGLE_DRIVE:
+        ContractConfig.CONTRACTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Ejecutar setup al importar
 setup_directories()

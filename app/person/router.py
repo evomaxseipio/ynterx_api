@@ -37,21 +37,21 @@ router = APIRouter(prefix="/persons", tags=["persons"])
 ######################################################################################################
 
 
-@router.get("", response_model=list[PersonSchema])
+@router.get("", response_model=dict)
 async def list_persons(
     _: DepCurrentUser,
     request: Request,
-    skip: int = 0,
-    limit: int = 100,
-    is_active: bool | None = None,
-) -> list[dict]:
-    """List all persons with pagination."""
+    search_term: Optional[str] = Query(None, description="Buscar por nombre, apellido, cédula, etc."),
+    limit: int = Query(20, ge=1, le=100, description="Número de registros por página"),
+    offset: int = Query(0, ge=0, description="Número de registros a saltar"),
+) -> dict:
+    """List all persons with pagination using stored procedure."""
     async with request.app.state.db_pool.acquire() as connection:
         return await PersonService.list_persons(
             connection=connection,
-            skip=skip,
+            search_term=search_term,
             limit=limit,
-            is_active=is_active
+            offset=offset
         )
 
 

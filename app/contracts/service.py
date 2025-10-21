@@ -20,8 +20,12 @@ class ContractService:
         self.template_dir = self.base_dir / "templates"
         self.contracts_dir = self.base_dir / "generated_contracts"
         
-        # Crear directorios necesarios
-        ensure_directories(self.base_dir, self.template_dir, self.contracts_dir)
+        # Solo crear directorios si NO se usa Google Drive
+        if not self.use_google_drive:
+            ensure_directories(self.base_dir, self.template_dir, self.contracts_dir)
+        else:
+            # Solo crear directorio de templates (necesario para las plantillas)
+            ensure_directories(self.base_dir, self.template_dir)
         
         # Inicializar servicios especializados
         self.list_service = ContractListService()

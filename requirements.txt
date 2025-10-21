@@ -45,7 +45,7 @@ uv==0.7.8
 uvicorn==0.34.2
 watchfiles==1.0.5
 websockets==15.0.1
-docxtpl==0.20.0
+docxtpl==0.20.1
 python-docx==1.2.0
 
 # Dependencias para Google Drive
@@ -60,8 +60,15 @@ beautifulsoup4==4.12.2
 # Dependencias para conversión de números a texto
 num2words==0.5.14
 
-# Dependencias para manejo de fechas
-python-dateutil==2.8.2
+# Dependencias para manejo de fechas (already listed above in line 27)
 
 # Dependencias para JWT
 PyJWT==2.8.0
+
+# Dependencias para docxcompose (evitar warning de pkg_resources)
+setuptools>=65.0.0,<81
+docxcompose==1.4.0
+
+# Dependencias para generación de imágenes y recibos
+Pillow==11.3.0
+qrcode==8.2

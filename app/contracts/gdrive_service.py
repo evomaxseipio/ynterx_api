@@ -45,21 +45,25 @@ class GoogleDriveService:
         else:
             self.main_folder_id = self._create_main_folder()
 
-
-
     def _authenticate(self):
-        """Autenticar con Google Drive API"""
+        """Autenticar con Google Drive API - VERSIÓN CORREGIDA"""
         try:
             scopes = ['https://www.googleapis.com/auth/drive']
             credentials = Credentials.from_service_account_file(
                 self.credentials_path, scopes=scopes
             )
+            
+            # SOLUCIÓN: Usar solo credentials, sin el parámetro http
+            # Esta es la forma correcta y más limpia
             self.service = build('drive', 'v3', credentials=credentials)
+            
+            print("Google Drive authentication successful")
 
         except Exception as e:
             print(f"Error authenticating with Google Drive: {str(e)}")
             raise HTTPException(500, f"Error authenticating with Google Drive: {str(e)}")
 
+    # EL RESTO DEL CÓDIGO SE MANTIENE IGUAL (sin cambios)
     def _create_main_folder(self) -> str:
         """Crear carpeta principal 'Ynterx_Contracts'"""
         folder_metadata = {
@@ -114,6 +118,9 @@ class GoogleDriveService:
 
     def _upload_file(self, file_path: Path, parent_folder_id: str, file_name: Optional[str] = None) -> Dict[str, str]:
         """Subir archivo a Google Drive"""
+        # Convertir a Path si viene como string
+        file_path = Path(file_path)
+        
         if not file_name:
             file_name = file_path.name
 
@@ -172,18 +179,24 @@ class GoogleDriveService:
                 temp_file.unlink()
             raise e
 
-
     def upload_contract(self, contract_id: str, contract_path: Path, metadata: Dict[str, Any]) -> Dict[str, Any]:
         """Subir contrato completo a Google Drive"""
         try:
+            # Convertir a Path si viene como string
+            contract_path = Path(contract_path)
+            
             # Crear carpeta del contrato
             contract_folder_id = self._create_contract_folder(contract_id)
 
             # Crear subcarpeta attachments
             attachments_folder_id = self._create_attachments_folder(contract_folder_id)
 
-            # Subir archivo del contrato
-            contract_result = self._upload_file(contract_path, contract_folder_id)
+            # Generar nombre descriptivo del archivo
+            contract_number = contract_id.replace("contract_", "")
+            descriptive_filename = f"{contract_number}.docx"
+
+            # Subir archivo del contrato con nombre descriptivo
+            contract_result = self._upload_file(contract_path, contract_folder_id, descriptive_filename)
 
             # Subir metadatos
             metadata_file_id = self._upload_metadata(metadata, contract_folder_id)

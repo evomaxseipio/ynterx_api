@@ -286,22 +286,7 @@ class PersonService:
         )
         return await fetch_one(query, connection=connection, commit_after=True)
 
-    @staticmethod
-    async def list_persons(
-        connection,
-        skip: int = 0,
-        limit: int = 100,
-        is_active: bool | None = None,
-    ) -> list[dict]:
-        """List all persons with pagination and active filter."""
-        query = """
-            SELECT * FROM public.person
-            WHERE ($3::boolean IS NULL OR is_active = $3::boolean)
-            ORDER BY created_at DESC
-            OFFSET $1 LIMIT $2;
-        """
-        persons = await connection.fetch(query, skip, limit, is_active)
-        return [dict(person) for person in persons]
+
 
     @staticmethod
     async def search_persons(
@@ -328,6 +313,52 @@ class PersonService:
         search_pattern = f"%{search_term}%"
         persons = await connection.fetch(query, search_pattern, skip, limit)
         return [dict(person) for person in persons]
+
+    @staticmethod
+    async def list_persons(
+        connection,
+        search_term: str | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> dict:
+        """Get person list using stored procedure sp_get_person_data."""
+        try:
+            # Validar parámetros
+            if limit <= 0:
+                limit = 20
+            if offset < 0:
+                offset = 0
+
+            query = "SELECT sp_get_person_data($1, $2, $3)"
+            result = await connection.fetchval(query, search_term, limit, offset)
+            
+            if result:
+                # Si es un string JSON, parsearlo
+                if isinstance(result, str):
+                    import json
+                    result = json.loads(result)
+                
+                # Devolver la respuesta completa de la función de BD
+                return result
+            else:
+                # Si no hay resultado, devolver respuesta de error
+                return {
+                    "success": False,
+                    "status_code": 500,
+                    "error": "No se pudo obtener respuesta de la función de BD",
+                    "person_list": [],
+                    "pagination": {"limit": limit, "offset": offset, "total": 0}
+                }
+                
+        except Exception as e:
+            # Si hay excepción, devolver respuesta de error
+            return {
+                "success": False,
+                "status_code": 500,
+                "error": f"Error de conexión: {str(e)}",
+                "person_list": [],
+                "pagination": {"limit": limit, "offset": offset, "total": 0}
+            }
 
 
 class GenderService:

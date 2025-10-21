@@ -405,7 +405,7 @@ class ParticipantService:
         return person_id, is_existing, is_reused
 
     async def _process_company(self, company_data: Dict[str, Any], request: Request) -> Optional[int]:
-        """Procesar empresa: validar si existe o insertar nueva"""
+        """Procesar empresa: validar si existe o insertar nueva, incluyendo managers"""
         try:
             async with request.app.state.db_pool.acquire() as conn:
                 # Verificar si empresa ya existe por RNC
@@ -417,37 +417,219 @@ class ParticipantService:
                 query = "SELECT company_id FROM company WHERE company_rnc = $1 AND is_active = true"
                 existing = await conn.fetchrow(query, rnc)
                 
+                company_id = None
+                
                 if existing:
-                    return existing["company_id"]
+                    company_id = existing["company_id"]
+                    print(f"   🔍 Empresa existente encontrada: {company_id}")
+                else:
+                    # Insertar nueva empresa
+                    print(f"   🆕 Creando nueva empresa con RNC: {rnc}")
+                    insert_query = """
+                        INSERT INTO company (
+                            company_name, company_rnc, mercantil_registry, nationality,
+                            email, phone, website, company_type, company_description,
+                            is_active, created_at, updated_at
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                        RETURNING company_id
+                    """
+                    
+                    result = await conn.fetchrow(insert_query,
+                        company_data.get("company_name", ""),
+                        rnc,
+                        company_data.get("company_mercantil_number", ""),
+                        company_data.get("nationality", "Dominicana"),
+                        company_data.get("company_email", ""),
+                        company_data.get("company_phone", ""),
+                        company_data.get("website", ""),
+                        company_data.get("company_type", ""),
+                        company_data.get("company_description", ""),
+                        True,
+                        datetime.now(),
+                        datetime.now()
+                    )
+                    
+                    company_id = result["company_id"] if result else None
+                    print(f"   ✅ Nueva empresa creada: {company_id}")
                 
-                # Insertar nueva empresa
-                insert_query = """
-                    INSERT INTO company (
-                        company_name, company_rnc, mercantil_registry, nationality,
-                        email, phone, website, company_type, company_description,
-                        is_active, created_at, updated_at
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                    RETURNING company_id
-                """
+                # Si tenemos company_id, procesar managers y direcciones
+                if company_id:
+                    await self._process_company_managers(conn, company_id, company_data)
+                    await self._process_company_addresses(conn, company_id, company_data)
                 
-                result = await conn.fetchrow(insert_query,
-                    company_data.get("company_name", ""),
-                    rnc,
-                    company_data.get("company_mercantil_number", ""),
-                    company_data.get("nationality", "Dominicana"),
-                    company_data.get("company_email", ""),
-                    company_data.get("company_phone", ""),
-                    company_data.get("website", ""),
-                    company_data.get("company_type", ""),
-                    company_data.get("company_description", ""),
-                    True,
-                    datetime.now(),
-                    datetime.now()
-                )
-                
-                return result["company_id"] if result else None
+                return company_id
                 
         except Exception as e:
             print(f"Error procesando empresa: {str(e)}")
             return None
+            
+    async def _process_company_managers(self, conn, company_id: int, company_data: Dict[str, Any]):
+        """Procesar managers de una empresa"""
+        try:
+            company_managers = company_data.get("company_manager", [])
+            if not company_managers:
+                print(f"      ℹ️  No hay managers para procesar")
+                return
+                
+            print(f"      👥 Procesando {len(company_managers)} managers...")
+            
+            for manager in company_managers:
+                # Verificar si el manager ya existe por documento
+                doc_number = manager.get("document_number")
+                if not doc_number:
+                    print(f"         ⚠️  Manager sin documento: {manager.get('name', 'N/A')}")
+                    continue
+                    
+                # Buscar manager existente
+                existing_query = """
+                    SELECT manager_id FROM company_manager 
+                    WHERE company_id = $1 AND manager_document_number = $2 AND is_active = true
+                """
+                existing_manager = await conn.fetchrow(existing_query, company_id, doc_number)
+                
+                if existing_manager:
+                    print(f"         ✅ Manager existente: {manager.get('name', 'N/A')} ({doc_number})")
+                    continue
+                    
+                # Insertar nuevo manager
+                insert_manager_query = """
+                    INSERT INTO company_manager (
+                        company_id, manager_full_name, manager_position, manager_address,
+                        manager_document_number, manager_nationality, manager_civil_status,
+                        is_principal, is_active, created_at, updated_at
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                    RETURNING manager_id
+                """
+                
+                # Mapear campos del JSON a la BD
+                manager_full_name = manager.get("name", "")
+                manager_position = manager.get("position", "")
+                manager_address = manager.get("address", "")
+                manager_document_number = doc_number
+                manager_nationality = manager.get("nationality", "")
+                manager_civil_status = manager.get("marital_status", "")
+                is_principal = manager.get("is_main_manager", False)
+                
+                result = await conn.fetchrow(insert_manager_query,
+                    company_id,
+                    manager_full_name,
+                    manager_position,
+                    manager_address,
+                    manager_document_number,
+                    manager_nationality,
+                    manager_civil_status,
+                    is_principal,
+                    True,  # is_active
+                    datetime.now(),  # created_at
+                    datetime.now()   # updated_at
+                )
+                
+                if result:
+                    print(f"         ✅ Manager creado: {manager_full_name} ({doc_number})")
+                else:
+                    print(f"         ❌ Error creando manager: {manager_full_name}")
+                    
+        except Exception as e:
+            print(f"      ❌ Error procesando managers: {str(e)}")
+            # No lanzar excepción para no interrumpir el flujo principal
+            
+    async def _process_company_addresses(self, conn, company_id: int, company_data: Dict[str, Any]):
+        """Procesar direcciones de una empresa"""
+        try:
+            company_address = company_data.get("company_address", {})
+            if not company_address:
+                print(f"      ℹ️  No hay dirección para procesar")
+                return
+                
+            print(f"      🏠 Procesando dirección de empresa...")
+            
+            # Verificar si la dirección ya existe
+            existing_query = """
+                SELECT company_address_id FROM company_address 
+                WHERE company_id = $1 AND is_active = true
+            """
+            existing_address = await conn.fetchrow(existing_query, company_id)
+            
+            if existing_address:
+                # Actualizar dirección existente
+                print(f"         🔄 Actualizando dirección existente...")
+                update_address_query = """
+                    UPDATE company_address SET
+                        address_line1 = $1,
+                        address_line2 = $2,
+                        city = $3,
+                        postal_code = $4,
+                        address_type = $5,
+                        email = $6,
+                        phone = $7,
+                        updated_at = $8
+                    WHERE company_address_id = $9
+                """
+                
+                # Mapear campos del JSON a la BD
+                address_line1 = company_address.get("address_line1", "")
+                address_line2 = company_address.get("address_line2", "")
+                city = company_address.get("city", "")
+                postal_code = company_address.get("postal_code", "")
+                address_type = company_address.get("address_type", "Business")
+                email = company_address.get("email", "")
+                phone = company_address.get("phone_number", "")
+                
+                await conn.execute(update_address_query,
+                    address_line1,
+                    address_line2,
+                    city,
+                    postal_code,
+                    address_type,
+                    email,
+                    phone,
+                    datetime.now(),
+                    existing_address["company_address_id"]
+                )
+                
+                print(f"         ✅ Dirección actualizada")
+                
+            else:
+                # Insertar nueva dirección
+                print(f"         🆕 Creando nueva dirección...")
+                insert_address_query = """
+                    INSERT INTO company_address (
+                        company_id, address_line1, address_line2, city, postal_code,
+                        address_type, email, phone, is_principal, is_active, created_at, updated_at
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    RETURNING company_address_id
+                """
+                
+                # Mapear campos del JSON a la BD
+                address_line1 = company_address.get("address_line1", "")
+                address_line2 = company_address.get("address_line2", "")
+                city = company_address.get("city", "")
+                postal_code = company_address.get("postal_code", "")
+                address_type = company_address.get("address_type", "Business")
+                email = company_address.get("email", "")
+                phone = company_address.get("phone_number", "")
+                
+                result = await conn.fetchrow(insert_address_query,
+                    company_id,
+                    address_line1,
+                    address_line2,
+                    city,
+                    postal_code,
+                    address_type,
+                    email,
+                    phone,
+                    True,  # is_principal (primera dirección)
+                    True,  # is_active
+                    datetime.now(),  # created_at
+                    datetime.now()   # updated_at
+                )
+                
+                if result:
+                    print(f"         ✅ Dirección creada: {address_line1}, {city}")
+                else:
+                    print(f"         ❌ Error creando dirección")
+                    
+        except Exception as e:
+            print(f"      ❌ Error procesando dirección: {str(e)}")
+            # No lanzar excepción para no interrumpir el flujo principal
 

@@ -1,4 +1,5 @@
 import logging
+import ssl as ssl_module
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
@@ -15,16 +16,55 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine, AsyncSession, async_sessionmaker
 
 from app.config import settings
-from app.constants import DB_NAMING_CONVENTION
+from app.constants import DB_NAMING_CONVENTION, Environment
 
 log = logging.getLogger(__name__)
 
-DATABASE_URL = str(settings.DATABASE_ASYNC_URL).replace("?sslmode=require", "")
+# Clean the database URL by removing sslmode parameter that asyncpg doesn't support
+DATABASE_URL = str(settings.DATABASE_ASYNC_URL)
+sslmode_required = False
+if "?sslmode=" in DATABASE_URL:
+    sslmode_value = DATABASE_URL.split("?sslmode=")[1].split("&")[0]
+    sslmode_required = sslmode_value == "require"
+    DATABASE_URL = DATABASE_URL.split("?sslmode=")[0]
 
-# Configurar opciones de conexión
+# Detectar si es una base de datos cloud (Neon, AWS RDS, etc.)
+is_cloud_db = any(domain in DATABASE_URL for domain in [
+    "neon.tech",
+    "rds.amazonaws.com",
+    "azure.com",
+])
+
+# Configurar opciones de conexión para asyncpg
 connect_args = {}
-if "sslmode" in str(settings.DATABASE_ASYNC_URL):
-    connect_args["ssl"] = True
+
+log.info(f"Configuring database connection for environment: {settings.ENVIRONMENT}")
+log.info(f"Cloud database detected: {is_cloud_db}, SSL required: {sslmode_required}")
+
+# Configuración SSL para asyncpg
+if settings.ENVIRONMENT == Environment.PRODUCTION or (is_cloud_db and sslmode_required):
+    # Producción o base de datos cloud con SSL requerido
+    ssl_context = ssl_module.create_default_context()
+    ssl_context.check_hostname = False  # Cloud DBs don't always match hostname
+    ssl_context.verify_mode = ssl_module.CERT_NONE  # Don't verify cert in dev/staging
+    connect_args["ssl"] = ssl_context
+    log.info("SSL enabled with no certificate verification")
+elif settings.ENVIRONMENT == Environment.LOCAL or settings.ENVIRONMENT.is_debug:
+    # Desarrollo/Local/Staging con base de datos local: SSL deshabilitado
+    if not is_cloud_db:
+        connect_args["ssl"] = False
+        log.info("SSL disabled for local database")
+    else:
+        # Base de datos cloud en modo desarrollo: SSL con verificación relajada
+        ssl_context = ssl_module.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl_module.CERT_NONE
+        connect_args["ssl"] = ssl_context
+        log.info("SSL enabled for cloud database with relaxed verification")
+else:
+    # Otros entornos: SSL habilitado sin verificación estricta
+    connect_args["ssl"] = "prefer"
+    log.info("SSL set to 'prefer' mode")
 
 engine = create_async_engine(
     DATABASE_URL,

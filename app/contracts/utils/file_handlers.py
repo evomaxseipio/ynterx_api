@@ -4,10 +4,13 @@ import json
 from datetime import datetime
 
 
-def ensure_directories(base_dir: Path, template_dir: Path, contracts_dir: Path) -> None:
+def ensure_directories(base_dir: Path, template_dir: Path, contracts_dir: Path = None) -> None:
     """Crear directorios necesarios"""
     template_dir.mkdir(parents=True, exist_ok=True)
-    contracts_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Solo crear directorio de contratos si se especifica
+    if contracts_dir:
+        contracts_dir.mkdir(parents=True, exist_ok=True)
 
 
 def get_contract_folder(contracts_dir: Path, contract_id: str) -> Path:
@@ -45,8 +48,9 @@ def load_metadata(folder: Path) -> Dict[str, Any]:
 
 
 def get_contract_file_path(contract_folder: Path, contract_id: str) -> Path:
-    """Obtener la ruta del archivo del contrato"""
-    return contract_folder / f"{contract_id}.docx"
+    """Obtener la ruta del archivo del contrato con nombre descriptivo"""
+    contract_number = contract_id.replace("contract_", "")
+    return contract_folder / f"{contract_number}.docx"
 
 
 def get_attachments_folder(contract_folder: Path) -> Path:

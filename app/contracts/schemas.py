@@ -128,6 +128,14 @@ class ContractResponse(BaseModel):
     warnings: Optional[Dict[str, Any]] = None
 
 
+class ContractDetailResponse(BaseModel):
+    """Schema para respuesta de detalle de contrato"""
+    success: bool
+    error: Optional[str] = None
+    message: str
+    data: Optional[Dict[str, Any]] = None
+
+
 class ContractCompleteRequest(BaseModel):
     """Schema principal para crear contrato completo"""
     # Información básica del contrato

@@ -28,14 +28,22 @@ async def token_refresh_middleware(request: Request, call_next: Callable) -> Res
             return JSONResponse(
                 status_code=401,
                 content={
-                    "error_code": "TOKEN_EXPIRED",
+                    "error_code": ErrorCodeEnum.TOKEN_EXPIRED.value,
                     "message": "Token expirado. Use refresh token para obtener nuevo access token.",
                     "success": False,
                     "requires_refresh": True
                 }
             )
-    except Exception:
-        # Error al verificar token, continuar normalmente
-        pass
+    except Exception as e:
+        # Si hay error al verificar el token, retornar 401 con mensaje apropiado
+        return JSONResponse(
+            status_code=401,
+            content={
+                "error_code": ErrorCodeEnum.INVALID_TOKEN.value,
+                "message": "Token inválido o malformado",
+                "success": False,
+                "requires_refresh": True
+            }
+        )
     
     return await call_next(request) 

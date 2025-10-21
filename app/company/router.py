@@ -13,8 +13,10 @@ from app.company.models import (
     RNCSuccessResponse,
     DeleteSuccessResponse,
     CompanyWithRelations,
-    CompanyWithRelationsSuccessResponse
+    CompanyWithRelationsSuccessResponse,
+    CompanyCompleteDataSuccessResponse
 )
+from app.auth.dependencies import DepCurrentUser
 
 router = APIRouter(prefix="/company", tags=["company"])
 
@@ -58,6 +60,41 @@ async def consultar_rnc(rnc: str) -> RNCSuccessResponse:
         )
 
 
+@router.get("/complete/rnc/{rnc}", response_model=CompanyCompleteDataSuccessResponse)
+async def get_company_complete_by_rnc(
+    rnc: str,
+    service: CompanyService = Depends(get_company_service)
+) -> CompanyCompleteDataSuccessResponse:
+    """
+    Obtener empresa completa por RNC con managers y direcciones
+
+    Args:
+        rnc (str): Número de RNC de la empresa
+
+    Returns:
+        CompanyCompleteDataSuccessResponse: Datos completos de la empresa con managers y direcciones
+    """
+    try:
+        company_data = await service.get_company_complete_by_rnc(rnc)
+        return CompanyCompleteDataSuccessResponse(
+            success=True,
+            message="Empresa encontrada exitosamente",
+            data=company_data
+        )
+    except HTTPException as e:
+        return CompanyCompleteDataSuccessResponse(
+            success=False,
+            error="COMPANY_NOT_FOUND",
+            message=e.detail
+        )
+    except Exception as e:
+        return CompanyCompleteDataSuccessResponse(
+            success=False,
+            error="INTERNAL_ERROR",
+            message=f"Error interno: {str(e)}"
+        )
+
+
 @router.post("/", response_model=CompanySuccessResponse)
 async def create_company(
     company_data: CompanyCreate,
@@ -93,6 +130,35 @@ async def create_company(
         )
 
 
+@router.get("/list", response_model=dict)
+async def list_companies(
+    _: DepCurrentUser,
+    request: Request,
+    rnc: Optional[str] = Query(None, description="Filtrar por RNC"),
+    limit: int = Query(20, ge=1, le=100, description="Número de registros por página"),
+    offset: int = Query(0, ge=0, description="Número de registros a saltar"),
+) -> dict:
+    """List all companies with pagination using stored procedure."""
+    try:
+        async with request.app.state.db_pool.acquire() as connection:
+            # Crear CompanyService con el pool
+            service = CompanyService(request.app.state.db_pool)
+            return await service.list_companies(
+                connection=connection,
+                rnc=rnc,
+                limit=limit,
+                offset=offset
+            )
+    except Exception as e:
+        return {
+            "success": False,
+            "status_code": 500,
+            "error": f"Error en el endpoint: {str(e)}",
+            "company_list": [],
+            "pagination": {"limit": limit, "offset": offset, "total": 0}
+        }
+
+
 @router.get("/{company_id}", response_model=CompanySuccessResponse)
 async def get_company(
     company_id: int,
@@ -126,44 +192,20 @@ async def get_company(
             error="INTERNAL_ERROR",
             message=f"Error interno: {str(e)}"
         )
-
-
-@router.get("/", response_model=CompanyListSuccessResponse)
-async def get_all_companies(
-    page: int = Query(1, ge=1, description="Número de página"),
-    per_page: int = Query(50, ge=1, le=100, description="Elementos por página"),
-    search: Optional[str] = Query(None, description="Término de búsqueda"),
-    service: CompanyService = Depends(get_company_service)
-) -> CompanyListSuccessResponse:
-    """
-    Obtener todas las empresas con paginación y búsqueda
-
-    Args:
-        page (int): Número de página
-        per_page (int): Elementos por página
-        search (Optional[str]): Término de búsqueda
-
-    Returns:
-        CompanyListSuccessResponse: Lista de empresas con metadatos de paginación
-    """
-    try:
-        companies = await service.get_all_companies(page, per_page, search)
-        return CompanyListSuccessResponse(
-            success=True,
-            message="Empresas obtenidas exitosamente",
-            data=companies
-        )
-    except HTTPException as e:
-        return CompanyListSuccessResponse(
-            success=False,
-            error="FETCH_ERROR",
-            message=e.detail
-        )
-    except Exception as e:
-        return CompanyListSuccessResponse(
-            success=False,
-            error="INTERNAL_ERROR",
-            message=f"Error interno: {str(e)}"
+async def list_companies(
+    _: DepCurrentUser,
+    request: Request,
+    rnc: Optional[str] = Query(None, description="Filtrar por RNC"),
+    limit: int = Query(20, ge=1, le=100, description="Número de registros por página"),
+    offset: int = Query(0, ge=0, description="Número de registros a saltar"),
+) -> dict:
+    """List all companies with pagination using stored procedure."""
+    async with request.app.state.db_pool.acquire() as connection:
+        return await CompanyService().list_companies(
+            connection=connection,
+            rnc=rnc,
+            limit=limit,
+            offset=offset
         )
 
 

@@ -288,6 +288,121 @@ async def list_contracts(
             )
         
         return result
+
+
+@router.get("/{contract_id}/detail", response_model=ContractDetailResponse)
+async def get_contract_detail(
+    contract_id: str,
+    _: DepCurrentUser,
+    request: Request,
+) -> Dict[str, Any]:
+    """
+    Obtener detalle completo de un contrato
+    
+    Devuelve toda la información del contrato incluyendo:
+    - Datos básicos del contrato
+    - Participantes (personas, documentos, direcciones)
+    - Información del préstamo
+    - Propiedades asociadas
+    - Cuentas bancarias
+    """
+    try:
+        # Validar que contract_id sea un UUID válido
+        uuid.UUID(contract_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="contract_id debe ser un UUID válido"
+        )
+    
+    async with request.app.state.db_pool.acquire() as connection:
+        try:
+            # Llamar a la función de base de datos
+            query = "SELECT fn_get_contract_detail($1)"
+            result = await connection.fetchval(query, contract_id)
+            
+            if result:
+                # Si es un string JSON, parsearlo
+                if isinstance(result, str):
+                    import json
+                    result = json.loads(result)
+                
+                # Verificar si la función devolvió un error
+                if not result.get("success", False):
+                    error_code = result.get("error", "UNKNOWN_ERROR")
+                    status_code = 404 if error_code == "CONTRACT_NOT_FOUND" else 500
+                    raise HTTPException(
+                        status_code=status_code,
+                        detail=result.get("message", "Error al obtener detalle del contrato")
+                    )
+                
+                return result
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail="No se pudo obtener respuesta de la función de BD"
+                )
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error de conexión: {str(e)}"
+            )
+
+
+@router.get("/number/{contract_number}/detail", response_model=ContractDetailResponse)
+async def get_contract_detail_by_number(
+    contract_number: str,
+    _: DepCurrentUser,
+    request: Request,
+) -> Dict[str, Any]:
+    """
+    Obtener detalle completo de un contrato por número
+    
+    Devuelve toda la información del contrato incluyendo:
+    - Datos básicos del contrato
+    - Participantes (personas, documentos, direcciones)
+    - Información del préstamo
+    - Propiedades asociadas
+    - Cuentas bancarias
+    """
+    async with request.app.state.db_pool.acquire() as connection:
+        try:
+            # Llamar a la función de base de datos con contract_number
+            query = "SELECT fn_get_contract_detail(NULL, $1)"
+            result = await connection.fetchval(query, contract_number)
+            
+            if result:
+                # Si es un string JSON, parsearlo
+                if isinstance(result, str):
+                    import json
+                    result = json.loads(result)
+                
+                # Verificar si la función devolvió un error
+                if not result.get("success", False):
+                    error_code = result.get("error", "UNKNOWN_ERROR")
+                    status_code = 404 if error_code == "CONTRACT_NOT_FOUND" else 500
+                    raise HTTPException(
+                        status_code=status_code,
+                        detail=result.get("message", "Error al obtener detalle del contrato")
+                    )
+                
+                return result
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail="No se pudo obtener respuesta de la función de BD"
+                )
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error de conexión: {str(e)}"
+            )
 @router.get("/{contract_id}/download")
 async def download_contract(
     contract_id: str,

@@ -150,6 +150,47 @@ class CompanyWithRNCData(CompanyResponse):
     rnc_data: Optional[dict] = Field(None, description="RNC consultation data from DGII")
 
 
+class CompanyManagerData(BaseModel):
+    """Model for manager data in company response"""
+    name: str = Field(..., description="Manager full name")
+    position: str = Field(..., description="Manager position")
+    document_number: str = Field(..., description="Manager document number")
+    nationality: str = Field(..., description="Manager nationality")
+    marital_status: str = Field(..., description="Manager marital status")
+    address: str = Field(..., description="Manager address")
+    is_main_manager: bool = Field(..., description="Whether this is the main manager")
+
+    class Config:
+        from_attributes = True
+
+
+class CompanyAddressData(BaseModel):
+    """Model for address data in company response"""
+    address_line1: str = Field(..., description="Address line 1")
+    city: str = Field(..., description="City")
+    postal_code: str = Field(..., description="Postal code")
+    phone_number: str = Field(..., description="Address phone number")
+    email: str = Field(..., description="Address email")
+
+    class Config:
+        from_attributes = True
+
+
+class CompanyCompleteData(BaseModel):
+    """Model for complete company data with managers and addresses"""
+    company_name: str = Field(..., description="Company name")
+    company_rnc: str = Field(..., description="Company RNC")
+    company_mercantil_number: str = Field(..., description="Company mercantil registry")
+    company_phone: str = Field(..., description="Company phone")
+    company_email: str = Field(..., description="Company email")
+    company_type: str = Field(..., description="Company type")
+    company_address: CompanyAddressData = Field(..., description="Company address")
+    company_manager: List[CompanyManagerData] = Field(..., description="List of company managers")
+
+    class Config:
+        from_attributes = True
+
+
 class CompanyListResponse(BaseModel):
     """Model for company list response"""
     companies: list[CompanyResponse] = Field(..., description="List of companies")
@@ -194,6 +235,11 @@ class CompanyAddressSuccessResponse(StandardResponse):
 class CompanyManagerSuccessResponse(StandardResponse):
     """Success response with company manager data"""
     data: Optional[CompanyManagerResponse] = Field(None, description="Company manager data")
+
+
+class CompanyCompleteDataSuccessResponse(StandardResponse):
+    """Success response with complete company data (managers and addresses)"""
+    data: Optional[CompanyCompleteData] = Field(None, description="Complete company data with managers and addresses")
 
 
 class RNCSuccessResponse(StandardResponse):

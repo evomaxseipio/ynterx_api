@@ -1,6 +1,11 @@
+import warnings
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 from fastapi import HTTPException
+
+# Suprimir warning de pkg_resources deprecado
+warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API")
+
 from docxtpl import DocxTemplate
 
 

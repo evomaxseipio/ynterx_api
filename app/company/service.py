@@ -13,7 +13,7 @@ from app.company.models import (
     CompanyCreate, CompanyUpdate, CompanyResponse, CompanyListResponse,
     CompanyAddressCreate, CompanyAddressUpdate, CompanyAddressResponse,
     CompanyManagerCreate, CompanyManagerUpdate, CompanyManagerResponse,
-    CompanyWithRelations
+    CompanyWithRelations, CompanyCompleteData
 )
 from app.company.database import CompanyDatabase, CompanyAddressDatabase, CompanyManagerDatabase
 
@@ -258,20 +258,65 @@ class CompanyService:
         if not company:
             raise HTTPException(status_code=404, detail="Empresa no encontrada")
         return company
-
-    async def get_all_companies(
-        self,
-        page: int = 1,
-        per_page: int = 50,
-        search: Optional[str] = None
-    ) -> CompanyListResponse:
-        """Obtener todas las empresas con paginación"""
+        
+    async def get_company_complete_by_rnc(self, rnc: str) -> CompanyCompleteData:
+        """Obtener empresa completa por RNC con managers y direcciones"""
         try:
-            result = await self.db.get_all_companies(page, per_page, search)
-            return CompanyListResponse(**result)
+            result = await self.db.get_company_complete_by_rnc(rnc)
+            if not result:
+                raise HTTPException(status_code=404, detail="Empresa no encontrada")
+            return result
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"Error getting companies: {e}")
-            raise HTTPException(status_code=500, detail="Error al obtener las empresas")
+            logger.error(f"Error getting company complete data by RNC: {e}")
+            raise HTTPException(status_code=500, detail="Error al obtener datos completos de la empresa")
+
+    async def list_companies(
+        self,
+        connection,
+        rnc: str | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> dict:
+        """Get company list using stored procedure sp_get_company_data."""
+        try:
+            # Validar parámetros
+            if limit <= 0:
+                limit = 20
+            if offset < 0:
+                offset = 0
+                
+            query = "SELECT sp_get_company_data($1, $2, $3)"
+            result = await connection.fetchval(query, rnc, limit, offset)
+            
+            if result:
+                # Si es un string JSON, parsearlo
+                if isinstance(result, str):
+                    import json
+                    result = json.loads(result)
+                
+                # Devolver la respuesta completa de la función de BD
+                return result
+            else:
+                # Si no hay resultado, devolver respuesta de error
+                return {
+                    "success": False,
+                    "status_code": 500,
+                    "error": "No se pudo obtener respuesta de la función de BD",
+                    "company_list": [],
+                    "pagination": {"limit": limit, "offset": offset, "total": 0}
+                }
+                
+        except Exception as e:
+            # Si hay excepción, devolver respuesta de error
+            return {
+                "success": False,
+                "status_code": 500,
+                "error": f"Error de conexión: {str(e)}",
+                "company_list": [],
+                "pagination": {"limit": limit, "offset": offset, "total": 0}
+            }
 
     async def update_company(self, company_id: int, company_data: CompanyUpdate) -> CompanyResponse:
         """Actualizar empresa"""

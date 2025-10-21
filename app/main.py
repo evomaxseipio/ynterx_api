@@ -1,10 +1,16 @@
 import asyncio
 import logging
+import warnings
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import asyncpg
 import sentry_sdk
+
+# Suprimir warnings de pkg_resources deprecated
+warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API")
+warnings.filterwarnings("ignore", category=UserWarning, module="docxcompose")
+warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API", module="docxcompose")
 from fastapi import FastAPI, Request
 from fastapi import HTTPException as FastAPIHTTPException
 from fastapi.exceptions import RequestValidationError
@@ -17,6 +23,8 @@ from app.api import register_routers
 from app.config import app_configs, settings
 from app.enums import ErrorCodeEnum
 from app.exceptions import GenericHTTPException
+from app.auth.middleware import token_refresh_middleware
+from app.exceptions import NotAuthenticated
 
 log = logging.getLogger(__name__)
 
@@ -78,6 +86,9 @@ app.add_middleware(
     allow_headers=settings.CORS_HEADERS,
 )
 
+# Agregar middleware personalizado para manejo de tokens expirados
+app.middleware("http")(token_refresh_middleware)
+
 
 if settings.ENVIRONMENT.is_deployed:
     sentry_sdk.init(
@@ -95,6 +106,15 @@ async def healthcheck() -> dict[str, str]:
 
 @app.exception_handler(GenericHTTPException)
 async def custom_http_exception_handler(request: Request, exc: GenericHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        headers=exc.headers,
+        content=exc.to_dict(),
+    )
+
+
+@app.exception_handler(NotAuthenticated)
+async def not_authenticated_handler(request: Request, exc: NotAuthenticated):
     return JSONResponse(
         status_code=exc.status_code,
         headers=exc.headers,
