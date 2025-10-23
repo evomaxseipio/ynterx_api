@@ -3,6 +3,7 @@ import logging
 import warnings
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 import asyncpg
 import sentry_sdk
@@ -102,6 +103,18 @@ register_routers(app)
 @app.get("/healthcheck", include_in_schema=False)
 async def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/debug", include_in_schema=False)
+async def debug_endpoint(request: Request) -> dict[str, str]:
+    """Endpoint de debug para diagnosticar problemas de conectividad"""
+    return {
+        "status": "ok",
+        "message": "Debug endpoint working",
+        "request_url": str(request.url),
+        "request_headers": dict(request.headers),
+        "timestamp": datetime.now().isoformat()
+    }
 
 
 @app.exception_handler(GenericHTTPException)

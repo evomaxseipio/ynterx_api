@@ -87,7 +87,7 @@ class UserService:
             FROM users u
             JOIN person p ON u.person_id = p.person_id
             JOIN user_roles ur ON u.user_role_id = ur.user_role_id
-            WHERE u.user_id = $1 AND u.is_active = true
+            WHERE u.user_id = $1
         """
 
         async with self.pool.acquire() as connection:

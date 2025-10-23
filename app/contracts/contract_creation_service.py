@@ -37,7 +37,8 @@ class ContractCreationService:
         self, 
         data: Dict[str, Any], 
         contract_number: str, 
-        db
+        db,
+        current_user: str = None
     ) -> str:
         """Crear registro de contrato en la base de datos"""
         
@@ -63,7 +64,7 @@ class ContractCreationService:
             folder_path=None,
             version=1,
             is_active=True,
-            created_by=None,
+            created_by=current_user,
             created_at=datetime.now(),
             updated_at=datetime.now(),
         ).returning(contract_table.c.contract_id)
@@ -193,36 +194,28 @@ class ContractCreationService:
         return client_referrer_created, client_referrer_errors
 
     async def update_contract_with_document_info(
-        self, 
-        contract_id: str, 
-        document_result: Dict[str, Any], 
+        self,
+        contract_id: str,
+        document_result: Dict[str, Any],
         db
     ) -> None:
         """Actualizar contrato con información del documento generado"""
-        
+
         if document_result.get("success"):
             # Determinar qué URLs usar: Google Drive si está disponible, sino rutas locales
             file_path = document_result.get("path")  # Ruta local por defecto
             folder_path = document_result.get("folder_path")  # Ruta local por defecto
-            
+
             # Si Google Drive está habilitado y se subió exitosamente, usar URLs de Drive
             if document_result.get("drive_success") and document_result.get("drive_link"):
-                # Usar URL de Google Drive para el archivo (drive_view_link)
                 file_path = document_result.get("drive_view_link", file_path)
-                # Usar URL de Google Drive para la carpeta (drive_link)
                 folder_path = document_result.get("drive_link", folder_path)
-                print(f"✅ URLs de Google Drive almacenadas en BD:")
-                print(f"   - file_path: {file_path}")
-                print(f"   - folder_path: {folder_path}")
-            else:
-                print(f"📁 Rutas locales almacenadas en BD:")
-                print(f"   - file_path: {file_path}")
-                print(f"   - folder_path: {folder_path}")
-            
-            # Generar nombre descriptivo como fallback
-            contract_number = contract_id.replace("contract_", "")
+
+            # Generar nombre descriptivo - Convertir UUID a string
+            contract_id_str = str(contract_id)
+            contract_number = contract_id_str.replace("contract_", "")
             descriptive_filename = document_result.get("filename", f"{contract_number}.docx")
-            
+
             update_query = contract_table.update().where(
                 contract_table.c.contract_id == contract_id
             ).values(
@@ -231,5 +224,6 @@ class ContractCreationService:
                 folder_path=folder_path,
                 updated_at=datetime.now()
             )
-            await execute(update_query, connection=db, commit_after=True)
 
+            await db.execute(update_query)
+            await db.commit()
