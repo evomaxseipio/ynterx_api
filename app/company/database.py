@@ -73,77 +73,45 @@ class CompanyDatabase:
             return CompanyResponse(**dict(row)) if row else None
             
     async def get_company_complete_by_rnc(self, rnc: str) -> CompanyCompleteData:
-        """Get complete company data by RNC with managers and addresses"""
+        """Get complete company data by RNC using stored procedure sp_get_company_data"""
         async with self.pool.acquire() as conn:
-            # 1. Get company basic data
-            company_query = """
-                SELECT company_name, company_rnc, mercantil_registry, phone, email, company_type
-                FROM company
-                WHERE company_rnc = $1 AND is_active = true
-            """
-            company_row = await conn.fetchrow(company_query, rnc)
+            # Usar el stored procedure con filtro por RNC
+            query = "SELECT sp_get_company_data($1, $2, $3)"
+            result = await conn.fetchval(query, rnc, 1, 0)  # limit=1, offset=0 para una sola empresa
             
-            if not company_row:
-                return None
+            if result:
+                # Si es un string JSON, parsearlo
+                if isinstance(result, str):
+                    import json
+                    result = json.loads(result)
                 
-            # 2. Get company address
-            address_query = """
-                SELECT address_line1, city, postal_code, phone, email
-                FROM company_address
-                WHERE company_id = (SELECT company_id FROM company WHERE company_rnc = $1 AND is_active = true)
-                AND is_active = true
-                ORDER BY is_principal DESC
-                LIMIT 1
-            """
-            address_row = await conn.fetchrow(address_query, rnc)
+                # Verificar que hay empresas en el resultado
+                if result.get('success') and result.get('company_list'):
+                    company_data = result['company_list'][0]  # Tomar la primera (y única) empresa
+                    
+                    # Transformar la estructura para que coincida con CompanyCompleteData
+                    return CompanyCompleteData(
+                        company_id=company_data['company_id'],
+                        company_name=company_data['company_name'],
+                        company_rnc=company_data['company_rnc'],
+                        company_mercantil_number=company_data['company_mercantil_number'],
+                        company_phone=company_data['company_phone'],
+                        company_email=company_data['company_email'],
+                        company_type=company_data['company_type'],
+                        is_active=company_data['is_active'],
+                        created_at=company_data['created_at'],
+                        updated_at=company_data['updated_at'],
+                        company_address=company_data['company_addresses'][0] if company_data['company_addresses'] else CompanyAddressData(
+                            address_line1='',
+                            city='',
+                            postal_code='',
+                            phone_number='',
+                            email=''
+                        ),
+                        company_manager=company_data['company_managers']
+                    )
             
-            # 3. Get company managers
-            managers_query = """
-                SELECT manager_full_name, manager_position, manager_document_number,
-                       manager_nationality, manager_civil_status, manager_address, is_principal
-                FROM company_manager
-                WHERE company_id = (SELECT company_id FROM company WHERE company_rnc = $1 AND is_active = true)
-                AND is_active = true
-                ORDER BY is_principal DESC, manager_full_name
-            """
-            managers_rows = await conn.fetch(managers_query, rnc)
-            
-            # 4. Build response
-            company_data = dict(company_row)
-            company_data['company_mercantil_number'] = company_data.pop('mercantil_registry')
-            company_data['company_phone'] = company_data.pop('phone')
-            company_data['company_email'] = company_data.pop('email')
-            
-            # Address data
-            if address_row:
-                address_data = dict(address_row)
-                address_data['phone_number'] = address_data.pop('phone')
-                company_data['company_address'] = address_data
-            else:
-                company_data['company_address'] = {
-                    'address_line1': '',
-                    'city': '',
-                    'postal_code': '',
-                    'phone_number': '',
-                    'email': ''
-                }
-            
-            # Managers data
-            managers_data = []
-            for manager_row in managers_rows:
-                manager_data = dict(manager_row)
-                manager_data['name'] = manager_data.pop('manager_full_name')
-                manager_data['position'] = manager_data.pop('manager_position')
-                manager_data['document_number'] = manager_data.pop('manager_document_number')
-                manager_data['nationality'] = manager_data.pop('manager_nationality')
-                manager_data['marital_status'] = manager_data.pop('manager_civil_status')
-                manager_data['address'] = manager_data.pop('manager_address')
-                manager_data['is_main_manager'] = manager_data.pop('is_principal')
-                managers_data.append(manager_data)
-            
-            company_data['company_manager'] = managers_data
-            
-            return CompanyCompleteData(**company_data)
+            return None
 
     async def get_all_companies(
         self, 

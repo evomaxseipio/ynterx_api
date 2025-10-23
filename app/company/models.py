@@ -178,12 +178,16 @@ class CompanyAddressData(BaseModel):
 
 class CompanyCompleteData(BaseModel):
     """Model for complete company data with managers and addresses"""
+    company_id: str = Field(..., description="Company ID")
     company_name: str = Field(..., description="Company name")
     company_rnc: str = Field(..., description="Company RNC")
     company_mercantil_number: str = Field(..., description="Company mercantil registry")
     company_phone: str = Field(..., description="Company phone")
     company_email: str = Field(..., description="Company email")
     company_type: str = Field(..., description="Company type")
+    is_active: bool = Field(..., description="Whether the company is active")
+    created_at: str = Field(..., description="Company creation date")
+    updated_at: str = Field(..., description="Company last update date")
     company_address: CompanyAddressData = Field(..., description="Company address")
     company_manager: List[CompanyManagerData] = Field(..., description="List of company managers")
 
