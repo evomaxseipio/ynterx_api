@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Request, status
@@ -58,7 +59,8 @@ async def create_user(
 ):
     try:
         service = UserService(db, request.app.state.db_pool)
-        return await service.create_user(user_data, created_by=current_user_uuid)
+        result = await service.create_user(user_data, created_by=current_user_uuid)
+        return result
     except Exception as e:
         log.error(f"Error creating user: {e}")
         raise BadRequest(str(e)) from e
@@ -82,8 +84,6 @@ async def get_current_user_info(
     if not user:
         raise NotFound("User not found")
 
-    print(user)
-
     return {
         "data": user,
         "success": True,
@@ -92,18 +92,42 @@ async def get_current_user_info(
     }
 
 
-@router.get("/{user_id}", response_model=UserRead)
+@router.get("/{user_id}")
 async def get_user(user_id: UUID, request: Request, db: DepDatabase):
-    service = UserService(db, request.app.state.db_pool)
-    user = await service.get_user(user_id)
-    if not user:
-        raise NotFound("User not found")
-    return {
-        "data": user,
-        "success": True,
-        "message": "User retrieved successfully",
-        "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
-    }
+    try:
+        service = UserService(db, request.app.state.db_pool)
+        user = await service.get_user(user_id)
+        
+        if not user:
+            return JSONResponse(content={
+                "data": None,
+                "success": False,
+                "message": "User not found",
+                "error_code": ErrorCodeEnum.NOT_FOUND.value,
+            })
+        
+        # Determinar el mensaje basado en el estado del usuario
+        if user.get("is_active", True):
+            message = "User retrieved successfully"
+        else:
+            message = "User retrieved successfully (inactive)"
+        
+        # Respuesta exitosa con la misma estructura
+        return JSONResponse(content={
+            "data": user,
+            "success": True,
+            "message": message,
+            "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
+        })
+        
+    except Exception as e:
+        log.error(f"Error retrieving user {user_id}: {str(e)}")
+        return JSONResponse(content={
+            "data": None,
+            "success": False,
+            "message": f"Error retrieving user: {str(e)}",
+            "error_code": ErrorCodeEnum.INTERNAL_SERVER_ERROR.value,
+        })
 
 
 @router.put("/{user_id}", response_model=UserRead)
@@ -131,31 +155,33 @@ async def update_user(
     except Exception as e:
         error_message = str(e)
         log.error(f"Error updating user {user_id}: {error_message}")
-        
-        # Manejar error específico de permisos de contraseña
-        if "Solo puedes cambiar tu propia contraseña" in error_message or "Solo administradores pueden cambiar contraseñas" in error_message:
-            from fastapi import HTTPException
-            raise HTTPException(
-                status_code=403,
-                detail=error_message
-            )
-        
-        # Otros errores
         raise BadRequest(f"Error updating user {user_id}: {error_message}") from e
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{user_id}", status_code=status.HTTP_200_OK)
 async def delete_user(
     user_id: UUID,
     request: Request,
     db: DepDatabase,
     current_user_uuid: DepCurrentUser,
-) -> None:
+) -> dict:
     log.info(f"Deleting user {user_id} by {current_user_uuid}")
 
     service = UserService(db, request.app.state.db_pool)
     success = await service.delete_user(user_id)
+    
     if success is None:
         raise NotFound("User not found")
     if not success:
         raise BadRequest("Could not delete user")
+    
+    return {
+        "data": {
+            "user_id": str(user_id),
+            "deleted_at": datetime.utcnow().isoformat(),
+            "deleted_by": str(current_user_uuid)
+        },
+        "success": True,
+        "message": "User deleted successfully",
+        "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
+    }

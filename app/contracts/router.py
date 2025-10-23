@@ -50,6 +50,7 @@ async def generate_contract_complete(
     data: Dict[str, Any],  # JSON complejo directo
     db: DepDatabase,
     request: Request,  # ✅ AGREGADO para acceder al pool asyncpg
+    current_user: DepCurrentUser,  # ✅ AGREGADO para obtener usuario actual
     service: ContractService = Depends(get_contract_service),
     participant_service: ParticipantService = Depends(get_participant_service),
     contract_creation_service: ContractCreationService = Depends(get_contract_creation_service)
@@ -93,31 +94,13 @@ async def generate_contract_complete(
     contract_number = await contract_creation_service.generate_contract_number(contract_type_name, db)
 
     # 3. CREAR CONTRATO EN LA BASE DE DATOS
-    contract_id = await contract_creation_service.create_contract_record(data, contract_number, db)
+    contract_id = await contract_creation_service.create_contract_record(data, contract_number, db, current_user)
 
     # 4. REGISTRAR PARTICIPANTES EN contract_participant
-    print(f"🔍 DEBUG: Insertando {len(participants_for_contract)} participantes en contract_participant")
     participant_db_errors = await contract_creation_service.register_contract_participants(contract_id, participants_for_contract, db)
 
-    if participant_db_errors:
-        print(f"⚠️ Errores insertando participantes: {len(participant_db_errors)} errores")
-        for error in participant_db_errors:
-            print(f"  - {error['role']}: {error['error']}")
-    else:
-        print(f"👥 Registrados {len(participants_for_contract)} participantes en BD exitosamente")
-
     # 5. CREAR RELACIONES CLIENTE-REFERIDOR
-    print("🔗 LLEGANDO A LA SECCIÓN DE CLIENT_REFERRER")
     client_referrer_created, client_referrer_errors = await contract_creation_service.create_client_referrer_relationships(participants_for_contract, db)
-    
-    if client_referrer_created > 0:
-        print(f"🔗 Creadas {client_referrer_created} relaciones cliente-referidor exitosamente")
-    if client_referrer_errors:
-        print(f"⚠️ Errores en relaciones cliente-referidor: {len(client_referrer_errors)} errores")
-        for error in client_referrer_errors:
-            print(f"  - {error['client_id']} ↔ {error['referrer_id']}: {error['error']}")
-    else:
-        print(f"🔗 No se crearon relaciones cliente-referidor (sin errores)")
 
     # 6. CREAR LOAN Y PROPERTIES
     loan_property_result = None

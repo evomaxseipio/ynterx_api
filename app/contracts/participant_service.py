@@ -169,14 +169,6 @@ class ParticipantService:
                 created_by=None,
                 updated_by=None
             )
-            
-            # Debug para inversionistas
-            if group_name == "investors":
-                print(f"🔍 DEBUG INVESTOR {idx+1}: {participant['person']['p_first_name']} {participant['person']['p_last_name']}")
-                print(f"   - Result: {result}")
-                print(f"   - Success: {result.get('success') if result else 'None'}")
-                print(f"   - Person ID: {result.get('person_id') if result else 'None'}")
-                print(f"   - Message: {result.get('message') if result else 'None'}")
 
         return result
 

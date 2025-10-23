@@ -101,15 +101,20 @@ class ContractGenerationService:
                 # Crear archivo temporal solo para subir a Drive
                 import tempfile
                 import os
-                
+
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_file:
                     temp_file.write(doc_content)
                     temp_file_path = temp_file.name
-                
+
                 try:
                     drive_result = self.gdrive_utils.upload_contract(contract_id, temp_file_path, processed_data)
                     response.update(drive_result)
-                    
+
+                    # Si la subida a Drive fue exitosa, actualizar path y folder_path con las URLs de Drive
+                    if drive_result.get("drive_success") and drive_result.get("drive_link"):
+                        response["path"] = drive_result.get("drive_view_link")
+                        response["folder_path"] = drive_result.get("drive_link")
+
                     # Enviar email si hay enlace de Drive
                     if drive_result.get("drive_link"):
                         await self._send_contract_email(contract_id, processed_data, drive_result['drive_link'])
@@ -210,14 +215,19 @@ class ContractGenerationService:
             # Crear archivo temporal solo para subir a Drive
             import tempfile
             import os
-            
+
             with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_file:
                 temp_file.write(doc_content)
                 temp_file_path = temp_file.name
-            
+
             try:
                 drive_result = self.gdrive_utils.upload_contract(contract_id, temp_file_path, processed_data)
                 response.update(drive_result)
+
+                # Si la subida a Drive fue exitosa, actualizar path y folder_path con las URLs de Drive
+                if drive_result.get("drive_success") and drive_result.get("drive_link"):
+                    response["path"] = drive_result.get("drive_view_link")
+                    response["folder_path"] = drive_result.get("drive_link")
             finally:
                 # Limpiar archivo temporal
                 if os.path.exists(temp_file_path):

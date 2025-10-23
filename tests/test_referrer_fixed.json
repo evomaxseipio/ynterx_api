@@ -1,9 +1,9 @@
 {
   "contract_type": "Contrato de préstamo con garantía real",
   "contract_type_id": 1,
-  "description": null,
-  "contract_date": "07/08/2025",
-  "contract_end_date": "07/08/2026",
+  "description": "Contrato de préstamo hipotecario con garantía real para adquisición de propiedad",
+  "contract_date": "2025-08-07",
+  "contract_end_date": "2026-08-07",
   "paragraph_request": [
     {
       "person_role": "client",
@@ -25,8 +25,8 @@
     "term_months": 12,
     "loan_type": "Hipotecario",
     "loan_payments_details": {
-      "monthly_payment": 7700.000000000001,
-      "final_payment": 357700.0,
+      "monthly_payment": 7700.00,
+      "final_payment": 357700.00,
       "discount_rate": 0.2,
       "payment_qty_quotes": 11,
       "payment_type": "Mensual"
@@ -43,14 +43,14 @@
       "property_type": "Inmueble",
       "cadastral_number": "G401",
       "title_number": "4000384526",
-      "surface_area": 12.0,
-      "covered_area": null,
-      "property_value": 0.0,
+      "surface_area": 100.50,
+      "covered_area": 76.50,
+      "property_value": 400000.00,
       "currency": "USD",
       "description": "LA UNIDAD FUNCIONAL G-401, IDENTIFICADA COMO 406481433280 G-401, MATRICULA NO.4000384526, DEL CONDOMINIO RESIDENCIAL ALTOS DE LA INDEPENDENCIA (2DA ETAPA), UBICADO EN SAN PEDRO DE MACORÍS, SAN PEDRO DE MACORIS, CON UN PORCENTAJE DE PARTICIPACIÓN SOBRE LAS ÁREAS COMUNES Y LA PARCELA DEL 2.38% Y 1 VOTO EN LA ASAMBLEA DE CONDÓMINES, CONFORMADA POR UN SECTOR PROPIO IDENTIFICADO COMO SP-00-01-052, DEL BLOQUE 00, UTBICADO EN EL NIVEL 01, DESTINADO A PARQUEO, CON UNA SUPERFICIE DE 12.00 METROS CUADRADOS; UN SECTOR PROPIO IDENTIFICADO COMO SP-00-01- O53, DEL BLOQUE 00, UBICADO EN EL NIVEL 01, DESTINADO A PARQUEO, CON UNA SUPERFICIE DE 12.00 METROS CUADRADOS; UN SECTOR PROPIO IDENTIFICADO COMO SP-07-04-001, DEL BLOQUE 07, UBICADO EN EL NIVEL 04, DESTINADO A APARTAMENTO, CON UNA SUPERFICIE DE 76.50 METROS CUADRADOS Y UN SECTOR COMÚN DE USO EXCLUSIVO IDENTIFICADO COMO SE-07-05-001, DEL BLOQUE 07, UBICADO EN EL NIVEL 05, DESTINADO A AZOTEA, CON UNA SUPERFICIE DE 32.40 METROS CUADRADOS.",
-      "address_line1": null,
-      "address_line2": "san pedro de macorís, san pedro de macoris",
-      "city_id": null,
+      "address_line1": "Condominio Residencial Altos de la Independencia",
+      "address_line2": "San Pedro de Macorís, San Pedro de Macorís",
+      "city_id": "1",
       "postal_code": "21008",
       "property_role": "garantia",
       "owner_name": "Julio Felix Silvestre Cabrera",
@@ -65,20 +65,20 @@
       "person": {
         "first_name": "MAXIMILIANO",
         "last_name": "Seipio Reyes",
-        "middle_name": "",
-        "date_of_birth": null,
+        "middle_name": "Antonio",
+        "date_of_birth": "1990-05-15",
         "gender": "Masculino",
         "nationality_country": "República Dominicana",
         "marital_status": "Soltero",
-        "occupation": "",
+        "occupation": "Ingeniero de Software",
         "documents": [
           {
             "is_primary": true,
             "document_type": "Cédula",
             "document_number": "402-0019871-7",
             "issuing_country_id": "1",
-            "document_issue_date": null,
-            "document_expiry_date": null
+            "document_issue_date": "2015-05-15",
+            "document_expiry_date": "2035-05-15"
           }
         ],
         "addresses": [
@@ -93,7 +93,7 @@
         ],
         "person_role_id": 1,
         "additional_data": {
-          "phone_number": "4144",
+          "phone_number": "809-555-4144",
           "email": "maxseipio@gmail.com",
           "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1754615490580.jpg"
         }
@@ -105,20 +105,20 @@
       "person": {
         "first_name": "ESTHER BISMARELIS",
         "last_name": "PENA CORNIEL",
-        "middle_name": "",
-        "date_of_birth": null,
+        "middle_name": "María",
+        "date_of_birth": "1985-03-20",
         "gender": "Femenino",
         "nationality_country": "República Dominicana",
         "marital_status": "Soltero",
-        "occupation": "",
+        "occupation": "Inversionista",
         "documents": [
           {
             "is_primary": true,
             "document_type": "Cédula",
             "document_number": "071-0047479-5",
             "issuing_country_id": "1",
-            "document_issue_date": null,
-            "document_expiry_date": null
+            "document_issue_date": "2010-03-20",
+            "document_expiry_date": "2030-03-20"
           }
         ],
         "addresses": [
@@ -133,8 +133,8 @@
         ],
         "person_role_id": 2,
         "additional_data": {
-          "phone_number": "58484",
-          "email": "babbsb@hhah.com",
+          "phone_number": "809-555-8484",
+          "email": "esther.pena@gmail.com",
           "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1754615593126.jpg"
         }
       }
@@ -145,20 +145,20 @@
       "person": {
         "first_name": "MAXIMILIANO",
         "last_name": "SEIPIO MARTINS",
-        "middle_name": "",
-        "date_of_birth": null,
+        "middle_name": "José",
+        "date_of_birth": "1988-11-10",
         "gender": "Masculino",
         "nationality_country": "República Dominicana",
         "marital_status": "Soltero",
-        "occupation": "",
+        "occupation": "Contador",
         "documents": [
           {
             "is_primary": true,
             "document_type": "Cédula",
             "document_number": "023-0093859-0",
             "issuing_country_id": "1",
-            "document_issue_date": null,
-            "document_expiry_date": null
+            "document_issue_date": "2013-11-10",
+            "document_expiry_date": "2033-11-10"
           }
         ],
         "addresses": [
@@ -173,7 +173,7 @@
         ],
         "person_role_id": 3,
         "additional_data": {
-          "phone_number": "542484",
+          "phone_number": "809-542-4484",
           "email": "maxseipio@gmail.com",
           "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1754615654386.jpg"
         }
@@ -197,8 +197,8 @@
             "document_type": "Cédula",
             "document_number": "123-4567890-1",
             "issuing_country_id": "1",
-            "document_issue_date": null,
-            "document_expiry_date": null
+            "document_issue_date": "2012-06-15",
+            "document_expiry_date": "2032-06-15"
           }
         ],
         "addresses": [
@@ -224,5 +224,51 @@
       }
     }
   ],
-  "notaries": []
+  "notaries": [
+    {
+      "person": {
+        "first_name": "MARIA ELENA",
+        "last_name": "RODRIGUEZ SANTOS",
+        "middle_name": "Carmen",
+        "date_of_birth": "1975-08-15",
+        "gender": "Femenino",
+        "nationality_country": "República Dominicana",
+        "marital_status": "Casado",
+        "occupation": "Notario",
+        "documents": [
+          {
+            "is_primary": true,
+            "document_type": "Cédula",
+            "document_number": "001-1234567-8",
+            "issuing_country_id": "1",
+            "document_issue_date": "2010-08-15",
+            "document_expiry_date": "2030-08-15"
+          }
+        ],
+        "addresses": [
+          {
+            "address_line1": "AVENIDA INDEPENDENCIA #125",
+            "address_line2": "EDIFICIO TORRE NOTARIAL, OFICINA 8B",
+            "city_id": "1",
+            "postal_code": "10210",
+            "address_type": "Oficina",
+            "is_principal": true
+          }
+        ],
+        "person_role_id": 7,
+        "additional_data": {
+          "notary_id": "notary-001-2025",
+          "license_number": "NT-2025-001",
+          "issuing_entity": "Suprema Corte de Justicia",
+          "issue_date": "2015-08-15",
+          "expiration_date": "2025-08-14",
+          "jurisdiction": "Distrito Nacional",
+          "office_name": "Oficina Notarial Rodríguez & Asociados",
+          "professional_email": "maria.rodriguez@notaria.com",
+          "professional_phone": "809-555-0123",
+          "notes": "Especializada en contratos inmobiliarios y préstamos hipotecarios"
+        }
+      }
+    }
+  ]
 }
