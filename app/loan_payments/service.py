@@ -175,18 +175,12 @@ class LoanPaymentService:
                 "url_payment_receipt": url_payment_receipt
             }
 
-            print(f"[auto-payment] Ejecutando sp_register_payment_transaction con params: {params}")
+            result = await self.db.execute(query, params)
 
-            result = await self.db.execute(
-                query,
-                params
-            )
-            
             await self.db.commit()
-            
+
             # Obtener el resultado
             row = result.fetchone()
-            print(f"[auto-payment] Respuesta cruda del SP (row): {row}")
             if not row or not row[0]:
                 return {
                     "success": False,
@@ -194,14 +188,9 @@ class LoanPaymentService:
                     "message": "No se recibió respuesta del procedimiento",
                     "data": None
                 }
-            
+
             # El resultado ya viene como diccionario desde la función SQL
             payment_data = row[0]
-            try:
-                keys = list(payment_data.keys()) if isinstance(payment_data, dict) else type(payment_data)
-            except Exception:
-                keys = str(type(payment_data))
-            print(f"[auto-payment] payment_data keys/tipo: {keys}")
             
             # Si es un string JSON, parsearlo
             if isinstance(payment_data, str):

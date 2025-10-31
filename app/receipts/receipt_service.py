@@ -46,8 +46,8 @@ class ReceiptService:
                     )
                     if drive_result.get("drive_success"):
                         drive_link = drive_result.get("drive_view_link")
-                except Exception as e:
-                    print(f"⚠️ Error subiendo a Google Drive: {e}")
+                except Exception:
+                    pass
             
             return ReceiptResponse(
                 success=True,
@@ -113,7 +113,6 @@ class ReceiptService:
                     os.unlink(temp_file_path)
                     
         except Exception as e:
-            print(f"❌ Error en _upload_receipt_to_drive: {e}")
             return {
                 "drive_success": False,
                 "drive_error": str(e)

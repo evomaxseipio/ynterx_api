@@ -35,17 +35,14 @@ async def _persist_payment_receipt_url(db: DepDatabase, transaction_ids: list, d
     if not transaction_ids or not drive_link:
         return
     try:
-        print(f"[persist] payment_transaction: tx_count={len(transaction_ids)}")
-        # Actualizar uno-a-uno para evitar problemas de tipos con arrays y asyncpg
         for tx_id in transaction_ids:
             await db.execute(
                 text("UPDATE public.payment_transaction SET url_payment_receipt = :url WHERE transaction_id = :tx_id"),
                 {"url": drive_link, "tx_id": str(tx_id)}
             )
         await db.commit()
-        print("[persist] OK: url_payment_receipt actualizada en public.payment_transaction")
-    except Exception as update_err:
-        print(f"❌ [persist] ERROR actualizando public.payment_transaction.url_payment_receipt: {update_err}")
+    except Exception:
+        pass
 
 
 @router.post("/generate-schedule", response_model=GeneratePaymentScheduleResponse)
@@ -156,8 +153,8 @@ async def register_payment_with_image(
             if file_remove_func:
                 try:
                     await file_remove_func()
-                except Exception as cleanup_error:
-                    print(f"Error al eliminar archivo luego de falla DB: {cleanup_error}")
+                except Exception:
+                    pass
 
             status_code = result.get("status_code", 500)
 
@@ -183,8 +180,8 @@ async def register_payment_with_image(
         if file_remove_func:
             try:
                 await file_remove_func()
-            except Exception as cleanup_error:
-                print(f"Error al eliminar archivo luego de HTTPException: {cleanup_error}")
+            except Exception:
+                pass
         # Re-lanzar la excepción original
         raise http_exc
     except Exception as e:
@@ -192,8 +189,8 @@ async def register_payment_with_image(
         if file_remove_func:
             try:
                 await file_remove_func()
-            except Exception as cleanup_error:
-                print(f"Error al eliminar archivo luego de Exception: {cleanup_error}")
+            except Exception:
+                pass
         raise HTTPException(500, f"Error al registrar el pago: {e}")
     
     # 3. Generar recibo automáticamente si el pago fue exitoso
@@ -214,12 +211,11 @@ async def register_payment_with_image(
             if receipt_result.drive_link:
                 result["data"]["url_payment_receipt"] = receipt_result.drive_link
                 transaction_ids = [t["transaction_id"] for t in result["data"].get("transactions", [])]
-                print(f"[register-payment] tx_ids={transaction_ids}, drive_link={receipt_result.drive_link}")
                 await _persist_payment_receipt_url(db, transaction_ids, receipt_result.drive_link)
-                
-    except Exception as e:
-        print(f"⚠️ Error generando recibo: {e}")
+
+    except Exception:
         # No fallar el pago si falla la generación del recibo
+        pass
     
     # 4. Retornar respuesta enriquecida
     return {
@@ -344,8 +340,8 @@ async def register_auto_payment(
                     url_bank_receipt = image_result.get("drive_view_link")
                 else:
                     url_bank_receipt = image_result.get("local_path")
-        except Exception as e:
-            print(f"Error subiendo imagen: {e}")
+        except Exception:
+            pass
     
     result = await service.register_auto_payment(
         contract_loan_id=request.contract_loan_id,
@@ -379,7 +375,6 @@ async def register_auto_payment(
             if receipt_result.drive_link:
                 result["data"]["url_payment_receipt"] = receipt_result.drive_link
                 transaction_ids = [t["transaction_id"] for t in result["data"].get("transactions", [])]
-                print(f"[auto-payment] tx_ids={transaction_ids}, drive_link={receipt_result.drive_link}")
                 await _persist_payment_receipt_url(db, transaction_ids, receipt_result.drive_link)
 
             ## Add status code and message
@@ -439,8 +434,8 @@ async def register_specific_payments(
                     url_bank_receipt = image_result.get("drive_view_link")
                 else:
                     url_bank_receipt = image_result.get("local_path")
-        except Exception as e:
-            print(f"Error subiendo imagen: {e}")
+        except Exception:
+            pass
     
     result = await service.register_specific_payments(
         contract_loan_id=request.contract_loan_id,
