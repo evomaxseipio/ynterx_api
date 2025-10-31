@@ -10,6 +10,7 @@ from .schemas import *
 from app.database import DepDatabase
 from app.config import settings
 from app.receipts.receipt_service import ReceiptService
+from sqlalchemy import text
 
 router = APIRouter(prefix="/loan-payments", tags=["loan-payments"])
 
@@ -27,6 +28,24 @@ def get_payment_image_service() -> PaymentImageService:
 def get_receipt_service() -> ReceiptService:
     """Dependency para obtener servicio de recibos"""
     return ReceiptService()
+
+
+async def _persist_payment_receipt_url(db: DepDatabase, transaction_ids: list, drive_link: str) -> None:
+    """Guarda la URL del recibo en public.payment_transaction por transaction_id (UUID)."""
+    if not transaction_ids or not drive_link:
+        return
+    try:
+        print(f"[persist] payment_transaction: tx_count={len(transaction_ids)}")
+        # Actualizar uno-a-uno para evitar problemas de tipos con arrays y asyncpg
+        for tx_id in transaction_ids:
+            await db.execute(
+                text("UPDATE public.payment_transaction SET url_payment_receipt = :url WHERE transaction_id = :tx_id"),
+                {"url": drive_link, "tx_id": str(tx_id)}
+            )
+        await db.commit()
+        print("[persist] OK: url_payment_receipt actualizada en public.payment_transaction")
+    except Exception as update_err:
+        print(f"❌ [persist] ERROR actualizando public.payment_transaction.url_payment_receipt: {update_err}")
 
 
 @router.post("/generate-schedule", response_model=GeneratePaymentScheduleResponse)
@@ -56,7 +75,7 @@ async def register_payment_with_image(
     transaction_date: Optional[str] = Form(None),
     notes: Optional[str] = Form(None),
     url_payment_receipt: Optional[str] = Form(None),
-    image_file: UploadFile = File(None),
+    image_file: Optional[UploadFile] = File(default=None),
     image_service: PaymentImageService = Depends(get_payment_image_service),
     service: LoanPaymentService = Depends(get_loan_payment_service),
     receipt_service: ReceiptService = Depends(get_receipt_service),
@@ -73,17 +92,26 @@ async def register_payment_with_image(
     uploaded_filename = None
     file_remove_func = None  # función para limpiar si la DB falla
 
-    # 1. Procesar el archivo si existe
-    if image_file:
+    # 1. Procesar el archivo si existe (y es realmente un archivo subido)
+    if image_file and hasattr(image_file, 'filename') and image_file.filename and image_file.filename.strip():
         try:
             # Valida tipo y tamaño (ejemplo: solo jpg/png/pdf y <= 8MB)
             allowed_types = {"image/jpeg", "image/png", "application/pdf"}
             max_size = 8 * 1024 * 1024
+            
+            # Verificar que el archivo tenga contenido
             contents = await image_file.read()
-            if image_file.content_type not in allowed_types:
+            if not contents or len(contents) == 0:
+                raise HTTPException(400, "El archivo está vacío")
+            
+            # Verificar tipo de contenido
+            if not image_file.content_type or image_file.content_type not in allowed_types:
                 raise HTTPException(400, f"Tipo de archivo no permitido: {image_file.content_type}")
+            
+            # Verificar tamaño
             if len(contents) > max_size:
                 raise HTTPException(400, "El archivo excede el tamaño máximo de 8MB")
+            
             # Subida atómica: solo sube después de validar
             result = await image_service.upload_payment_image(
                 str(contract_loan_id), reference, image_file, db, file_bytes=contents
@@ -93,6 +121,8 @@ async def register_payment_with_image(
             # Prepara función de limpieza
             if result.get("remove_func"):
                 file_remove_func = result["remove_func"]
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(500, f"Error al procesar la imagen: {e}")
     
@@ -108,7 +138,7 @@ async def register_payment_with_image(
                     status_code=400,
                     detail="Formato de fecha inválido. Use formato ISO (YYYY-MM-DDTHH:MM:SS)"
                 )
-        
+
         # Usar el mismo método que auto-payment para obtener datos completos
         result = await service.register_auto_payment(
             contract_loan_id=contract_loan_id,
@@ -120,23 +150,50 @@ async def register_payment_with_image(
             url_bank_receipt=payment_image_url,
             url_payment_receipt=url_payment_receipt
         )
-        
+
         if not result.get("success", False):
+            # Limpiar archivo antes de lanzar la excepción
             if file_remove_func:
                 try:
                     await file_remove_func()
                 except Exception as cleanup_error:
                     print(f"Error al eliminar archivo luego de falla DB: {cleanup_error}")
+
             status_code = result.get("status_code", 500)
-            error_detail = result.get("error", {}).get("message", "Error al procesar el pago")
+
+            # Manejar error como dict o string
+            error_info = result.get("error", {})
+            if isinstance(error_info, dict):
+                error_detail = {
+                    "error_code": error_info.get("code", "UNKNOWN_ERROR"),
+                    "message": error_info.get("message", "Error al procesar el pago"),
+                    "success": False
+                }
+            else:
+                error_detail = {
+                    "error_code": "UNKNOWN_ERROR",
+                    "message": str(error_info) if error_info else "Error al procesar el pago",
+                    "success": False
+                }
+
             raise HTTPException(status_code=status_code, detail=error_detail)
-            
-    except Exception as e:
+
+    except HTTPException as http_exc:
+        # Limpiar archivo si hay HTTPException
         if file_remove_func:
             try:
                 await file_remove_func()
             except Exception as cleanup_error:
-                print(f"Error al eliminar archivo luego de falla DB: {cleanup_error}")
+                print(f"Error al eliminar archivo luego de HTTPException: {cleanup_error}")
+        # Re-lanzar la excepción original
+        raise http_exc
+    except Exception as e:
+        # Limpiar archivo si hay otra excepción
+        if file_remove_func:
+            try:
+                await file_remove_func()
+            except Exception as cleanup_error:
+                print(f"Error al eliminar archivo luego de Exception: {cleanup_error}")
         raise HTTPException(500, f"Error al registrar el pago: {e}")
     
     # 3. Generar recibo automáticamente si el pago fue exitoso
@@ -154,9 +211,11 @@ async def register_payment_with_image(
                 "drive_link": receipt_result.drive_link,
                 "filename": receipt_result.filename
             }
-            # También agregar la URL del recibo al campo url_payment_receipt
             if receipt_result.drive_link:
-                result["url_payment_receipt"] = receipt_result.drive_link
+                result["data"]["url_payment_receipt"] = receipt_result.drive_link
+                transaction_ids = [t["transaction_id"] for t in result["data"].get("transactions", [])]
+                print(f"[register-payment] tx_ids={transaction_ids}, drive_link={receipt_result.drive_link}")
+                await _persist_payment_receipt_url(db, transaction_ids, receipt_result.drive_link)
                 
     except Exception as e:
         print(f"⚠️ Error generando recibo: {e}")
@@ -319,6 +378,9 @@ async def register_auto_payment(
             # También agregar la URL del recibo al campo url_payment_receipt
             if receipt_result.drive_link:
                 result["data"]["url_payment_receipt"] = receipt_result.drive_link
+                transaction_ids = [t["transaction_id"] for t in result["data"].get("transactions", [])]
+                print(f"[auto-payment] tx_ids={transaction_ids}, drive_link={receipt_result.drive_link}")
+                await _persist_payment_receipt_url(db, transaction_ids, receipt_result.drive_link)
 
             ## Add status code and message
             result["status_code"] = 200

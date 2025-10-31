@@ -1,6 +1,6 @@
 import base64
 import io
-from datetime import datetime
+import datetime as dt
 from typing import Dict
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import qrcode
@@ -71,8 +71,14 @@ class ReceiptGenerator:
         self._draw_center_text(draw, "Recibo de Pago", y_pos, self.width, title_font, self.text_color)
         y_pos += 36
         
-        # Centered receipt number
-        receipt_number = payment_data['client_data']['receiptNumber']
+        # Centered receipt number - Handle case when client_data is None
+        client_data = payment_data.get('client_data')
+        if client_data and 'receiptNumber' in client_data:
+            receipt_number = client_data['receiptNumber']
+        else:
+            # Generate a receipt number if not available
+            receipt_number = f"RCP-{dt.datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
         self._draw_center_text(draw, f"No. {receipt_number}", y_pos, self.width, normal_font, self.gray)
         y_pos += 32
 
@@ -84,14 +90,38 @@ class ReceiptGenerator:
         # 3. CLIENT INFORMATION
         draw.text((38, y_pos), "Informacion del Cliente", fill=self.text_color, font=header_font)
         y_pos += 28
-        
-        cl = payment_data['client_data']
+
+        # Unificar y robustecer extracción de datos del cliente
+        client_data = payment_data.get('client_data') or {}
+
+        client_name = (
+            (client_data.get('clientName') if client_data else None)
+            or payment_data.get('client_name')
+            or payment_data.get('customer_name')
+            or payment_data.get('person_full_name')
+            or "Información no disponible"
+        )
+
+        client_id = (
+            (client_data.get('clientId') if client_data else None)
+            or payment_data.get('client_document')
+            or payment_data.get('document_number')
+            or payment_data.get('customer_document')
+            or "N/A"
+        )
+
+        contract_number = (
+            (client_data.get('contractNumber') if client_data else None)
+            or payment_data.get('contract_number')
+            or str(payment_data.get('contract_loan_id', 'N/A'))
+        )
+
         client_info = [
-            ("Cliente:", cl['clientName']), 
-            ("Cédula:", cl['clientId']), 
-            ("Contrato:", cl['contractNumber'])
+            ("Cliente:", client_name),
+            ("Cédula:", client_id),
+            ("Contrato:", contract_number),
         ]
-        
+
         for label, value in client_info:
             draw.text((38, y_pos), label, fill=self.gray, font=normal_font)
             # Align values to the right of the available area
@@ -106,7 +136,7 @@ class ReceiptGenerator:
         y_pos += 28
         
         
-        payment_date = datetime.fromisoformat(payment_data['payment_date'].replace('Z', '+00:00'))
+        payment_date = dt.datetime.fromisoformat(payment_data['payment_date'].replace('Z', '+00:00'))
         formatted_date = payment_date.strftime("%d %B %Y, %I:%M %p").replace('AM', 'a.m.').replace('PM', 'p.m.')
         
         # Generar referencia si no existe
@@ -168,7 +198,7 @@ class ReceiptGenerator:
         # Data rows
         y_row = table_top + table_header_height
         for item in paid_items:
-            due_date = datetime.fromisoformat(item['due_date']).strftime("%d/%m/%Y")
+            due_date = dt.datetime.fromisoformat(item['due_date']).strftime("%d/%m/%Y")
             
             draw.text((header_positions[0], y_row + 6), f"#{item['payment_number']}", fill=self.text_color, font=normal_font)
             draw.text((header_positions[1], y_row + 6), due_date, fill=self.text_color, font=normal_font)
@@ -217,40 +247,46 @@ class ReceiptGenerator:
         y_pos += totals_height + 24
 
         # 7. CONTRACT BALANCE
-        draw.text((38, y_pos), "Balance del Contrato", fill=self.text_color, font=header_font)
-        y_pos += 28
-        
-        # Calculate previous balance
-        previous_balance = float(payment_data['remaining_balance']) + float(payment_data['total_applied'])
-        
-        # Previous Balance
-        draw.text((38, y_pos), "Balance Anterior:", fill=self.gray, font=normal_font)
-        value_x = self.width - 38 - self._get_text_width(draw, f"${previous_balance:,.2f}", normal_font)
-        draw.text((value_x, y_pos), f"${previous_balance:,.2f}", fill=self.gray, font=normal_font)
-        y_pos += 26
-        
-        # Applied Payment
-        draw.text((38, y_pos), "Pago Aplicado:", fill=self.gray, font=normal_font)
-        value_x = self.width - 38 - self._get_text_width(draw, f"-${float(payment_data['total_applied']):,.2f}", normal_font)
-        draw.text((value_x, y_pos), f"-${float(payment_data['total_applied']):,.2f}", fill=self.gray, font=normal_font)
-        y_pos += 26
-        
-        # Green separator line between Applied Payment and New Balance
-        draw.line([38, y_pos, self.width - 38, y_pos], fill=self.header_green, width=2)
-        y_pos += 15
-        
-        # New Balance
-        draw.text((38, y_pos), "Nuevo Balance:", fill=self.text_color, font=header_font)
-        value_x = self.width - 38 - self._get_text_width(draw, f"${float(payment_data['remaining_balance']):,.2f}", header_font)
-        draw.text((value_x, y_pos), f"${float(payment_data['remaining_balance']):,.2f}", fill=self.green, font=header_font)
-        y_pos += 68
+        # Only show balance section if we have balance data
+        remaining_balance = payment_data.get('remaining_balance')
+        total_applied = payment_data.get('total_applied', 0)
+
+        if remaining_balance is not None:
+            draw.text((38, y_pos), "Balance del Contrato", fill=self.text_color, font=header_font)
+            y_pos += 28
+
+            # Calculate previous balance
+            previous_balance = float(remaining_balance) + float(total_applied)
+
+            # Previous Balance
+            draw.text((38, y_pos), "Balance Anterior:", fill=self.gray, font=normal_font)
+            value_x = self.width - 38 - self._get_text_width(draw, f"${previous_balance:,.2f}", normal_font)
+            draw.text((value_x, y_pos), f"${previous_balance:,.2f}", fill=self.gray, font=normal_font)
+            y_pos += 26
+
+            # Applied Payment
+            draw.text((38, y_pos), "Pago Aplicado:", fill=self.gray, font=normal_font)
+            value_x = self.width - 38 - self._get_text_width(draw, f"-${float(total_applied):,.2f}", normal_font)
+            draw.text((value_x, y_pos), f"-${float(total_applied):,.2f}", fill=self.gray, font=normal_font)
+            y_pos += 26
+
+            # Green separator line between Applied Payment and New Balance
+            draw.line([38, y_pos, self.width - 38, y_pos], fill=self.header_green, width=2)
+            y_pos += 15
+
+            # New Balance
+            draw.text((38, y_pos), "Nuevo Balance:", fill=self.text_color, font=header_font)
+            value_x = self.width - 38 - self._get_text_width(draw, f"${float(remaining_balance):,.2f}", header_font)
+            draw.text((value_x, y_pos), f"${float(remaining_balance):,.2f}", fill=self.green, font=header_font)
+            y_pos += 68
 
         # 8. CENTERED THANK YOU MESSAGE
         self._draw_center_text(draw, "¡Gracias por su pago!", y_pos, self.width, header_font, self.text_color)
         y_pos += 32
 
         # 9. CENTERED QR CODE
-        qr_img = self._generate_qr_code(payment_data['client_data']['contractNumber'])
+        # Usar el contract_number ya resuelto arriba
+        qr_img = self._generate_qr_code(contract_number)
         qr_size = 120
         qr_x = (self.width - qr_size) // 2
         img.paste(qr_img, (qr_x, y_pos))
@@ -321,5 +357,5 @@ class ReceiptGenerator:
 
     def generate_receipt_id(self) -> str:
         """Genera un ID único para el recibo"""
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        timestamp = dt.datetime.now().strftime('%Y%m%d%H%M%S')
         return f"RCP-{timestamp}"

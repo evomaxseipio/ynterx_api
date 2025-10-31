@@ -159,16 +159,25 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(FastAPIHTTPException)
 async def fastapi_http_exception_handler(request: Request, exc: FastAPIHTTPException):
-    log.error("FastAPI HTTP exception occurred", exc_info=exc)
-    print(exc)
-    return JSONResponse(
-        status_code=exc.status_code,
-        headers=exc.headers,
-        content={
+    # Solo loggear errores 5xx, no 4xx
+    if exc.status_code >= 500:
+        log.error("FastAPI HTTP exception occurred", exc_info=exc)
+
+    # Si el detail es un dict (viene del SP), usarlo directamente
+    if isinstance(exc.detail, dict):
+        content = exc.detail
+    else:
+        # Si es string, crear estructura estándar
+        content = {
             "error_code": ErrorCodeEnum.UNDEFINED.value,
             "message": exc.detail,
             "success": False,
-        },
+        }
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        headers=exc.headers,
+        content=content,
     )
 
 

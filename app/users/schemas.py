@@ -84,7 +84,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     language: str | None = Field(default="en", max_length=10)
     user_role_id: int
-    password: constr(min_length=8)
+    new_password: constr(min_length=8)
     person_id: UUID
     preferences: UserPreferencesSchema | None = None
 
