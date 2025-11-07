@@ -25,11 +25,9 @@ class GoogleDriveService:
         self.main_folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
 
         if not self.credentials_path:
-            print(f"GOOGLE_CREDENTIALS_PATH environment variable not set")
             raise ValueError("GOOGLE_CREDENTIALS_PATH environment variable not set")
 
         if not Path(self.credentials_path).exists():
-            print(f"Google credentials file not found: {self.credentials_path}")
             raise FileNotFoundError(f"Google credentials file not found: {self.credentials_path}")
 
         self._authenticate()
@@ -39,7 +37,6 @@ class GoogleDriveService:
             # Intentar obtener la carpeta para validar acceso
             try:
                 folder = self.service.files().get(fileId=self.main_folder_id, fields='id, name', supportsAllDrives=True).execute()
-                print(f"Main folder found: {folder}")
             except Exception as e:
                 raise HTTPException(500, f"El ID de carpeta de Google Drive no es válido o no tienes acceso. Verifica que el ID '{self.main_folder_id}' exista y que el Service Account tenga permisos de editor sobre la carpeta. Error: {str(e)}")
         else:
@@ -56,11 +53,8 @@ class GoogleDriveService:
             # SOLUCIÓN: Usar solo credentials, sin el parámetro http
             # Esta es la forma correcta y más limpia
             self.service = build('drive', 'v3', credentials=credentials)
-            
-            print("Google Drive authentication successful")
 
         except Exception as e:
-            print(f"Error authenticating with Google Drive: {str(e)}")
             raise HTTPException(500, f"Error authenticating with Google Drive: {str(e)}")
 
     # EL RESTO DEL CÓDIGO SE MANTIENE IGUAL (sin cambios)
@@ -129,8 +123,6 @@ class GoogleDriveService:
             'parents': [parent_folder_id]
         }
 
-        print(f"File metadata: {file_metadata}")
-
         # Determinar tipo MIME
         if file_path.suffix.lower() == '.docx':
             mime_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -152,15 +144,47 @@ class GoogleDriveService:
                 fields='id,webViewLink,webContentLink',
                 supportsAllDrives=True
             ).execute()
-            print(f"File uploaded successfully: {file}")
+
+            file_id = file.get('id')
+            web_view_link_original = file.get('webViewLink')
+            
+            # Usar el ouid correcto desde variable de entorno
+            ouid = os.getenv("GOOGLE_DRIVE_OWNER_OUID")
+            if not ouid:
+                # Fallback: extraer del webViewLink si no está configurado
+                if web_view_link_original and 'ouid=' in web_view_link_original:
+                    import re
+                    match = re.search(r'ouid=(\d+)', web_view_link_original)
+                    if match:
+                        ouid = match.group(1)
+            
+            # Construir enlace con el ouid correcto
+            if web_view_link_original:
+                # Detectar tipo de archivo y construir URL base
+                if '/document/d/' in web_view_link_original:
+                    base_url = f"https://docs.google.com/document/d/{file_id}/edit"
+                elif '/spreadsheets/d/' in web_view_link_original:
+                    base_url = f"https://docs.google.com/spreadsheets/d/{file_id}/edit"
+                elif '/presentation/d/' in web_view_link_original:
+                    base_url = f"https://docs.google.com/presentation/d/{file_id}/edit"
+                else:
+                    base_url = f"https://drive.google.com/file/d/{file_id}/view"
+                
+                # Construir enlace con ouid y parámetros correctos
+                if ouid:
+                    web_view_link = f"{base_url}?usp=drive_link&ouid={ouid}&rtpof=true&sd=true"
+                else:
+                    # Fallback: solo corregir usp=drivesdk
+                    web_view_link = web_view_link_original.replace('usp=drivesdk', 'usp=drive_link')
+            else:
+                web_view_link = f"https://drive.google.com/file/d/{file_id}/view?usp=drive_link"
 
             return {
-                'file_id': file.get('id'),
-                'web_view_link': file.get('webViewLink'),
+                'file_id': file_id,
+                'web_view_link': web_view_link,
                 'download_link': file.get('webContentLink')
             }
         except Exception as e:
-            print(f"Error uploading file to Drive: {str(e)}")
             raise HTTPException(500, f"Error uploading file to Drive: {str(e)}")
 
     def _upload_metadata(self, metadata: Dict[str, Any], folder_id: str) -> str:
@@ -215,15 +239,10 @@ class GoogleDriveService:
                                 'web_view_link': upload_result['web_view_link']
                             })
                         except Exception as e:
-                            print(f"Error uploading attachment {file.name}: {str(e)}")
+                            pass
 
             # Crear enlace público a la carpeta
             folder_link = f"https://drive.google.com/drive/folders/{contract_folder_id}"
-
-            print(f"Contract uploaded successfully: {contract_result}")
-            print(f"Metadata uploaded successfully: {metadata_file_id}")
-            print(f"Folder link: {folder_link}")
-            print(f"Attachments uploaded: {attachments_uploaded}")
 
             return {
                 "drive_success": True,
@@ -236,7 +255,6 @@ class GoogleDriveService:
             }
 
         except Exception as e:
-            print(f"Error uploading contract: {str(e)}")
             return {
                 "drive_success": False,
                 "drive_error": str(e)
@@ -265,7 +283,6 @@ class GoogleDriveService:
             }
 
         except Exception as e:
-            print(f"Error uploading attachment: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)

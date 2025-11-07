@@ -1,0 +1,188 @@
+{
+    "contract_type": "Contrato de préstamo con garantía real",
+    "contract_type_id": 1,
+    "description": null,
+    "contract_date": "03/11/2025",
+    "contract_end_date": "03/11/2026",
+    "contract_number": "CNT-000003-2025",
+    "contract_id": "c3cd6b9d-eaa4-48ce-b1db-44bea5201a18",
+    "client_company": {
+        "company_name": "",
+        "company_rnc": "",
+        "company_mercantil_number": "",
+        "company_phone": "",
+        "company_email": "",
+        "company_type": "",
+        "company_address": {
+            "address_line1": "",
+            "city": "",
+            "postal_code": "",
+            "phone_number": "",
+            "email": ""
+        },
+        "company_manager": []
+    },
+    "investor_company": {
+        "company_name": "GRUPO REYSA, S.R.L.",
+        "company_rnc": "1-32-25325-6",
+        "company_mercantil_number": "31875PM",
+        "company_phone": "(809) 529-2589",
+        "company_email": "BUFETE@REYES.COM.DO",
+        "company_type": "",
+        "company_address": {
+            "address_line1": "C/ ALTAGRACIA NO. 39 VILLA VELASQUEZ",
+            "city": "",
+            "postal_code": "",
+            "phone_number": "(809) 529-2589",
+            "email": "BUFETE@REYES.COM.DO"
+        },
+        "company_manager": [
+            {
+                "name": "MIGUEL ANGEL REYES PICHARDO",
+                "position": "Gerente",
+                "document_number": "023-0089169-0",
+                "nationality": "DOMINICANA",
+                "marital_status": "Soltero",
+                "address": "",
+                "is_main_manager": true
+            }
+        ]
+    },
+    "paragraph_request": [
+        {
+            "person_role": "client",
+            "contract_type": "fisica_casada",
+            "section": "identification",
+            "contract_services": "mortgage"
+        },
+        {
+            "person_role": "investor",
+            "contract_type": "juridica",
+            "section": "identification",
+            "contract_services": "mortgage"
+        }
+    ],
+    "loan": {
+        "amount": 300000.0,
+        "currency": "DOP",
+        "interest_rate": 2.2,
+        "term_months": 12,
+        "loan_type": "Hipotecario",
+        "loan_payments_details": {
+            "monthly_payment": 6600.0,
+            "final_payment": 306600.0,
+            "discount_rate": 0.2,
+            "payment_qty_quotes": 11,
+            "payment_type": "Mensual"
+        },
+        "bank_account": {
+            "bank_name": "Banco Popular Dominicano",
+            "bank_account_number": "12345678",
+            "bank_account_type": "corriente",
+            "bank_account_currency": "DOP"
+        }
+    },
+    "properties": [
+        {
+            "property_type": "inmueble",
+            "cadastral_number": "408309483268",
+            "title_number": "4000319702",
+            "surface_area": 692.76,
+            "covered_area": null,
+            "property_value": 0.0,
+            "currency": "DOP",
+            "description": "EL INMUEBLE IDENTIFICADO COMO 408309483268, QUE TIENE UNA SUPERFICIE DE 692.76 METROS CUADRADOS, MATRÍCULA NO.4000319702, UBICADO EN SAN PEDRO DE MACORIS, SAN PEDRO DE MACORIS",
+            "address_line1": null,
+            "address_line2": "SAN PEDRO DE MACORIS, SAN PEDRO DE MACORIS",
+            "city_id": null,
+            "postal_code": null,
+            "property_role": "garantia",
+            "owner_name": "CESARE STEFANO BERNARDINELLI",
+            "owner_document_number": "AU9756057/YA4216661",
+            "owner_nationality": "Italiana",
+            "owner_civil_status": "soltero"
+        }
+    ],
+    "clients": [
+        {
+            "person": {
+                "p_first_name": "ANGELO EMIL",
+                "p_last_name": "KARILEN",
+                "p_middle_name": "",
+                "p_date_of_birth": "1989-04-19",
+                "p_gender": "Masculino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Casado",
+                "p_occupation": "",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0147215-1",
+                        "issuing_country_id": "1",
+                        "document_issue_date": null,
+                        "document_expiry_date": null
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "MARIA QUIRICO CASA 5",
+                        "address_line2": "San Pedro de Macoris",
+                        "city_id": "1",
+                        "postal_code": null,
+                        "address_type": "Casa",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 1,
+                "p_additional_data": {
+                    "phone_number": "8095292589",
+                    "email": "nika20payano@hotmail.com"
+                }
+            }
+        }
+    ],
+    "investors": [],
+    "witnesses": [],
+    "referents": [],
+    "notary": [
+        {
+            "person": {
+                "p_first_name": "LUIS FRANKLIN",
+                "p_last_name": "DIAZ HERRERA",
+                "p_middle_name": "",
+                "p_date_of_birth": "1900-01-01",
+                "p_gender": "MASCULINO",
+                "p_nationality_country": "REPÚBLICA DOMINICANA",
+                "p_marital_status": "SOLTERO",
+                "p_occupation": "ABOGADO",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0027895-5",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2018-05-18",
+                        "document_expiry_date": "2028-05-18"
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "CALLE ALTAGRACIA 39",
+                        "address_line2": "VILLA VELASQUEZ",
+                        "city_id": "1",
+                        "postal_code": "10210",
+                        "address_type": "Oficina",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 7,
+                "p_additional_data": {
+                    "notary_id": "9baf6c75-ee86-4c15-9e30-ae479ffb139b",
+                    "license_number": "1778"
+                }
+            }
+        }
+    ]
+}
+

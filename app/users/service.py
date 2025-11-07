@@ -21,6 +21,10 @@ class UserService:
 
         # Validate username and person_id
         async with self.pool.acquire() as conn:
+            # Verificar que el usuario que crea existe y está activo
+            if not await self._verify_user_exists_and_active(created_by, conn):
+                raise Exception("Current user not found or inactive")
+            
             if await self._exists_user_by_username(user_data.username, conn):
                 raise Exception("User already registered")
             if await self._exists_user_by_email(user_data.email, conn):
@@ -28,21 +32,22 @@ class UserService:
             if not await self._exists_person_by_person_id(user_data.person_id, conn):
                 raise Exception("Person not found")
 
-            p_created_by = await self._get_person_id_by_current_user(created_by, conn)
-            if not p_created_by:
-                raise Exception("Current user not found")
+            # No necesitamos obtener el person_id, usamos directamente el user_id
+            # p_created_by = await self._get_person_id_by_current_user(created_by, conn)
+            # if not p_created_by:
+            #     raise Exception("Current user person not found")
 
         params = {
             "p_person_id": user_data.person_id,
             "p_username": user_data.username,
             "p_email": user_data.email,
-            "p_password": user_data.password,
+            "p_password": user_data.new_password,
             "p_user_role_id": user_data.user_role_id,
             "p_language": user_data.language,
             "p_preferences": user_data.preferences.model_dump_json(
                 exclude_none=True, exclude_defaults=True
             ),
-            "p_created_by": p_created_by,
+            "p_created_by": created_by,  # Usar directamente el user_id
         }
 
         stmt = text(
@@ -134,6 +139,10 @@ class UserService:
     async def update_user(self, user_id: UUID, user_data: UserUpdate, updated_by: UUID) -> dict | None:
         """Update a user using stored procedure."""
         async with self.pool.acquire() as connection:
+            # Verificar que el usuario que actualiza existe y está activo
+            if not await self._verify_user_exists_and_active(updated_by, connection):
+                raise Exception("Current user not found or inactive")
+            
             result = await connection.fetchrow(
                 """
                 SELECT sp_update_user(
@@ -215,3 +224,11 @@ class UserService:
                 current_user,
             )
         )["person_id"]
+
+    async def _verify_user_exists_and_active(self, user_id: UUID, connection) -> bool:
+        """Verificar que un usuario existe y está activo."""
+        result = await connection.fetchrow(
+            "SELECT user_id FROM users WHERE user_id = $1 AND is_active = true",
+            user_id
+        )
+        return result is not None

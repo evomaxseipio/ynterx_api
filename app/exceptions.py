@@ -128,3 +128,36 @@ class NotFound(GenericHTTPException):
             success=False,
             **kwargs,
         )
+
+
+class ContractNotFound(GenericHTTPException):
+    def __init__(self, message: str = "Contract not found", **kwargs: Any) -> None:
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code=ErrorCodeEnum.CONTRACT_NOT_FOUND,
+            message=message,
+            success=False,
+            **kwargs,
+        )
+
+
+class ContractInactive(GenericHTTPException):
+    def __init__(self, message: str = "Contract is inactive", **kwargs: Any) -> None:
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code=ErrorCodeEnum.CONTRACT_INACTIVE,
+            message=message,
+            success=False,
+            **kwargs,
+        )
+
+
+class InvalidAmount(GenericHTTPException):
+    def __init__(self, message: str = "Invalid amount", **kwargs: Any) -> None:
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code=ErrorCodeEnum.INVALID_AMOUNT,
+            message=message,
+            success=False,
+            **kwargs,
+        )

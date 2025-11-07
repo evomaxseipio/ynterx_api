@@ -154,6 +154,8 @@ class LoanPaymentService:
                     :payment_method,
                     :reference,
                     :transaction_date,
+                    :url_bank_receipt,
+                    :url_payment_receipt,
                     :notes
                 )
             """)
@@ -162,22 +164,21 @@ class LoanPaymentService:
             if not transaction_date:
                 transaction_date = datetime.now()
             
-            result = await self.db.execute(
-                query,
-                {
-                    "contract_loan_id": contract_loan_id,
-                    "amount": amount,
-                    "payment_method": payment_method,
-                    "reference": reference,
-                    "transaction_date": transaction_date,
-                    "notes": notes,
-                    "url_bank_receipt": url_bank_receipt,
-                    "url_payment_receipt": url_payment_receipt
-                }
-            )
-            
+            params = {
+                "contract_loan_id": contract_loan_id,
+                "amount": amount,
+                "payment_method": payment_method,
+                "reference": reference,
+                "transaction_date": transaction_date,
+                "notes": notes,
+                "url_bank_receipt": url_bank_receipt,
+                "url_payment_receipt": url_payment_receipt
+            }
+
+            result = await self.db.execute(query, params)
+
             await self.db.commit()
-            
+
             # Obtener el resultado
             row = result.fetchone()
             if not row or not row[0]:
@@ -187,7 +188,7 @@ class LoanPaymentService:
                     "message": "No se recibió respuesta del procedimiento",
                     "data": None
                 }
-            
+
             # El resultado ya viene como diccionario desde la función SQL
             payment_data = row[0]
             
