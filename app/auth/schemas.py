@@ -19,6 +19,7 @@ class _AuthLoginDataResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user: Any
+    api_config: dict[str, Any] | None = None
 
 
 class AuthLoginResponse(CustomSchema):

@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Depends, status
+import json
+import asyncpg
+from asyncpg import Pool
+from fastapi import APIRouter, Depends, Request, status
 from typing import Any
 
 from app.auth.dependencies import DepCurrentUser
 from app.auth.jwt_service import jwt_service
+from app.auth.schemas import AuthLoginRequest
 from app.enums import ErrorCodeEnum
 
 router = APIRouter(prefix="/test", tags=["test"])
@@ -47,5 +51,53 @@ async def create_test_token() -> Any:
         "token_type": "Bearer",
         "expires_in": 1800,  # 30 minutos
         "success": True,
+        "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
+    }
+
+
+@router.post("/login-db-response")
+async def test_login_db_response(request: Request, login_data: AuthLoginRequest) -> Any:
+    """
+    Endpoint de prueba para ver la respuesta cruda de la base de datos del login.
+    Muestra exactamente qué devuelve el stored procedure sp_login_user.
+    """
+    pool: Pool = request.app.state.db_pool
+    
+    # Ejecutar el stored procedure
+    async with pool.acquire() as conn:
+        conn: asyncpg.Connection
+        
+        result: asyncpg.Record | None = await conn.fetchrow(
+            "SELECT sp_login_user($1, $2);",
+            login_data.username,
+            login_data.password,
+        )
+    
+    if not result:
+        return {
+            "success": False,
+            "message": "No se obtuvo respuesta de la base de datos",
+            "raw_result": None,
+            "error_code": ErrorCodeEnum.UNDEFINED.value,
+        }
+    
+    # Obtener la respuesta cruda
+    raw_db_response = result["sp_login_user"] if result.get("sp_login_user") else None
+    
+    # Intentar parsear el JSON para mostrarlo formateado
+    parsed_response = None
+    if raw_db_response:
+        try:
+            parsed_response = json.loads(raw_db_response)
+        except json.JSONDecodeError:
+            parsed_response = {"error": "No se pudo parsear como JSON", "raw": raw_db_response}
+    
+    return {
+        "success": True,
+        "message": "Respuesta de la base de datos obtenida",
+        "raw_db_response": raw_db_response,
+        "parsed_db_response": parsed_response,
+        "result_keys": list(result.keys()) if result else [],
+        "full_result_record": dict(result) if result else None,
         "error_code": ErrorCodeEnum.SUCCESSFULLY_OPERATION.value,
     } 

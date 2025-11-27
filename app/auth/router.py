@@ -7,7 +7,7 @@ from asyncpg import Pool
 from fastapi import APIRouter, Header, Request, status
 
 from app.config import settings
-from app.email import send_email
+from app.utils.email_services import send_email
 from app.enums import ErrorCodeEnum
 from app.exceptions import BadRequest, GenericHTTPException
 from app.session_cache import create_session, remove_session
@@ -90,6 +90,7 @@ async def login(request: Request, login_data: AuthLoginRequest) -> Any:
                     "token_type": "Bearer",
                     "expires_in": settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
                     "user": user_data,
+                    "api_config": user_query_result.api_config,
                 },
             },
             from_attributes=True,
@@ -278,10 +279,10 @@ async def recover_password(
         )
 
     # Send email with temporary password
-    await send_email(
+    send_email(
         to_email=recovery_data.email,
         subject="Recuperación de Contraseña",
-        body=(
+        text=(
             f"Tu contraseña temporal es: {temp_password}\n\n"
             "Por favor, cambia tu contraseña después de iniciar sesión.\n\n"
             "Gracias por usar ynterxal"
@@ -335,10 +336,10 @@ async def change_password(
         data.get("success", False)
         and error_code is ErrorCodeEnum.SUCCESSFULLY_OPERATION
     ):
-        await send_email(
+        send_email(
             to_email=data.get("email"),
             subject="Cambio de Contraseña",
-            body=("Cambio de Contraseña exitoso\n\n" "Gracias por usar ynterxal"),
+            text=("Cambio de Contraseña exitoso\n\n" "Gracias por usar ynterxal"),
         )
         return {
             "message": "Contraseña cambiada exitosamente",

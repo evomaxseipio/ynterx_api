@@ -11,6 +11,8 @@ from app.company.router import router as company_router
 from app.notaries.router import router as notaries_router
 from app.witnesses.router import router as witnesses_router
 from app.referrers.router import router as referrers_router
+from app.debtors.router import router as debtors_router
+from app.partners.router import router as partners_router
 # from app.settings.router import router as settings_router
 
 def register_routers(app: FastAPI) -> None:
@@ -32,6 +34,8 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(notaries_router)
     app.include_router(witnesses_router)
     app.include_router(referrers_router)
+    app.include_router(debtors_router)
+    app.include_router(partners_router)
     # app.include_router(settings_router)
     # Add other routers here as needed
     # e.g., app.include_router(another_router)
