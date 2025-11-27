@@ -107,6 +107,7 @@ class LoginUserQueryResult:
     error_code: ErrorCodeEnum
     user: dict[str, Any]
     session: Session | None = None
+    api_config: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> LoginUserQueryResult:
@@ -115,6 +116,7 @@ class LoginUserQueryResult:
         """
         user_data = data.get("user", {})
         session_data = data.get("session")
+        api_config_data = data.get("api_config")
         # user = User.from_dict(user_data) if user_data else None
         session = Session.from_dict(session_data) if session_data else None
         return cls(
@@ -122,6 +124,7 @@ class LoginUserQueryResult:
             success=data.get("success", False),
             user=user_data,
             session=session,
+            api_config=api_config_data,
             error_code=(
                 ErrorCodeEnum(data["error_code"])
                 if "error_code" in data
