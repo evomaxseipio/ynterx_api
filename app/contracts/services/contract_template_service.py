@@ -37,8 +37,39 @@ class ContractTemplateService:
     def render_template(self, template_path: Path, data: Dict[str, Any]) -> bytes:
         """Renderizar plantilla con datos"""
         try:
+            from jinja2 import Environment
+            
+            # Agregar filtros personalizados para formateo de texto
+            def pad_filter(value: Any, width: int) -> str:
+                """Pad string to specified width with spaces on the right"""
+                if value is None:
+                    return " " * width
+                value_str = str(value).strip()
+                if len(value_str) >= width:
+                    return value_str[:width]
+                return value_str + " " * (width - len(value_str))
+            
+            def center_filter(value: Any, width: int) -> str:
+                """Center string in specified width"""
+                if value is None:
+                    return " " * width
+                value_str = str(value).strip()
+                if len(value_str) >= width:
+                    return value_str[:width]
+                padding = width - len(value_str)
+                left_pad = padding // 2
+                right_pad = padding - left_pad
+                return " " * left_pad + value_str + " " * right_pad
+            
+            # Crear entorno Jinja2 con filtros personalizados
+            # No usar trim_blocks/lstrip_blocks para preservar espacios en blanco en Word
+            jinja_env = Environment(trim_blocks=False, lstrip_blocks=False)
+            jinja_env.filters['pad'] = pad_filter
+            jinja_env.filters['center'] = center_filter
+            
+            # Crear template y renderizar con el entorno personalizado
             doc = DocxTemplate(template_path)
-            doc.render(data)
+            doc.render(data, jinja_env=jinja_env)
             
             # Guardar en bytes
             from io import BytesIO

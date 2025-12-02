@@ -124,168 +124,61 @@ def _process_multiple_clients_paragraph(paragraph_template: str, data: Dict[str,
         
         template_str = paragraph_template.strip()
         
-        start_patterns = [
-            r'\*\*De la otra parte\*\*,\s*',
-            r'\*\*De la otra parte\*\*\s*',
-            r'De la otra parte,\s*',
-            r'De la otra parte\s*'
-        ]
+        # Extract parts based on known template structure
+        # Template: "De la otra parte, el señor(a) {...}, quien en lo que sigue..."
+        initial_prefix_match = re.match(r'^([^,]+,\s*)', template_str, re.IGNORECASE)
+        initial_prefix = initial_prefix_match.group(1) if initial_prefix_match else "De la otra parte, "
         
-        descriptive_start = 0
-        for pattern in start_patterns:
-            match = re.search(pattern, template_str, re.IGNORECASE)
-            if match:
-                descriptive_start = match.end()
-                break
+        # Find the final part starting with ", quien en lo que sigue"
+        final_part_match = re.search(r',\s*quien en lo que sigue[^.]*\.', template_str, re.IGNORECASE)
+        if not final_part_match:
+            final_part_match = re.search(r',\s*quien se denominará[^.]*\.', template_str, re.IGNORECASE)
         
-        end_patterns = [
-            r',\s*quien para lo que sigue',
-            r',\s*quienes para lo que sigue',
-            r',\s*quien se denominará',
-            r',\s*quienes se denominarán',
-            r'quien para lo que sigue',
-            r'quienes para lo que sigue'
-        ]
+        final_part = final_part_match.group(0) if final_part_match else ", quien en lo que sigue del presente acto se denominará LA SEGUNDA PARTE o POR SU PROPIO NOMBRE."
         
-        descriptive_end = len(template_str)
-        final_part = ""
-        for pattern in end_patterns:
-            match = re.search(pattern, template_str, re.IGNORECASE)
-            if match:
-                descriptive_end = match.start()
-                final_part = template_str[match.start():].strip()
-                break
-        
+        # Extract descriptive part (between prefix and final part)
+        descriptive_start = len(initial_prefix)
+        descriptive_end = final_part_match.start() if final_part_match else len(template_str)
         descriptive_part = template_str[descriptive_start:descriptive_end].strip()
         
-        if not descriptive_part:
-            descriptive_part = re.sub(r'^\*\*De la otra parte\*\*,\s*', '', template_str, flags=re.IGNORECASE)
-            descriptive_part = re.sub(r'^\*\*De la otra parte\*\*\s*', '', descriptive_part, flags=re.IGNORECASE)
-            for pattern in end_patterns:
-                match = re.search(pattern, descriptive_part, re.IGNORECASE)
-                if match:
-                    final_part = descriptive_part[match.start():].strip()
-                    descriptive_part = descriptive_part[:match.start()].strip()
-                    break
+        # Extract client prefix from template (e.g., "el señor(a)")
+        client_prefix_match = re.match(r'^(el señor\(a\)|el señor|la señora)\s+', descriptive_part, re.IGNORECASE)
+        client_prefix = client_prefix_match.group(1) if client_prefix_match else "el señor(a)"
         
-        if not final_part:
-            remaining_part = template_str[descriptive_end:].strip()
-            if remaining_part:
-                final_part = remaining_part
-            else:
-                print(f"⚠️ No se encontró parte final en template, usando template completo para último cliente")
-                final_part = ""
-        
-        initial_prefix = ""
-        for pattern in start_patterns:
-            match = re.search(pattern, template_str, re.IGNORECASE)
-            if match:
-                initial_prefix = match.group(0).strip()
-                break
-        
-        if not initial_prefix:
-            initial_match = re.match(r'^(\*\*[^*]+\*\*[,\s]*)', template_str, re.IGNORECASE)
-            if initial_match:
-                initial_prefix = initial_match.group(1).strip()
-        
-        first_client_prefix_match = re.match(r'^(el señor|la señora|el|la)\s+', descriptive_part, re.IGNORECASE)
-        first_client_prefix = first_client_prefix_match.group(0) if first_client_prefix_match else ""
-        
-        def get_client_prefix(client_idx: int) -> str:
-            """Get appropriate prefix based on client gender"""
-            gender = data.get(f"client{client_idx}_gender", "").lower()
-            if gender in ["f", "female", "femenino", "femenina"]:
-                return "la señora"
-            elif gender in ["m", "male", "masculino", "masculina"]:
-                return "el señor"
-            return first_client_prefix if first_client_prefix else ""
-        
-        descriptive_part_clean = re.sub(r'^(el señor|la señora|el|la)\s+', '', descriptive_part, flags=re.IGNORECASE)
+        # Remove client prefix from descriptive part
+        descriptive_part_clean = re.sub(r'^(el señor\(a\)|el señor|la señora)\s+', '', descriptive_part, flags=re.IGNORECASE)
         descriptive_part_clean = descriptive_part_clean.strip()
         
         variable_mapping = {
             'client_full_name': 'client{num}_full_name',
-            'client_document': 'client{num}_document_number',
+            'client_document_number': 'client{num}_document_number',
             'client_nationality': 'client{num}_nationality',
             'client_marital_status': 'client{num}_marital_status',
             'client_address': 'client{num}_address',
-            'client_city': 'client{num}_city',
+            'client_address2': 'client{num}_address2',
             'client_phone': 'client{num}_phone',
             'client_email': 'client{num}_email',
         }
         
         client_parts = []
-        
         for idx in range(1, actual_clients_count + 1):
-            client_num = idx
             client_template = descriptive_part_clean
-            
             for generic_var, numbered_pattern in variable_mapping.items():
-                numbered_var = numbered_pattern.format(num=client_num)
+                numbered_var = numbered_pattern.format(num=idx)
                 client_template = client_template.replace(f"{{{{{generic_var}}}}}", f"{{{{{numbered_var}}}}}")
-                client_template = client_template.replace(f"[{generic_var}]", f"[{numbered_var}]")
             
-            client_paragraph = process_paragraph(client_template, data)
-            client_paragraph = client_paragraph.strip()
+            client_paragraph = process_paragraph(client_template, data).rstrip('.,;').strip()
             
             if idx == 1:
-                client_paragraph = client_paragraph.rstrip('.,;')
-                if initial_prefix:
-                    if first_client_prefix:
-                        full_prefix = f"{initial_prefix} {first_client_prefix}"
-                    else:
-                        full_prefix = initial_prefix
-                else:
-                    full_template_first = paragraph_template
-                    for generic_var, numbered_pattern in variable_mapping.items():
-                        numbered_var = numbered_pattern.format(num=client_num)
-                        full_template_first = full_template_first.replace(f"{{{{{generic_var}}}}}", f"{{{{{numbered_var}}}}}")
-                        full_template_first = full_template_first.replace(f"[{generic_var}]", f"[{numbered_var}]")
-                    processed_first = process_paragraph(full_template_first, data)
-                    prefix_match = re.match(r'^(\*\*[^*]+\*\*[,\s]*(?:el señor|la señora|el|la)?\s*)', processed_first, re.IGNORECASE)
-                    if prefix_match:
-                        full_prefix = prefix_match.group(1).strip()
-                        client_paragraph = re.sub(r'^\*\*[^*]+\*\*[,\s]*(?:el señor|la señora|el|la)?\s*', '', processed_first, flags=re.IGNORECASE).strip()
-                        client_paragraph = client_paragraph.rstrip('.,;')
-                    else:
-                        full_prefix = initial_prefix if initial_prefix else ""
-                client_paragraph = f"{full_prefix} {client_paragraph}; y" if full_prefix else f"{client_paragraph}; y"
+                client_parts.append(f"{initial_prefix}{client_prefix} {client_paragraph}; y")
             elif idx == actual_clients_count:
-                client_paragraph = client_paragraph.rstrip('.,;')
-                client_prefix = get_client_prefix(client_num)
-                
-                if final_part:
-                    prefix_text = f"; y {client_prefix} " if client_prefix else "; y "
-                    client_paragraph = f"{prefix_text}{client_paragraph}"
-                    final_part_plural = final_part.replace("quien para lo que sigue", "quienes para lo que sigue")
-                    final_part_plural = final_part_plural.replace("quien se denominará", "quienes se denominarán")
-                    if not final_part_plural.startswith(','):
-                        final_part_plural = f", {final_part_plural}"
-                    client_paragraph = f"{client_paragraph}{final_part_plural}"
-                else:
-                    full_template_for_last = paragraph_template
-                    for generic_var, numbered_pattern in variable_mapping.items():
-                        numbered_var = numbered_pattern.format(num=client_num)
-                        full_template_for_last = full_template_for_last.replace(f"{{{{{generic_var}}}}}", f"{{{{{numbered_var}}}}}")
-                        full_template_for_last = full_template_for_last.replace(f"[{generic_var}]", f"[{numbered_var}]")
-                    
-                    last_client_full = process_paragraph(full_template_for_last, data)
-                    last_client_full = last_client_full.replace("quien para lo que sigue", "quienes para lo que sigue")
-                    last_client_full = last_client_full.replace("quien se denominará", "quienes se denominarán")
-                    last_client_clean = re.sub(r'^\*\*[^*]+\*\*[,\s]*', '', last_client_full, flags=re.IGNORECASE)
-                    last_client_clean = re.sub(r'^(el señor|la señora|el|la)\s+', '', last_client_clean, flags=re.IGNORECASE)
-                    prefix_text = f"; y {client_prefix} " if client_prefix else "; y "
-                    client_paragraph = f"{prefix_text}{last_client_clean.strip()}"
+                final_part_plural = final_part.replace("quien en lo que sigue", "quienes en lo que sigue")
+                final_part_plural = final_part_plural.replace("quien se denominará", "quienes se denominarán")
+                client_parts.append(f" {client_prefix} {client_paragraph}{final_part_plural}")
             else:
-                client_paragraph = client_paragraph.rstrip('.,;')
-                client_prefix = get_client_prefix(client_num)
-                prefix_text = f"; y {client_prefix} " if client_prefix else "; y "
-                client_paragraph = f"{prefix_text}{client_paragraph}; y"
-            
-            client_parts.append(client_paragraph)
+                client_parts.append(f" {client_prefix} {client_paragraph}; y")
         
-        result = " ".join(client_parts)
-        return result
+        return " ".join(client_parts)
         
     except Exception as e:
         print(f"Error processing multiple clients paragraph: {e}")
