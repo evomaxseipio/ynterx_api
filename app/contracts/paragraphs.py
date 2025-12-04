@@ -50,16 +50,51 @@ async def get_paragraph_from_db(
             return None
 
 
+def _is_empty_or_default(value: str) -> bool:
+    """
+    Verifica si un valor está vacío o es un valor por defecto que debe ser omitido
+    
+    Args:
+        value: Valor a verificar
+        
+    Returns:
+        True si el valor está vacío o es un valor por defecto
+    """
+    if not value:
+        return True
+    
+    value_str = str(value).strip().lower()
+    
+    # Valores por defecto que deben ser omitidos
+    default_values = [
+        "xxxxxx@xmail.com",
+        "(xxx) xxx-xxxx",
+        "[email]",
+        "[phone]",
+        "[client_email]",
+        "[client_phone]",
+        "[investor_email]",
+        "[investor_phone]",
+        "[witness_email]",
+        "[witness_phone]",
+        "[notary_email]",
+        "[notary_phone]"
+    ]
+    
+    return value_str in default_values
+
+
 def process_paragraph(paragraph_template: str, data: Dict[str, Any]) -> str:
     """
     Process paragraph template by replacing variables with data from JSON
+    Elimina las partes del texto que contienen variables vacías o con valores por defecto
 
     Args:
         paragraph_template: Template with variables {{variable_name}}
         data: Flattened contract data
 
     Returns:
-        Processed paragraph with variables replaced
+        Processed paragraph with variables replaced and empty/default sections removed
     """
     if not paragraph_template:
         return ""
@@ -71,6 +106,51 @@ def process_paragraph(paragraph_template: str, data: Dict[str, Any]) -> str:
 
         processed_paragraph = paragraph_template
 
+        # Primero, eliminar las partes del texto que contienen variables vacías o por defecto
+        # Especialmente para teléfono y correo electrónico
+        for variable in variables:
+            value = data.get(variable, "")
+            
+            if value is not None:
+                value_str = str(value).strip()
+            else:
+                value_str = ""
+            
+            # Si el valor está vacío o es un valor por defecto, eliminar la sección correspondiente
+            if _is_empty_or_default(value_str):
+                # Patrones para eliminar: ", teléfono {{variable}}" o "teléfono {{variable}},"
+                # También manejar "correo electrónico {{variable}}"
+                patterns_to_remove = [
+                    # Patrón: ", teléfono {{variable}}"
+                    rf',\s*teléfono\s*{{{{?{re.escape(variable)}}}?}}',
+                    # Patrón: "teléfono {{variable}},"
+                    rf'teléfono\s*{{{{?{re.escape(variable)}}}?}}\s*,',
+                    # Patrón: ", correo electrónico {{variable}}"
+                    rf',\s*correo\s+electrónico\s*{{{{?{re.escape(variable)}}}?}}',
+                    # Patrón: "correo electrónico {{variable}},"
+                    rf'correo\s+electrónico\s*{{{{?{re.escape(variable)}}}?}}\s*,',
+                    # Patrón: ", correo electrónico {{variable}}, quien" (al final antes de "quien")
+                    rf',\s*correo\s+electrónico\s*{{{{?{re.escape(variable)}}}?}}\s*,?\s*(?=quien)',
+                ]
+                
+                for pattern in patterns_to_remove:
+                    processed_paragraph = re.sub(pattern, '', processed_paragraph, flags=re.IGNORECASE)
+                
+                # También eliminar si está al inicio de una frase: "teléfono {{variable}}"
+                processed_paragraph = re.sub(
+                    rf'^\s*teléfono\s*{{{{?{re.escape(variable)}}}?}}\s*,?\s*',
+                    '',
+                    processed_paragraph,
+                    flags=re.IGNORECASE | re.MULTILINE
+                )
+                processed_paragraph = re.sub(
+                    rf'^\s*correo\s+electrónico\s*{{{{?{re.escape(variable)}}}?}}\s*,?\s*',
+                    '',
+                    processed_paragraph,
+                    flags=re.IGNORECASE | re.MULTILINE
+                )
+
+        # Luego, reemplazar las variables restantes con sus valores
         for variable in variables:
             value = data.get(variable, f"[{variable}]")
 
@@ -79,15 +159,35 @@ def process_paragraph(paragraph_template: str, data: Dict[str, Any]) -> str:
             else:
                 value_str = f"[{variable}]"
 
-            processed_paragraph = processed_paragraph.replace(
-                f"{{{{{variable}}}}}",
-                value_str
-            )
-            
-            processed_paragraph = processed_paragraph.replace(
-                f"[{variable}]",
-                value_str
-            )
+            # Solo reemplazar si el valor no está vacío y no es un valor por defecto
+            if not _is_empty_or_default(value_str):
+                processed_paragraph = processed_paragraph.replace(
+                    f"{{{{{variable}}}}}",
+                    value_str
+                )
+                
+                processed_paragraph = processed_paragraph.replace(
+                    f"[{variable}]",
+                    value_str
+                )
+            else:
+                # Si está vacío o es por defecto, reemplazar con string vacío
+                processed_paragraph = processed_paragraph.replace(
+                    f"{{{{{variable}}}}}",
+                    ""
+                )
+                
+                processed_paragraph = processed_paragraph.replace(
+                    f"[{variable}]",
+                    ""
+                )
+
+        # Limpiar espacios dobles y comas múltiples que puedan quedar
+        processed_paragraph = re.sub(r'\s+', ' ', processed_paragraph)  # Múltiples espacios a uno
+        processed_paragraph = re.sub(r',\s*,+', ',', processed_paragraph)  # Múltiples comas a una
+        processed_paragraph = re.sub(r',\s*,', ',', processed_paragraph)  # Coma seguida de coma
+        processed_paragraph = re.sub(r'\s*,\s*,', ',', processed_paragraph)  # Espacios y comas múltiples
+        processed_paragraph = processed_paragraph.strip()
 
         return processed_paragraph
 
@@ -99,6 +199,7 @@ def process_paragraph(paragraph_template: str, data: Dict[str, Any]) -> str:
 def _process_multiple_clients_paragraph(paragraph_template: str, data: Dict[str, Any], clients_count: int) -> str:
     """
     Process paragraph for multiple clients in a single consecutive paragraph
+    Handles both individual client templates and married couple templates
     
     Args:
         paragraph_template: Paragraph template with generic variables
@@ -124,6 +225,20 @@ def _process_multiple_clients_paragraph(paragraph_template: str, data: Dict[str,
         
         template_str = paragraph_template.strip()
         
+        # Detectar si es un template para casados (contiene "los señores" o variables combinadas)
+        is_married_template = (
+            "los señores" in template_str.lower() or 
+            "los señor" in template_str.lower() or
+            "teléfonos" in template_str.lower() or
+            "correos electrónicos" in template_str.lower() or
+            "y {{client" in template_str.lower()
+        )
+        
+        if is_married_template:
+            # Procesar template para casados - combinar ambos clientes en una sola frase
+            return _process_married_clients_paragraph(template_str, data, actual_clients_count)
+        
+        # Template normal - procesar cada cliente por separado
         # Extract parts based on known template structure
         # Template: "De la otra parte, el señor(a) {...}, quien en lo que sigue..."
         initial_prefix_match = re.match(r'^([^,]+,\s*)', template_str, re.IGNORECASE)
@@ -183,6 +298,309 @@ def _process_multiple_clients_paragraph(paragraph_template: str, data: Dict[str,
     except Exception as e:
         print(f"Error processing multiple clients paragraph: {e}")
         return process_paragraph(paragraph_template, data)
+
+
+def _process_married_clients_paragraph(template_str: str, data: Dict[str, Any], clients_count: int) -> str:
+    """
+    Process paragraph template for married clients (combined format)
+    Combines both clients' information in a single paragraph
+    
+    Args:
+        template_str: Template string with combined variables
+        data: Flattened contract data with numbered variables
+        clients_count: Number of clients (should be 2 for married couples)
+        
+    Returns:
+        Processed paragraph with combined client information
+    """
+    try:
+        # Obtener datos de ambos clientes
+        client1_name = data.get('client1_full_name', '')
+        client2_name = data.get('client2_full_name', '')
+        client1_doc = data.get('client1_document_number', '')
+        client2_doc = data.get('client2_document_number', '')
+        client1_nationality = data.get('client1_nationality', '')
+        client2_nationality = data.get('client2_nationality', '')
+        client1_address = data.get('client1_address', '')
+        client2_address = data.get('client2_address', '')
+        client1_address2 = data.get('client1_address2', '')
+        client2_address2 = data.get('client2_address2', '')
+        
+        # Obtener teléfonos y correos
+        client1_phone = data.get('client1_phone', '') or ''
+        client2_phone = data.get('client2_phone', '') or ''
+        client1_email = data.get('client1_email', '') or ''
+        client2_email = data.get('client2_email', '') or ''
+        
+        # Filtrar valores vacíos o por defecto
+        phones = []
+        if not _is_empty_or_default(client1_phone):
+            phones.append(client1_phone)
+        if not _is_empty_or_default(client2_phone):
+            phones.append(client2_phone)
+        
+        emails = []
+        if not _is_empty_or_default(client1_email):
+            emails.append(client1_email)
+        if not _is_empty_or_default(client2_email):
+            emails.append(client2_email)
+        
+        # Construir texto combinado para nombres
+        combined_names = f"{client1_name} y {client2_name}"
+        
+        # Construir texto combinado para documentos
+        combined_docs = f"{client1_doc} y {client2_doc}"
+        
+        # Construir texto combinado para teléfonos (solo si hay al menos uno)
+        phones_text = ""
+        if phones:
+            if len(phones) == 1:
+                phones_text = phones[0]
+            else:
+                phones_text = " y ".join(phones)
+        
+        # Construir texto combinado para correos (solo si hay al menos uno)
+        emails_text = ""
+        if emails:
+            if len(emails) == 1:
+                emails_text = emails[0]
+            else:
+                emails_text = " y ".join(emails)
+        
+        # Construir texto combinado para direcciones
+        # Si las direcciones son iguales, mostrar solo una; si son diferentes, mostrar ambas
+        addresses_text = ""
+        if client1_address and client2_address:
+            # Comparar direcciones normalizadas (sin espacios extra, en mayúsculas)
+            addr1_norm = client1_address.strip().upper()
+            addr2_norm = client2_address.strip().upper()
+            if addr1_norm == addr2_norm:
+                addresses_text = client1_address
+            else:
+                # Si son diferentes, mostrar ambas
+                addresses_text = f"{client1_address} y {client2_address}"
+        elif client1_address:
+            addresses_text = client1_address
+        elif client2_address:
+            addresses_text = client2_address
+        
+        # Reemplazar variables en el template
+        processed = template_str
+        
+        # Reemplazar nombres - primero las variables numeradas individuales, luego las combinadas
+        processed = re.sub(r'\{\{client1_full_name\}\}', client1_name, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\{\{client2_full_name\}\}', client2_name, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\{\{client_full_name\}\}', combined_names, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client_full_name\]', combined_names, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client1_full_name\]', client1_name, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client2_full_name\]', client2_name, processed, flags=re.IGNORECASE)
+        
+        # Reemplazar documentos - primero las variables numeradas individuales, luego las combinadas
+        processed = re.sub(r'\{\{client1_document_number\}\}', client1_doc, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\{\{client2_document_number\}\}', client2_doc, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\{\{client_document_number\}\}', combined_docs, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client_document_number\]', combined_docs, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client1_document_number\]', client1_doc, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client2_document_number\]', client2_doc, processed, flags=re.IGNORECASE)
+        
+        # Reemplazar nacionalidad (asumir que ambos tienen la misma)
+        nationality = client1_nationality or client2_nationality
+        processed = re.sub(r'\{\{client1_nationality\}\}', nationality, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\{\{client2_nationality\}\}', nationality, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\{\{client_nationality\}\}', nationality, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client_nationality\]', nationality, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client1_nationality\]', nationality, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client2_nationality\]', nationality, processed, flags=re.IGNORECASE)
+        
+        # Reemplazar direcciones (también manejar variables individuales)
+        processed = re.sub(r'\{\{client1_address\}\}', client1_address or '', processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\{\{client2_address\}\}', client2_address or '', processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\{\{client_address\}\}', addresses_text, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client_address\]', addresses_text, processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client1_address\]', client1_address or '', processed, flags=re.IGNORECASE)
+        processed = re.sub(r'\[client2_address\]', client2_address or '', processed, flags=re.IGNORECASE)
+        
+        # Manejar teléfonos - PRIMERO reemplazar patrones completos, LUEGO variables individuales
+        if phones_text:
+            # PRIMERO: Reemplazar patrones completos con variables (antes de reemplazar variables individuales)
+            processed = re.sub(
+                r'teléfonos\s+\{\{client_phone\}\}\s+y\s+\{\{client2_phone\}\}',
+                f'teléfonos {phones_text}',
+                processed,
+                flags=re.IGNORECASE
+            )
+            processed = re.sub(
+                r'teléfonos\s+\{\{client1_phone\}\}\s+y\s+\{\{client2_phone\}\}',
+                f'teléfonos {phones_text}',
+                processed,
+                flags=re.IGNORECASE
+            )
+            # LUEGO: Reemplazar variables individuales que queden
+            if not _is_empty_or_default(client1_phone):
+                processed = re.sub(r'\{\{client1_phone\}\}', client1_phone, processed, flags=re.IGNORECASE)
+                processed = re.sub(r'\[client1_phone\]', client1_phone, processed, flags=re.IGNORECASE)
+            else:
+                processed = re.sub(r'\{\{client1_phone\}\}', '', processed, flags=re.IGNORECASE)
+                processed = re.sub(r'\[client1_phone\]', '', processed, flags=re.IGNORECASE)
+            
+            if not _is_empty_or_default(client2_phone):
+                processed = re.sub(r'\{\{client2_phone\}\}', client2_phone, processed, flags=re.IGNORECASE)
+                processed = re.sub(r'\[client2_phone\]', client2_phone, processed, flags=re.IGNORECASE)
+            else:
+                processed = re.sub(r'\{\{client2_phone\}\}', '', processed, flags=re.IGNORECASE)
+                processed = re.sub(r'\[client2_phone\]', '', processed, flags=re.IGNORECASE)
+            
+            # Limpiar patrones donde quedó "teléfonos X y " después del reemplazo
+            processed = re.sub(
+                r'teléfonos\s+([^,]+)\s+y\s+,',
+                f'teléfonos \\1',
+                processed,
+                flags=re.IGNORECASE
+            )
+            # Reemplazar variable genérica si existe
+            processed = re.sub(r'\{\{client_phone\}\}', phones_text, processed, flags=re.IGNORECASE)
+            processed = re.sub(r'\[client_phone\]', phones_text, processed, flags=re.IGNORECASE)
+        else:
+            # Eliminar toda la frase de teléfonos si no hay ninguno
+            # Primero eliminar patrones con variables
+            processed = re.sub(r',\s*teléfonos\s+\{\{client1_phone\}\}\s+y\s+\{\{client2_phone\}\}', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'teléfonos\s+\{\{client1_phone\}\}\s+y\s+\{\{client2_phone\}\},?\s*', '', processed, flags=re.IGNORECASE)
+            # Luego eliminar cualquier patrón restante
+            processed = re.sub(r',\s*teléfonos\s+[^,]+', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'teléfonos\s+[^,]+,\s*', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'teléfonos\s+[^,]+', '', processed, flags=re.IGNORECASE)
+            # Reemplazar variables individuales con vacío
+            processed = re.sub(r'\{\{client1_phone\}\}', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'\{\{client2_phone\}\}', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'\[client1_phone\]', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'\[client2_phone\]', '', processed, flags=re.IGNORECASE)
+        
+        # Manejar correos - PRIMERO reemplazar patrones completos, LUEGO variables individuales
+        if emails_text:
+            # PRIMERO: Reemplazar patrones completos con variables (antes de reemplazar variables individuales)
+            processed = re.sub(
+                r'correos\s+electrónicos\s+\{\{client_email\}\}\s+y\s+\{\{client2_email\}\}',
+                f'correos electrónicos {emails_text}',
+                processed,
+                flags=re.IGNORECASE
+            )
+            processed = re.sub(
+                r'correos\s+electrónicos\s+\{\{client1_email\}\}\s+y\s+\{\{client2_email\}\}',
+                f'correos electrónicos {emails_text}',
+                processed,
+                flags=re.IGNORECASE
+            )
+            # LUEGO: Reemplazar variables individuales que queden
+            if not _is_empty_or_default(client1_email):
+                processed = re.sub(r'\{\{client1_email\}\}', client1_email, processed, flags=re.IGNORECASE)
+                processed = re.sub(r'\[client1_email\]', client1_email, processed, flags=re.IGNORECASE)
+            else:
+                processed = re.sub(r'\{\{client1_email\}\}', '', processed, flags=re.IGNORECASE)
+                processed = re.sub(r'\[client1_email\]', '', processed, flags=re.IGNORECASE)
+            
+            if not _is_empty_or_default(client2_email):
+                processed = re.sub(r'\{\{client2_email\}\}', client2_email, processed, flags=re.IGNORECASE)
+                processed = re.sub(r'\[client2_email\]', client2_email, processed, flags=re.IGNORECASE)
+            else:
+                processed = re.sub(r'\{\{client2_email\}\}', '', processed, flags=re.IGNORECASE)
+                processed = re.sub(r'\[client2_email\]', '', processed, flags=re.IGNORECASE)
+            
+            # Limpiar patrones donde quedó "correos electrónicos X y " después del reemplazo
+            processed = re.sub(
+                r'correos\s+electrónicos\s+([^,]+)\s+y\s+,',
+                f'correos electrónicos \\1',
+                processed,
+                flags=re.IGNORECASE
+            )
+            # Reemplazar variable genérica si existe
+            processed = re.sub(r'\{\{client_email\}\}', emails_text, processed, flags=re.IGNORECASE)
+            processed = re.sub(r'\[client_email\]', emails_text, processed, flags=re.IGNORECASE)
+        else:
+            # Eliminar toda la frase de correos si no hay ninguno
+            # Primero eliminar patrones con variables
+            processed = re.sub(r',\s*correos\s+electrónicos\s+\{\{client1_email\}\}\s+y\s+\{\{client2_email\}\}', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'correos\s+electrónicos\s+\{\{client1_email\}\}\s+y\s+\{\{client2_email\}\},?\s*', '', processed, flags=re.IGNORECASE)
+            # Luego eliminar cualquier patrón restante
+            processed = re.sub(r',\s*correos\s+electrónicos\s+[^,]+', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'correos\s+electrónicos\s+[^,]+,?\s*', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'correos\s+electrónicos\s+[^,]+', '', processed, flags=re.IGNORECASE)
+            # Reemplazar variables individuales con vacío
+            processed = re.sub(r'\{\{client1_email\}\}', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'\{\{client2_email\}\}', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'\[client1_email\]', '', processed, flags=re.IGNORECASE)
+            processed = re.sub(r'\[client2_email\]', '', processed, flags=re.IGNORECASE)
+        
+        # Limpiar patrones problemáticos antes de limpiar espacios
+        # Eliminar " y ," o " y " seguido de nada (valores vacíos)
+        # Patrón: "X y ," -> "X" (cuando el segundo valor está vacío)
+        processed = re.sub(r'([^\s,]+)\s+y\s+,', r'\1', processed)  # "X y ," -> "X"
+        processed = re.sub(r'\s+y\s+,', '', processed)  # " y ," -> ""
+        processed = re.sub(r'\s+y\s+$', '', processed, flags=re.MULTILINE)  # " y " al final -> ""
+        
+        # Limpiar específicamente patrones en teléfonos y correos
+        # "teléfonos X y ," -> "teléfonos X"
+        processed = re.sub(r'(teléfonos\s+[^,]+)\s+y\s+,', r'\1', processed, flags=re.IGNORECASE)
+        # "correos electrónicos X y ," -> "correos electrónicos X"
+        processed = re.sub(r'(correos\s+electrónicos\s+[^,]+)\s+y\s+,', r'\1', processed, flags=re.IGNORECASE)
+        
+        # Eliminar frases completas de teléfonos/correos si quedaron vacías después del reemplazo
+        processed = re.sub(r',\s*teléfonos\s+y\s*,', '', processed, flags=re.IGNORECASE)
+        processed = re.sub(r'teléfonos\s+y\s*,', '', processed, flags=re.IGNORECASE)
+        processed = re.sub(r',\s*teléfonos\s+$', '', processed, flags=re.IGNORECASE | re.MULTILINE)
+        processed = re.sub(r'teléfonos\s+$', '', processed, flags=re.IGNORECASE | re.MULTILINE)
+        
+        processed = re.sub(r',\s*correos\s+electrónicos\s+y\s*,', '', processed, flags=re.IGNORECASE)
+        processed = re.sub(r'correos\s+electrónicos\s+y\s*,', '', processed, flags=re.IGNORECASE)
+        processed = re.sub(r',\s*correos\s+electrónicos\s+$', '', processed, flags=re.IGNORECASE | re.MULTILINE)
+        processed = re.sub(r'correos\s+electrónicos\s+$', '', processed, flags=re.IGNORECASE | re.MULTILINE)
+        
+        # Asegurar que haya una coma entre teléfonos y correos electrónicos si ambos están presentes
+        # Patrón: "teléfonos X correos" -> "teléfonos X, correos"
+        processed = re.sub(
+            r'(teléfonos\s+[^,]+)\s+(correos\s+electrónicos)',
+            r'\1, \2',
+            processed,
+            flags=re.IGNORECASE
+        )
+        
+        # Asegurar que haya una coma después de correos electrónicos si hay algo después
+        # Patrón: "correos electrónicos X ambos" -> "correos electrónicos X, ambos"
+        processed = re.sub(
+            r'(correos\s+electrónicos\s+[^,]+)\s+(ambos\s+con|quienes|quien)',
+            r'\1, \2',
+            processed,
+            flags=re.IGNORECASE
+        )
+        
+        # Asegurar que haya una coma después de teléfonos si hay algo después (y no es correos)
+        # Patrón: "teléfonos X ambos" -> "teléfonos X, ambos"
+        if "correos electrónicos" not in processed.lower():
+            processed = re.sub(
+                r'(teléfonos\s+[^,]+)\s+(ambos|quienes|quien|domicilio)',
+                r'\1, \2',
+                processed,
+                flags=re.IGNORECASE
+            )
+        
+        # Limpiar espacios y comas múltiples
+        processed = re.sub(r'\s+', ' ', processed)
+        processed = re.sub(r',\s*,+', ',', processed)
+        processed = re.sub(r',\s*,', ',', processed)
+        processed = re.sub(r'\s*,\s*,', ',', processed)
+        
+        # Limpiar comas al inicio o final de frases
+        processed = re.sub(r'^,\s+', '', processed)
+        processed = re.sub(r'\s+,$', '', processed)
+        
+        processed = processed.strip()
+        
+        return processed
+        
+    except Exception as e:
+        print(f"Error processing married clients paragraph: {e}")
+        import traceback
+        traceback.print_exc()
+        return process_paragraph(template_str, data)
 
 
 async def get_all_paragraphs_for_contract(
