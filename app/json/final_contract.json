@@ -32,7 +32,7 @@
     ],
     "loan": {
         "amount": 50000.0,
-        "currency": "USD",
+        "currency": "DOP",
         "interest_rate": 2.2,
         "term_months": 12,
         "loan_type": "Hipotecario",
@@ -192,8 +192,8 @@
     "witnesses": [
         {
             "person": {
-                "p_first_name": "SEIPIO",
-                "p_last_name": "MARTINS MINICANA",
+                "p_first_name": "MAXIMILIANO",
+                "p_last_name": "SEIPIO MARTINS",
                 "p_middle_name": "",
                 "p_date_of_birth": null,
                 "p_gender": "Masculino",
