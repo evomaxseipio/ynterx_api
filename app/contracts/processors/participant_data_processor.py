@@ -17,9 +17,9 @@ class ParticipantDataProcessor:
             addresses = person.get("p_addresses", [])
             additional_data = person.get("p_additional_data", {})
 
-            # Extraer email y teléfono de additional_data
-            email = additional_data.get("email", "") or "xxxxxx@xmail.com"
-            phone = additional_data.get("phone_number", "") or "(XXX) XXX-XXXX"
+            # Extraer email y teléfono de additional_data - NO asignar valores por defecto
+            email = additional_data.get("email", "") or ""
+            phone = additional_data.get("phone_number", "") or ""
 
             # Obtener el primer documento y dirección
             document = documents[0] if documents else {}
@@ -72,8 +72,8 @@ class ParticipantDataProcessor:
                 "client_gender": main_client["gender"],
                 "client_nationality": main_client["nationality"],
                 "client_marital_status": main_client["marital_status"],
-                "client_phone": main_client["phone_number"] or "(XXX) XXX-XXXX",
-                "client_email": main_client["email"] or "xxxxxx@xmail.com",
+                "client_phone": main_client["phone_number"] or "",
+                "client_email": main_client["email"] or "",
                 "client_document_type": main_client["document_type"],
                 "client_document_number": main_client["document_number"],
                 "client_issuing_country": main_client["issuing_country"],
@@ -95,8 +95,8 @@ class ParticipantDataProcessor:
                 f"client{client_num}_gender": client["gender"],
                 f"client{client_num}_nationality": client["nationality"],
                 f"client{client_num}_marital_status": client["marital_status"],
-                f"client{client_num}_phone": client["phone_number"] or "(XXX) XXX-XXXX",
-                f"client{client_num}_email": client["email"] or "xxxxxx@xmail.com",
+                f"client{client_num}_phone": client["phone_number"] or "",
+                f"client{client_num}_email": client["email"] or "",
                 f"client{client_num}_document_type": client["document_type"],
                 f"client{client_num}_document_number": client["document_number"],
                 f"client{client_num}_issuing_country": client["issuing_country"],
@@ -120,9 +120,9 @@ class ParticipantDataProcessor:
             addresses = person.get("p_addresses", [])
             additional_data = person.get("p_additional_data", {})
 
-            # Extraer email y teléfono de additional_data
-            email = additional_data.get("email", "") or "xxxxxx@xmail.com"
-            phone = additional_data.get("phone_number", "") or "(XXX) XXX-XXXX"
+            # Extraer email y teléfono de additional_data - NO asignar valores por defecto
+            email = additional_data.get("email", "") or ""
+            phone = additional_data.get("phone_number", "") or ""
 
             # Obtener el primer documento y dirección
             document = documents[0] if documents else {}
@@ -168,8 +168,8 @@ class ParticipantDataProcessor:
                 "investor_document_number": main_investor["document_number"],
                 "investor_address": main_investor["address_line1"],
                 "investor_address2": main_investor["address_line2"].upper() if main_investor["address_line2"] else "",
-                "investor_phone": main_investor["phone_number"] or "(XXX) XXX-XXXX",
-                "investor_email": main_investor["email"] or "xxxxxx@xmail.com",
+                "investor_phone": main_investor["phone_number"] or "",
+                "investor_email": main_investor["email"] or "",
             })
 
         # Generar variables múltiples para inversores (investor1, investor2, etc.)
@@ -206,9 +206,9 @@ class ParticipantDataProcessor:
         addresses = person.get("p_addresses", [])
         additional_data = person.get("p_additional_data", {})
 
-        # Extraer email y teléfono de additional_data
-        email = additional_data.get("email", "") or "xxxxxx@xmail.com"
-        phone = additional_data.get("phone_number", "") or "(XXX) XXX-XXXX"
+        # Extraer email y teléfono de additional_data - NO asignar valores por defecto
+        email = additional_data.get("email", "") or ""
+        phone = additional_data.get("phone_number", "") or ""
 
         # Obtener el primer documento y dirección
         document = documents[0] if documents else {}
@@ -249,9 +249,9 @@ class ParticipantDataProcessor:
         notary_doc = documents[0] if documents else {}
         address = addresses[0] if addresses else {}
         
-        # Mascara por defecto para email y teléfono
-        email = additional_data.get("professional_email", "") or "xxxxxx@xmail.com"
-        phone = additional_data.get("professional_phone", "") or "(XXX) XXX-XXXX"
+        # NO asignar valores por defecto para email y teléfono
+        email = additional_data.get("professional_email", "") or ""
+        phone = additional_data.get("professional_phone", "") or ""
 
         # Formatear nombres con función de limpieza de espacios dobles
         notary_name = f"{person.get('p_first_name', '')} {person.get('p_last_name', '')}".strip()

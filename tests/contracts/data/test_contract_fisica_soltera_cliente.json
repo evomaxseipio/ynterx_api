@@ -21,7 +21,7 @@
     "loan": {
         "amount": 25000.0,
         "currency": "USD",
-        "interest_rate": 2.5,
+        "interest_rate": 2.2,
         "term_months": 18,
         "loan_type": "Hipotecario",
         "loan_payments_details": {

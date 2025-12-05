@@ -90,8 +90,21 @@ async def generate_contract_complete(
         })
 
     # 2. GENERAR CONTRACT_NUMBER usando función SQL
-    contract_type_name = data.get("contract_type", "mortgage")
+    # Siempre generar con prefijo CNT
+    contract_type_name = "CNT"
     contract_number = await contract_creation_service.generate_contract_number(contract_type_name, db)
+    
+    # Código comentado: usar contract_services de paragraph_request si está disponible, sino usar contract_type
+    # contract_services = None
+    # if data.get("paragraph_request") and isinstance(data["paragraph_request"], list):
+    #     # Obtener contract_services del primer paragraph_request
+    #     for req in data["paragraph_request"]:
+    #         if req.get("contract_services"):
+    #             contract_services = req.get("contract_services")
+    #             break
+    # 
+    # # Si no hay contract_services en paragraph_request, usar contract_type o "mortgage" por defecto
+    # contract_type_name = contract_services or data.get("contract_type", "mortgage")
 
     # 3. CREAR CONTRATO EN LA BASE DE DATOS
     contract_id = await contract_creation_service.create_contract_record(data, contract_number, db, current_user)

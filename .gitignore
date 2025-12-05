@@ -247,6 +247,8 @@ tags
 .ionide
 .claude
 .pm2ignore
+.cursorignore
+.gitignore
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode,python,vim
 
@@ -256,10 +258,15 @@ sendgrid.env
 
 database/
 docs/
+json/
+assets/
 scripts/generate_contract.py
 scripts/setup_admin_user.py
 scripts/clean_generated_contracts.sh
 scripts/clean_database.py
 scripts/clean_database_auto.py
 test/
+tests/
+temp/
+*.md
 app/generated_contracts

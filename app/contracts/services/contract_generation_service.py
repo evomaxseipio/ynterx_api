@@ -47,10 +47,10 @@ class ContractGenerationService:
             # Seleccionar plantilla
             template_path = self.template_service.select_template(data)
 
-            # Procesar datos básicos
+            # Process basic data
             processed_data = self.data_processor.flatten_data(data)
 
-            # Procesar párrafos de la base de datos si hay conexión
+            # Process paragraphs from database if connection exists
             if connection:
                 await self._process_paragraphs_from_db(connection, data, processed_data)
 
@@ -96,7 +96,7 @@ class ContractGenerationService:
                     "storage_type": "google_drive_only"
                 })
 
-            # Subir a Google Drive si está habilitado
+            # Upload to Google Drive if enabled
             if self.use_google_drive:
                 # Crear archivo temporal solo para subir a Drive
                 import tempfile
@@ -126,7 +126,7 @@ class ContractGenerationService:
             return response
 
         except Exception as e:
-            # Limpiar en caso de error (solo si se creó carpeta local)
+            # Clean up on error (only if local folder was created)
             if contract_folder and contract_folder.exists():
                 shutil.rmtree(contract_folder)
             raise HTTPException(400, f"Error generando contrato: {str(e)}")
@@ -157,7 +157,7 @@ class ContractGenerationService:
         template_path = self.template_service.select_template(updated_data)
         processed_data = self.data_processor.flatten_data(updated_data)
 
-        # Procesar párrafos de la base de datos si hay conexión
+        # Process paragraphs from database if connection exists
         if connection:
             await self._process_paragraphs_from_db(connection, updated_data, processed_data)
 
@@ -210,7 +210,7 @@ class ContractGenerationService:
                 "storage_type": "google_drive_only"
             })
 
-        # Subir a Google Drive si está habilitado
+        # Upload to Google Drive if enabled
         if self.use_google_drive:
             # Crear archivo temporal solo para subir a Drive
             import tempfile
@@ -247,7 +247,7 @@ class ContractGenerationService:
                 
                 # Mapeo de secciones a variables de Word (igual que en get_all_paragraphs_for_contract)
                 section_mapping = {
-                    'identification': 'client_paragraph',  # Se sobrescribirá según person_role
+                    'identification': 'client_paragraph',  # Will be overwritten based on person_role
                     'investors': 'investor_paragraph',
                     'clients': 'client_paragraph',
                     'witnesses': 'witness_paragraph',
@@ -275,25 +275,36 @@ class ContractGenerationService:
                         )
 
                         if template:
-                            processed = process_paragraph(template, processed_data)
-                            
-                            # Usar el mapeo de secciones para obtener la variable correcta de Word
+                            # Determine word_variable first to check if we need multiple clients logic
                             word_variable = section_mapping.get(section)
                             if section == 'identification':
-                                # Para identification, usar el person_role para determinar la variable
+                                # For identification, use person_role to determine the variable
                                 word_variable = 'client_paragraph' if person_role == 'client' else 'investor_paragraph'
+                            
+                            # Handle multiple clients for client_paragraph
+                            if word_variable == 'client_paragraph':
+                                clients_count = processed_data.get('clients_count', 0)
+                                has_multiple_clients = clients_count > 1 or 'client2_full_name' in processed_data
+                                
+                                if has_multiple_clients:
+                                    from app.contracts.paragraphs import _process_multiple_clients_paragraph
+                                    processed = _process_multiple_clients_paragraph(template, processed_data, clients_count)
+                                else:
+                                    processed = process_paragraph(template, processed_data)
+                            else:
+                                processed = process_paragraph(template, processed_data)
                             
                             if word_variable:
                                 paragraphs_result[word_variable] = processed
-                                # También agregar directamente al processed_data para compatibilidad con la plantilla
+                                # Also add directly to processed_data for template compatibility
                                 processed_data[word_variable] = processed
                                 print(f"✅ Párrafo procesado: {word_variable} (desde {person_role}_{contract_type_db}_{section})")
                             else:
-                                # Si no hay mapeo, usar la clave original
+                                # If no mapping, use original key
                                 key = f"{person_role}_{contract_type_db}_{section}"
                                 paragraphs_result[key] = processed
                         else:
-                            # Si no se encuentra el párrafo, usar uno por defecto
+                            # If paragraph not found, use default one
                             default_template = f"Párrafo por defecto para {person_role} - {section}"
                             word_variable = section_mapping.get(section)
                             if section == 'identification':
@@ -329,7 +340,7 @@ class ContractGenerationService:
                     processed_data["paragraph_errors"] = paragraph_errors
 
             else:
-                # Lógica anterior: inferir automáticamente
+                # Previous logic: infer automatically
                 person_role = data.get("person_role")
                 if not person_role:
                     if "clients" in data and data["clients"]:
@@ -353,7 +364,7 @@ class ContractGenerationService:
                     contract_type_db = "juridica"  # valor por defecto
 
                 try:
-                    # Obtener párrafos para cliente
+                    # Get paragraphs for client
                     client_paragraphs = await get_all_paragraphs_for_contract(
                         connection,
                         "client",
@@ -362,7 +373,7 @@ class ContractGenerationService:
                         processed_data
                     )
                     
-                    # Obtener párrafos para inversionista
+                    # Get paragraphs for investor
                     investor_paragraphs = await get_all_paragraphs_for_contract(
                         connection,
                         "investor",
@@ -371,7 +382,7 @@ class ContractGenerationService:
                         processed_data
                     )
                     
-                    # Combinar párrafos
+                    # Combine paragraphs
                     all_paragraphs = {**client_paragraphs, **investor_paragraphs}
                     processed_data.update(all_paragraphs)
                     
@@ -399,7 +410,7 @@ class ContractGenerationService:
             # Usar template HTML para el email
             html_body = load_email_template(client_name, drive_link)
 
-            # Enviar a todos los destinatarios de forma asíncrona
+            # Send to all recipients asynchronously
             email_tasks = []
             for email in settings.CONTRACT_EMAIL_RECIPIENTS:
                 task = asyncio.create_task(
@@ -414,7 +425,7 @@ class ContractGenerationService:
                 )
                 email_tasks.append(task)
 
-            # Esperar a que todos los emails se envíen
+            # Wait for all emails to be sent
             await asyncio.gather(*email_tasks, return_exceptions=True)
             print(f"🔔 Email enviado a los destinatarios: {settings.CONTRACT_EMAIL_RECIPIENTS}")
             
