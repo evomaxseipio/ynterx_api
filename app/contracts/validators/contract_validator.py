@@ -62,6 +62,13 @@ class ContractValidator:
                 witness_errors = ContractValidator._validate_person(witness, f"testigo {i+1}")
                 errors.extend(witness_errors)
         
+        # Validar notarios
+        notaries = data.get("notaries") or data.get("notary") or []
+        if notaries:
+            for i, notary in enumerate(notaries):
+                notary_errors = ContractValidator._validate_notary(notary, f"notario {i+1}")
+                errors.extend(notary_errors)
+        
         return errors
     
     @staticmethod
@@ -95,6 +102,37 @@ class ContractValidator:
             address = addresses[0]
             if not address.get("address_line1"):
                 errors.append(f"Dirección principal es requerida para {person_type}")
+        
+        return errors
+    
+    @staticmethod
+    def _validate_notary(notary_data: Dict[str, Any], notary_type: str) -> List[str]:
+        """Validar datos de un notario (incluye validación de persona + campos específicos)"""
+        errors = []
+        
+        # Validar datos básicos de persona
+        person_errors = ContractValidator._validate_person(notary_data, notary_type)
+        errors.extend(person_errors)
+        
+        person = notary_data.get("person", {})
+        additional_data = person.get("p_additional_data", {})
+        
+        # Validar campos específicos del notario
+        if not additional_data.get("license_number"):
+            errors.append(f"Número de matrícula (license_number) es requerido para {notary_type}")
+        
+        if not additional_data.get("office_name"):
+            errors.append(f"Nombre de oficina (office_name) es requerido para {notary_type}")
+        
+        if not additional_data.get("jurisdiction"):
+            errors.append(f"Jurisdicción es requerida para {notary_type}")
+        
+        # Validar que tenga al menos email o teléfono profesional
+        professional_email = additional_data.get("professional_email", "")
+        professional_phone = additional_data.get("professional_phone", "")
+        
+        if not professional_email and not professional_phone:
+            errors.append(f"Email profesional o teléfono profesional es requerido para {notary_type}")
         
         return errors
     

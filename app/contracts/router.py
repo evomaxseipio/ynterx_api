@@ -1,7 +1,7 @@
 # router_clean.py
 from dotenv import load_dotenv
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Request
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Request, status
 from fastapi.responses import FileResponse
 from typing import Dict, Any, Optional, List
 from pathlib import Path
@@ -12,6 +12,8 @@ from datetime import datetime, date
 
 
 from app.auth.dependencies import DepCurrentUser
+from app.exceptions import GenericHTTPException
+from app.enums import ErrorCodeEnum
 from .service import ContractService
 from .services import ContractListService
 from .schemas import *
@@ -45,6 +47,51 @@ def get_contract_creation_service() -> ContractCreationService:
     return ContractCreationService()
 
 
+def validate_contract_data(data: Dict[str, Any]) -> None:
+    """Valida que el JSON tenga todos los datos requeridos para generar un contrato"""
+    missing_fields = []
+    
+    # Validar participantes mínimos
+    investors = data.get("investors") or []
+    clients = data.get("clients") or []
+    notaries = data.get("notaries") or data.get("notary") or []
+    
+    if not investors or len(investors) == 0:
+        missing_fields.append("investors: Se requiere al menos 1 inversionista")
+    
+    if not clients or len(clients) == 0:
+        missing_fields.append("clients: Se requiere al menos 1 cliente")
+    
+    if not notaries or len(notaries) == 0:
+        missing_fields.append("notaries: Se requiere al menos 1 notario")
+    
+    # Validar datos obligatorios
+    properties = data.get("properties") or []
+    if not properties or len(properties) == 0:
+        missing_fields.append("properties: Se requiere al menos 1 propiedad")
+    
+    if not data.get("paragraph_request"):
+        missing_fields.append("paragraph_request: Se requiere la configuración de párrafos")
+    
+    if not data.get("loan"):
+        missing_fields.append("loan: Se requiere información del préstamo")
+    
+    # Si hay campos faltantes, lanzar excepción
+    if missing_fields:
+        raise GenericHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_code=ErrorCodeEnum.VALIDATION_ERROR,
+            message="Datos incompletos para generar el contrato",
+            success=False,
+            detail={
+                "error_code": ErrorCodeEnum.VALIDATION_ERROR.value,
+                "message": "Datos incompletos para generar el contrato",
+                "success": False,
+                "missing_fields": missing_fields
+            }
+        )
+
+
 @router.post("/generate-complete", response_model=ContractResponse)
 async def generate_contract_complete(
     data: Dict[str, Any],  # JSON complejo directo
@@ -65,6 +112,9 @@ async def generate_contract_complete(
     - Generación automática de personas en la BD
     - Reutilización de personas existentes
     """
+    
+    # ✅ VALIDACIÓN AL INICIO - Verificar datos requeridos
+    validate_contract_data(data)
 
     # 1. PROCESAR TODAS LAS PERSONAS del JSON
     participants_for_contract, participant_errors, processed_persons_summary = await participant_service.process_all_participants(data, request)
