@@ -116,8 +116,8 @@ class ContractGenerationService:
                         response["folder_path"] = drive_result.get("drive_link")
 
                     # Enviar email si hay enlace de Drive
-                    if drive_result.get("drive_link"):
-                        await self._send_contract_email(contract_id, processed_data, drive_result['drive_link'])
+                    #if drive_result.get("drive_link"):
+                    #    await self._send_contract_email(contract_id, processed_data, drive_result['drive_link'])
                 finally:
                     # Limpiar archivo temporal
                     if os.path.exists(temp_file_path):
