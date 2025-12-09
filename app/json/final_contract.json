@@ -74,7 +74,7 @@
             "property_type": "casa",
             "cadastral_number": "406463901882",
             "title_number": "4000277704",
-            "surface_area": 250.50,
+            "surface_area": 250.5,
             "covered_area": 180.25,
             "property_value": 35000.0,
             "currency": "USD",
@@ -93,7 +93,7 @@
             "property_type": "terreno",
             "cadastral_number": "406463901883",
             "title_number": "4000277705",
-            "surface_area": 500.00,
+            "surface_area": 500.0,
             "covered_area": null,
             "property_value": 15000.0,
             "currency": "USD",
@@ -142,8 +142,84 @@
                 ],
                 "p_person_role_id": 1,
                 "p_additional_data": {
-                    "phone_number": "1",
-                    "email": "ss@jj.com",
+                    "phone_number": "589555",
+                    "email": "",
+                    "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755141438737.jpg"
+                }
+            }
+        },
+        {
+            "person": {
+                "p_first_name": "JUAN CARLOS",
+                "p_last_name": "PEREZ GARCIA",
+                "p_middle_name": "",
+                "p_date_of_birth": null,
+                "p_gender": "Masculino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Casado",
+                "p_occupation": "",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "001-0123456-7",
+                        "issuing_country_id": "1",
+                        "document_issue_date": null,
+                        "document_expiry_date": null
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "AVENIDA WINSTON CHURCHILL 123",
+                        "address_line2": "SANTO DOMINGO",
+                        "city_id": "1",
+                        "postal_code": "21008",
+                        "address_type": "Casa",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 1,
+                "p_additional_data": {
+                    "phone_number": "809-555-0002",
+                    "email": "juan.perez@email.com",
+                    "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755141438737.jpg"
+                }
+            }
+        },
+        {
+            "person": {
+                "p_first_name": "MARIA ELENA",
+                "p_last_name": "RODRIGUEZ SANTOS",
+                "p_middle_name": "",
+                "p_date_of_birth": null,
+                "p_gender": "Femenino",
+                "p_nationality_country": "Republica Dominicana",
+                "p_marital_status": "Soltera",
+                "p_occupation": "",
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "001-0234567-8",
+                        "issuing_country_id": "1",
+                        "document_issue_date": null,
+                        "document_expiry_date": null
+                    }
+                ],
+                "p_addresses": [
+                    {
+                        "address_line1": "CALLE INDEPENDENCIA 456",
+                        "address_line2": "SANTO DOMINGO",
+                        "city_id": "1",
+                        "postal_code": "21008",
+                        "address_type": "Casa",
+                        "is_principal": true
+                    }
+                ],
+                "p_person_role_id": 1,
+                "p_additional_data": {
+                    "phone_number": "",
+                    "email": "",
                     "photoPath": "/data/user/0/com.gcapital.gcapital_app/cache/extracted_face_1755141438737.jpg"
                 }
             }

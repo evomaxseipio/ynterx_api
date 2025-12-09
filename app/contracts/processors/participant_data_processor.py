@@ -106,6 +106,10 @@ class ParticipantDataProcessor:
                 f"client{client_num}_postal_code": client["postal_code"],
             })
 
+        # Generar lista de nombres de clientes separados por comas para el template del notario
+        clients_names = [client["full_name"] for client in clients_list]
+        result["clients_names_list"] = ", ".join(clients_names)
+
         return result
 
     def process_investors(self, investors_data: List[Dict]) -> Dict[str, Any]:
