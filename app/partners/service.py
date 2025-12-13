@@ -56,5 +56,12 @@ class PartnerService:
             # Re-raise ValueError as-is (these are expected errors)
             raise
         except Exception as e:
-            raise RuntimeError(f"Error inesperado al recuperar partners: {str(e)}")
+            error_msg = str(e)
+            # Preserve the original PostgreSQL error message
+            if "does not exist" in error_msg or "relation" in error_msg.lower():
+                raise RuntimeError(
+                    f"Error de base de datos: {error_msg}. "
+                    "Verifique que la vista 'vw_contract_participant_directory_base' y el stored procedure 'sp_get_partners_directory' existan."
+                )
+            raise RuntimeError(f"Error inesperado al recuperar partners: {error_msg}")
 

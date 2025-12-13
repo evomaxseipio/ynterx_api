@@ -44,25 +44,39 @@ class ContractValidator:
         """Validar participantes del contrato"""
         errors = []
         
-        # Validar clientes
+        # Validate clients (physical persons)
         if "clients" in data and data["clients"]:
             for i, client in enumerate(data["clients"]):
                 client_errors = ContractValidator._validate_person(client, f"cliente {i+1}")
                 errors.extend(client_errors)
         
-        # Validar inversionistas
+        # Validate investors (physical persons)
         if "investors" in data and data["investors"]:
             for i, investor in enumerate(data["investors"]):
                 investor_errors = ContractValidator._validate_person(investor, f"inversionista {i+1}")
                 errors.extend(investor_errors)
         
-        # Validar testigos
+        # Validate client companies
+        if "client_company" in data and data["client_company"]:
+            company = data["client_company"]
+            if company.get("company_name"):
+                company_errors = ContractValidator._validate_company(company, "cliente empresa")
+                errors.extend(company_errors)
+        
+        # Validate investor companies
+        if "investor_company" in data and data["investor_company"]:
+            company = data["investor_company"]
+            if company.get("company_name"):
+                company_errors = ContractValidator._validate_company(company, "inversionista empresa")
+                errors.extend(company_errors)
+        
+        # Validate witnesses
         if "witnesses" in data and data["witnesses"]:
             for i, witness in enumerate(data["witnesses"]):
                 witness_errors = ContractValidator._validate_person(witness, f"testigo {i+1}")
                 errors.extend(witness_errors)
         
-        # Validar notarios
+        # Validate notaries
         notaries = data.get("notaries") or data.get("notary") or []
         if notaries:
             for i, notary in enumerate(notaries):
@@ -133,6 +147,40 @@ class ContractValidator:
         
         if not professional_email and not professional_phone:
             errors.append(f"Email profesional o teléfono profesional es requerido para {notary_type}")
+        
+        return errors
+    
+    @staticmethod
+    def _validate_company(company_data: Dict[str, Any], company_type: str) -> List[str]:
+        """Validate company/company data"""
+        errors = []
+        
+        if not company_data.get("company_name"):
+            errors.append(f"Nombre de la empresa es requerido para {company_type}")
+        
+        company_address = company_data.get("company_address", {})
+        if not company_address:
+            errors.append(f"Dirección de la empresa es requerida para {company_type}")
+        else:
+            if not company_address.get("address_line1"):
+                errors.append(f"Dirección principal es requerida para {company_type}")
+            if not company_address.get("city"):
+                errors.append(f"Ciudad es requerida para {company_type}")
+        
+        company_managers = company_data.get("company_manager", [])
+        if not company_managers or len(company_managers) == 0:
+            errors.append(f"Al menos un gerente es requerido para {company_type}")
+        else:
+            main_manager = next((m for m in company_managers if m.get("is_main_manager")), None)
+            if not main_manager:
+                errors.append(f"Se requiere un gerente principal (is_main_manager: true) para {company_type}")
+            else:
+                if not main_manager.get("name"):
+                    errors.append(f"Nombre del gerente principal es requerido para {company_type}")
+                if not main_manager.get("document_number"):
+                    errors.append(f"Número de documento del gerente principal es requerido para {company_type}")
+                if not main_manager.get("position"):
+                    errors.append(f"Cargo del gerente principal es requerido para {company_type}")
         
         return errors
     

@@ -9,6 +9,29 @@ from app.contracts.models import contract as contract_table, contract_participan
 class ContractCreationService:
     """Servicio para manejar la creación de contratos en la base de datos"""
 
+    async def get_contract_type_id_by_name(self, type_name: str, db) -> Optional[int]:
+        """Buscar contract_type_id en public.contract_type usando type_name"""
+        try:
+            query = text("""
+                SELECT contract_type_id 
+                FROM public.contract_type 
+                WHERE type_name = :type_name
+                LIMIT 1
+            """)
+            result = await db.execute(query, {"type_name": type_name})
+            row = result.fetchone()
+            if row:
+                contract_type_id = row[0]
+                print(f"✅ Encontrado contract_type_id: {contract_type_id} para type_name: '{type_name}'")
+                return contract_type_id
+            print(f"⚠️  No se encontró contract_type_id para type_name: '{type_name}'")
+            return None
+        except Exception as e:
+            print(f"❌ Error buscando contract_type_id para type_name '{type_name}': {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
+
     async def generate_contract_number(self, contract_type_name: str, db) -> str:
         """Generar número de contrato usando función SQL"""
         try:
@@ -48,31 +71,89 @@ class ContractCreationService:
         
         contract_type_name = data.get("contract_type", "mortgage")
         
-        contract_insert = contract_table.insert().values(
-            contract_number=contract_number,
-            contract_type_id=data.get("contract_type_id", 1),
-            contract_service_id=None,
-            contract_status_id=1,  # Draft
-            contract_date=contract_start_date,
-            start_date=contract_start_date,
-            end_date=contract_end_date,
-            title=data.get("description"),
-            description=data.get("description"),
-            template_name=f"{contract_type_name}_template.docx",
-            generated_filename=None,
-            file_path=None,
-            folder_path=None,
-            version=1,
-            is_active=True,
-            created_by=current_user,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
-        ).returning(contract_table.c.contract_id)
-
-        contract_row = await fetch_one(contract_insert, connection=db, commit_after=True)
-        contract_id = contract_row["contract_id"]
+        # Procesar paragraph_request para obtener contract_type_id_client e contract_type_id_investor
+        contract_type_id_client = None
+        contract_type_id_investor = None
         
-        return contract_id
+        paragraph_request = data.get("paragraph_request", [])
+        print(f"📝 Procesando paragraph_request: {len(paragraph_request)} elementos")
+        
+        if isinstance(paragraph_request, list):
+            # Buscar el primer elemento con person_role="client" y el primero con person_role="investor"
+            client_found = False
+            investor_found = False
+            
+            for req in paragraph_request:
+                if not isinstance(req, dict):
+                    continue
+                    
+                person_role = req.get("person_role", "").lower()
+                contract_type_from_req = req.get("contract_type")
+                
+                print(f"   - Procesando: person_role={person_role}, contract_type={contract_type_from_req}")
+                
+                # Buscar contract_type_id en public.contract_type usando type_name
+                if contract_type_from_req:
+                    contract_type_id = await self.get_contract_type_id_by_name(contract_type_from_req, db)
+                    
+                    if contract_type_id:
+                        if person_role == "client" and not client_found:
+                            contract_type_id_client = contract_type_id
+                            client_found = True
+                            print(f"   ✅ Asignado contract_type_id_client = {contract_type_id}")
+                        elif person_role == "investor" and not investor_found:
+                            contract_type_id_investor = contract_type_id
+                            investor_found = True
+                            print(f"   ✅ Asignado contract_type_id_investor = {contract_type_id}")
+                        
+                        # Si ya encontramos ambos, podemos salir del loop
+                        if client_found and investor_found:
+                            break
+        
+        print(f"📊 Resultado final:")
+        print(f"   - contract_type_id_client: {contract_type_id_client}")
+        print(f"   - contract_type_id_investor: {contract_type_id_investor}")
+        
+        # Obtener contract_service_id del contract_type_id del JSON raíz
+        contract_service_id = data.get("contract_type_id")
+        
+        print(f"📝 Valores para inserción:")
+        print(f"   - contract_service_id: {contract_service_id}")
+        print(f"   - contract_type_id_client: {contract_type_id_client}")
+        print(f"   - contract_type_id_investor: {contract_type_id_investor}")
+        
+        try:
+            contract_insert = contract_table.insert().values(
+                contract_number=contract_number,
+                contract_service_id=contract_service_id,
+                contract_type_id_client=contract_type_id_client,
+                contract_type_id_investor=contract_type_id_investor,
+                contract_date=contract_start_date,
+                start_date=contract_start_date,
+                end_date=contract_end_date,
+                title=data.get("description"),
+                description=data.get("description"),
+                template_name=f"{contract_type_name}_template.docx",
+                generated_filename=None,
+                file_path=None,
+                folder_path=None,
+                version=1,
+                is_active=True,
+                created_by=current_user,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            ).returning(contract_table.c.contract_id)
+
+            contract_row = await fetch_one(contract_insert, connection=db, commit_after=True)
+            contract_id = contract_row["contract_id"]
+            
+            print(f"✅ Contrato creado exitosamente con ID: {contract_id}")
+            return contract_id
+        except Exception as e:
+            print(f"❌ Error al crear contrato: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     async def register_contract_participants(
         self, 
