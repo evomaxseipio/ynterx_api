@@ -51,16 +51,26 @@ def validate_contract_data(data: Dict[str, Any]) -> None:
     """Valida que el JSON tenga todos los datos requeridos para generar un contrato"""
     missing_fields = []
     
-    # Validar participantes mínimos
+    # Validate minimum participants - consider companies
     investors = data.get("investors") or []
     clients = data.get("clients") or []
+    investor_company = data.get("investor_company", {})
+    client_company = data.get("client_company", {})
     notaries = data.get("notaries") or data.get("notary") or []
     
-    if not investors or len(investors) == 0:
-        missing_fields.append("investors: Se requiere al menos 1 inversionista")
+    # Validate investor: must have at least one (person or company)
+    has_investor_person = investors and len(investors) > 0
+    has_investor_company = investor_company and investor_company.get("company_name")
     
-    if not clients or len(clients) == 0:
-        missing_fields.append("clients: Se requiere al menos 1 cliente")
+    if not has_investor_person and not has_investor_company:
+        missing_fields.append("investors o investor_company: Se requiere al menos 1 inversionista (persona física o empresa)")
+    
+    # Validate client: must have at least one (person or company)
+    has_client_person = clients and len(clients) > 0
+    has_client_company = client_company and client_company.get("company_name")
+    
+    if not has_client_person and not has_client_company:
+        missing_fields.append("clients o client_company: Se requiere al menos 1 cliente (persona física o empresa)")
     
     if not notaries or len(notaries) == 0:
         missing_fields.append("notaries: Se requiere al menos 1 notario")
@@ -324,16 +334,29 @@ async def list_contracts(
 
     Incluye metadatos, versiones y conteo de archivos adjuntos
     """
-    async with request.app.state.db_pool.acquire() as connection:
-        result = await ContractListService.get_contracts(connection=connection)
-        
-        if not result.get("success", False):
-            raise HTTPException(
-                status_code=404 if result.get("error") == "NO_DATA" else 500,
-                detail=result.get("message", "Error al obtener contratos")
-            )
-        
-        return result
+    try:
+        async with request.app.state.db_pool.acquire() as connection:
+            result = await ContractListService.get_contracts(connection=connection)
+            
+            if not result.get("success", False):
+                error_code = result.get("error", "UNKNOWN_ERROR")
+                error_message = result.get("message", "Error al obtener contratos")
+                status_code = 404 if error_code == "NO_DATA" else 500
+                raise HTTPException(
+                    status_code=status_code,
+                    detail=f"{error_message} (Error: {error_code})"
+                )
+            
+            return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error inesperado al recuperar contratos: {str(e)}"
+        )
 
 
 @router.get("/{contract_id}/detail", response_model=ContractDetailResponse)
@@ -361,41 +384,64 @@ async def get_contract_detail(
             detail="contract_id debe ser un UUID válido"
         )
     
-    async with request.app.state.db_pool.acquire() as connection:
-        try:
-            # Llamar a la función de base de datos
-            query = "SELECT fn_get_contract_detail($1)"
-            result = await connection.fetchval(query, contract_id)
-            
-            if result:
-                # Si es un string JSON, parsearlo
-                if isinstance(result, str):
-                    import json
-                    result = json.loads(result)
+    try:
+        async with request.app.state.db_pool.acquire() as connection:
+            try:
+                # Llamar a la función de base de datos
+                query = "SELECT fn_get_contract_detail($1)"
+                result = await connection.fetchval(query, contract_id)
                 
-                # Verificar si la función devolvió un error
-                if not result.get("success", False):
-                    error_code = result.get("error", "UNKNOWN_ERROR")
-                    status_code = 404 if error_code == "CONTRACT_NOT_FOUND" else 500
+                if result:
+                    # Si es un string JSON, parsearlo
+                    if isinstance(result, str):
+                        import json
+                        try:
+                            result = json.loads(result)
+                        except json.JSONDecodeError as json_err:
+                            raise HTTPException(
+                                status_code=500,
+                                detail=f"Error al parsear respuesta JSON de la BD: {str(json_err)}. Respuesta recibida: {result[:200] if len(str(result)) > 200 else result}"
+                            )
+                    
+                    # Verificar si la función devolvió un error
+                    if not result.get("success", False):
+                        error_code = result.get("error", "UNKNOWN_ERROR")
+                        error_message = result.get("message", "Error al obtener detalle del contrato")
+                        status_code = 404 if error_code == "CONTRACT_NOT_FOUND" else 500
+                        raise HTTPException(
+                            status_code=status_code,
+                            detail=f"{error_message} (Código: {error_code})"
+                        )
+                    
+                    return result
+                else:
                     raise HTTPException(
-                        status_code=status_code,
-                        detail=result.get("message", "Error al obtener detalle del contrato")
+                        status_code=500,
+                        detail="No se pudo obtener respuesta de la función de BD (resultado None)"
                     )
-                
-                return result
-            else:
+                    
+            except HTTPException:
+                raise
+            except Exception as e:
+                import traceback
+                error_trace = traceback.format_exc()
+                print(f"Error en get_contract_detail para contract_id={contract_id}:")
+                print(error_trace)
                 raise HTTPException(
                     status_code=500,
-                    detail="No se pudo obtener respuesta de la función de BD"
+                    detail=f"Error inesperado al recuperar el detalle del contrato: {str(e)}"
                 )
-                
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error de conexión: {str(e)}"
-            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error de conexión en get_contract_detail para contract_id={contract_id}:")
+        print(error_trace)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error de conexión a la base de datos: {str(e)}"
+        )
 
 
 @router.get("/number/{contract_number}/detail", response_model=ContractDetailResponse)

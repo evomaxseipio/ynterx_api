@@ -8,7 +8,8 @@ from decimal import Decimal
 from app.contracts.loan_property_schemas import (
     ContractLoanCreate,
     PropertyCreate,
-    LoanPropertyResult
+    LoanPropertyResult,
+    LoanPaymentDetailsCreate
 )
 
 
@@ -128,12 +129,142 @@ class ContractResponse(BaseModel):
     warnings: Optional[Dict[str, Any]] = None
 
 
+# ========================================
+# Schemas para Contract Detail Response
+# ========================================
+
+# Extender schemas existentes para respuesta de detalle
+
+class BankAccountDetail(BaseModel):
+    """Schema para cuenta bancaria en detalle de contrato"""
+    bank_name: Optional[str] = None
+    bank_account_type: Optional[str] = None
+    bank_account_number: Optional[str] = None
+    bank_account_currency: Optional[str] = None
+
+
+class LoanDetail(BaseModel):
+    """Schema para loan en detalle de contrato"""
+    amount: Optional[Decimal] = None
+    currency: Optional[str] = None
+    loan_type: Optional[str] = None
+    term_months: Optional[int] = None
+    bank_account: Optional[BankAccountDetail] = None
+    interest_rate: Optional[Decimal] = None
+    loan_payments_details: Optional[LoanPaymentDetailsCreate] = None  # Reutiliza schema existente
+
+
+class PersonDocumentDetail(PersonDocument):
+    """Schema para documento de persona en detalle - extiende PersonDocument"""
+    is_primary: Optional[bool] = None
+    issuing_country_id: Optional[Union[str, int]] = None  # Campo adicional para respuesta
+
+
+class PersonAddressDetail(Address):
+    """Schema para dirección de persona en detalle - extiende Address"""
+    city_id: Optional[Union[str, int]] = None  # Campo adicional
+    is_principal: Optional[bool] = None  # Campo adicional
+
+
+class PersonAdditionalData(BaseModel):
+    """Schema para datos adicionales de persona"""
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+
+
+class PersonDetail(BaseModel):
+    """Schema para persona completa en detalle de contrato"""
+    p_gender: Optional[str] = None
+    p_addresses: Optional[List[PersonAddressDetail]] = None
+    p_documents: Optional[List[PersonDocumentDetail]] = None
+    p_last_name: Optional[str] = None
+    p_first_name: Optional[str] = None
+    p_occupation: Optional[str] = None
+    p_middle_name: Optional[str] = None
+    p_date_of_birth: Optional[str] = None
+    p_marital_status: Optional[str] = None
+    p_person_role_id: Optional[int] = None
+    p_additional_data: Optional[PersonAdditionalData] = None
+    p_nationality_country: Optional[str] = None
+
+
+class ParticipantDetail(BaseModel):
+    """Schema para participante (cliente, inversionista, testigo) en detalle"""
+    person: Optional[PersonDetail] = None
+
+
+class DrivePathDetail(BaseModel):
+    """Schema para información de Google Drive en detalle"""
+    file_name: Optional[str] = None
+    file_path: Optional[str] = None
+    file_folder: Optional[str] = None
+
+
+class CompanyDetail(BaseModel):
+    """Schema para empresa (cliente o inversionista) en detalle"""
+    rm: Optional[str] = None
+    rnc: Optional[str] = None
+    name: Optional[str] = None
+    role: Optional[str] = None
+
+
+class PropertyDetail(BaseModel):
+    """Schema para propiedad en detalle de contrato - basado en PropertyCreate pero con campos adicionales"""
+    city_id: Optional[Union[int, str]] = None
+    currency: Optional[str] = None
+    owner_name: Optional[str] = None  # Similar a property_owner pero nombre diferente en respuesta
+    description: Optional[str] = None  # Similar a property_description pero nombre diferente
+    postal_code: Optional[str] = None
+    covered_area: Optional[Decimal] = None
+    surface_area: Optional[Decimal] = None
+    title_number: Optional[str] = None
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    property_role: Optional[str] = None  # Campo adicional para respuesta
+    property_type: Optional[str] = None
+    property_value: Optional[Decimal] = None
+    cadastral_number: Optional[str] = None
+    owner_nationality: Optional[str] = None
+    owner_civil_status: Optional[str] = None
+    owner_document_number: Optional[str] = None
+
+
+class ParagraphRequestDetail(BaseModel):
+    """Schema para paragraph_request en detalle"""
+    section: Optional[str] = None
+    person_role: Optional[str] = None
+    contract_type: Optional[str] = None
+    contract_services: Optional[str] = None
+
+
+class ContractDetailData(BaseModel):
+    """Schema para el objeto data en ContractDetailResponse"""
+    loan: Optional[LoanDetail] = None
+    notary: Optional[List[ParticipantDetail]] = None
+    clients: Optional[List[ParticipantDetail]] = None
+    investors: Optional[List[ParticipantDetail]] = None
+    referents: Optional[List[ParticipantDetail]] = None
+    witnesses: Optional[List[ParticipantDetail]] = None
+    drive_path: Optional[DrivePathDetail] = None
+    properties: Optional[List[PropertyDetail]] = None
+    contract_id: Optional[str] = None
+    description: Optional[str] = None
+    contract_date: Optional[str] = None
+    contract_type: Optional[str] = None
+    client_company: Optional[CompanyDetail] = None
+    contract_number: Optional[str] = None
+    contract_type_id: Optional[int] = None
+    investor_company: Optional[CompanyDetail] = None
+    contract_end_date: Optional[str] = None
+    paragraph_request: Optional[List[ParagraphRequestDetail]] = None
+
+
 class ContractDetailResponse(BaseModel):
     """Schema para respuesta de detalle de contrato"""
     success: bool
     error: Optional[str] = None
     message: str
-    data: Optional[Dict[str, Any]] = None
+    data: Optional[ContractDetailData] = None
 
 
 class ContractCompleteRequest(BaseModel):
