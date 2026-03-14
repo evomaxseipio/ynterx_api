@@ -2,7 +2,7 @@
 from dotenv import load_dotenv
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Request, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 import os
@@ -19,6 +19,7 @@ from .services import ContractListService
 from .schemas import *
 from .loan_property_schemas import *
 from app.database import DepDatabase, fetch_one, execute
+from sqlalchemy import select
 from app.contracts.models import contract as contract_table, contract_participant as contract_participant_table
 from app.contracts.loan_property_service import ContractLoanPropertyService
 from app.contracts.participant_service import ParticipantService
@@ -32,40 +33,37 @@ load_dotenv()
 router = APIRouter(prefix="/contracts", tags=["contracts"])
 
 def get_contract_service() -> ContractService:
-    """Dependency para obtener servicio de contratos"""
+    """Dependency to get contract service"""
     use_google_drive = os.getenv("USE_GOOGLE_DRIVE", "false").lower() == "true"
     return ContractService(use_google_drive=use_google_drive)
 
 
 def get_participant_service() -> ParticipantService:
-    """Dependency para obtener servicio de participantes"""
+    """Dependency to get participant service"""
     return ParticipantService()
 
 
 def get_contract_creation_service() -> ContractCreationService:
-    """Dependency para obtener servicio de creación de contratos"""
+    """Dependency to get contract creation service"""
     return ContractCreationService()
 
 
 def validate_contract_data(data: Dict[str, Any]) -> None:
-    """Valida que el JSON tenga todos los datos requeridos para generar un contrato"""
+    """Validate that JSON has all required data to generate a contract"""
     missing_fields = []
     
-    # Validate minimum participants - consider companies
     investors = data.get("investors") or []
     clients = data.get("clients") or []
     investor_company = data.get("investor_company", {})
     client_company = data.get("client_company", {})
     notaries = data.get("notaries") or data.get("notary") or []
     
-    # Validate investor: must have at least one (person or company)
     has_investor_person = investors and len(investors) > 0
     has_investor_company = investor_company and investor_company.get("company_name")
     
     if not has_investor_person and not has_investor_company:
         missing_fields.append("investors o investor_company: Se requiere al menos 1 inversionista (persona física o empresa)")
     
-    # Validate client: must have at least one (person or company)
     has_client_person = clients and len(clients) > 0
     has_client_company = client_company and client_company.get("company_name")
     
@@ -75,7 +73,6 @@ def validate_contract_data(data: Dict[str, Any]) -> None:
     if not notaries or len(notaries) == 0:
         missing_fields.append("notaries: Se requiere al menos 1 notario")
     
-    # Validar datos obligatorios
     properties = data.get("properties") or []
     if not properties or len(properties) == 0:
         missing_fields.append("properties: Se requiere al menos 1 propiedad")
@@ -86,7 +83,6 @@ def validate_contract_data(data: Dict[str, Any]) -> None:
     if not data.get("loan"):
         missing_fields.append("loan: Se requiere información del préstamo")
     
-    # Si hay campos faltantes, lanzar excepción
     if missing_fields:
         raise GenericHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -104,78 +100,39 @@ def validate_contract_data(data: Dict[str, Any]) -> None:
 
 @router.post("/generate-complete", response_model=ContractResponse)
 async def generate_contract_complete(
-    data: Dict[str, Any],  # JSON complejo directo
+    data: Dict[str, Any],
     db: DepDatabase,
-    request: Request,  # ✅ AGREGADO para acceder al pool asyncpg
-    current_user: DepCurrentUser,  # ✅ AGREGADO para obtener usuario actual
+    request: Request,
+    current_user: DepCurrentUser,
     service: ContractService = Depends(get_contract_service),
     participant_service: ParticipantService = Depends(get_participant_service),
     contract_creation_service: ContractCreationService = Depends(get_contract_creation_service)
 ) -> Dict[str, Any]:
     """
-    Generar contrato completo desde JSON estructurado con personas, propiedades y préstamo.
-
-    Este endpoint maneja contratos complejos como hipotecas con:
-    - Múltiples clientes, inversionistas, testigos, notarios, referentes
-    - Propiedades con detalles completos
-    - Información de préstamos
-    - Generación automática de personas en la BD
-    - Reutilización de personas existentes
+    Generate complete contract from structured JSON with persons, properties and loan.
     """
     
-    # ✅ VALIDACIÓN AL INICIO - Verificar datos requeridos
     validate_contract_data(data)
 
-    # 1. PROCESAR TODAS LAS PERSONAS del JSON
     participants_for_contract, participant_errors, processed_persons_summary = await participant_service.process_all_participants(data, request)
 
-    print(f"📊 Resumen procesamiento personas:")
-    print(f"   Total: {processed_persons_summary['total']}")
-    print(f"   Exitosos: {processed_persons_summary['successful']}")
-    print(f"   Nuevas: {processed_persons_summary['successful'] - processed_persons_summary['existing'] - processed_persons_summary['reused']}")
-    print(f"   Existentes: {processed_persons_summary['existing']}")
-    print(f"   Reutilizadas: {processed_persons_summary['reused']}")
-    print(f"   Errores: {processed_persons_summary['errors']}")
-    
-    print(f"📋 Participantes para contrato: {len(participants_for_contract)}")
-    for p in participants_for_contract:
-        print(f"  - {p['role']}: {p['person_id']} (Type: {p['person_role_id']})")
+    if participant_errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "message": "No se puede generar el contrato: hay errores en el procesamiento de participantes. Corrija los datos e intente de nuevo.",
+                "errors": participant_errors,
+                "summary": processed_persons_summary
+            }
+        )
 
-    # Validar que se procesaron personas mínimas
-    if participant_errors and processed_persons_summary["successful"] == 0:
-        raise HTTPException(400, detail={
-            "message": "Error procesando todas las personas",
-            "errors": participant_errors,
-            "summary": processed_persons_summary
-        })
-
-    # 2. GENERAR CONTRACT_NUMBER usando función SQL
-    # Siempre generar con prefijo CNT
     contract_type_name = "CNT"
     contract_number = await contract_creation_service.generate_contract_number(contract_type_name, db)
-    
-    # Código comentado: usar contract_services de paragraph_request si está disponible, sino usar contract_type
-    # contract_services = None
-    # if data.get("paragraph_request") and isinstance(data["paragraph_request"], list):
-    #     # Obtener contract_services del primer paragraph_request
-    #     for req in data["paragraph_request"]:
-    #         if req.get("contract_services"):
-    #             contract_services = req.get("contract_services")
-    #             break
-    # 
-    # # Si no hay contract_services en paragraph_request, usar contract_type o "mortgage" por defecto
-    # contract_type_name = contract_services or data.get("contract_type", "mortgage")
 
-    # 3. CREAR CONTRATO EN LA BASE DE DATOS
     contract_id = await contract_creation_service.create_contract_record(data, contract_number, db, current_user)
-
-    # 4. REGISTRAR PARTICIPANTES EN contract_participant
     participant_db_errors = await contract_creation_service.register_contract_participants(contract_id, participants_for_contract, db)
-
-    # 5. CREAR RELACIONES CLIENTE-REFERIDOR
     client_referrer_created, client_referrer_errors = await contract_creation_service.create_client_referrer_relationships(participants_for_contract, db)
 
-    # 6. CREAR LOAN Y PROPERTIES
     loan_property_result = None
     loan_property_errors = []
 
@@ -189,10 +146,7 @@ async def generate_contract_complete(
                 contract_context=data
             )
 
-            if loan_property_result["overall_success"]:
-                pass
-            else:
-                # Recolectar errores específicos
+            if not loan_property_result["overall_success"]:
                 if loan_property_result.get("loan_result") and not loan_property_result["loan_result"].get("success"):
                     loan_property_errors.append({
                         "type": "loan",
@@ -221,7 +175,24 @@ async def generate_contract_complete(
                 "message": f"Error general: {str(e)}"
             }
 
-    # 7. GENERAR DOCUMENTO WORD usando tu servicio existente
+    # Si falló loan o propiedades, no generar contrato: limpiar transacción abortada, borrar contrato y devolver error
+    if loan_property_result is not None and not loan_property_result.get("overall_success", True):
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        await contract_creation_service.delete_contract_cascade(contract_id, db)
+        detail = {
+            "message": "No se puede generar el contrato: hay errores en préstamo o propiedades. Corrija los datos e intente de nuevo.",
+            "errors": loan_property_errors,
+        }
+        if loan_property_result.get("properties_result") and loan_property_result["properties_result"].get("errors"):
+            detail["properties_errors"] = loan_property_result["properties_result"]["errors"]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=detail,
+        )
+
     enhanced_data = data.copy()
     enhanced_data.update({
         "contract_id": str(contract_id),
@@ -233,7 +204,6 @@ async def generate_contract_complete(
     try:
         document_result = await service.generate_contract(enhanced_data, connection=db)
         await contract_creation_service.update_contract_with_document_info(contract_id, document_result, db)
-
     except Exception as e:
         document_result = {
             "success": False,
@@ -241,12 +211,9 @@ async def generate_contract_complete(
             "message": f"Error generando documento: {str(e)}"
         }
 
-    # 8. RESPUESTA FINAL
-    # Determinar qué URLs usar: Google Drive si está disponible, sino rutas locales
     file_path = document_result.get("path", "")
     folder_path = document_result.get("folder_path", "")
     
-    # Si Google Drive está habilitado y se subió exitosamente, usar URLs de Drive
     if document_result.get("drive_success") and document_result.get("drive_link"):
         file_path = document_result.get("drive_view_link", file_path)
         folder_path = document_result.get("drive_link", folder_path)
@@ -272,7 +239,6 @@ async def generate_contract_complete(
                 "total_successful": processed_persons_summary['successful']
             }
         },
-        # Incluir información de Google Drive
         drive_success=document_result.get("drive_success"),
         drive_folder_id=document_result.get("drive_folder_id"),
         drive_file_id=document_result.get("drive_file_id"),
@@ -285,7 +251,6 @@ async def generate_contract_complete(
     )
 
 
-# ✅ Endpoint para validar datos antes de crear
 @router.post("/validate-complete", response_model=Dict[str, Any])
 async def validate_contract_complete(
     data: ContractCompleteRequest,
@@ -296,7 +261,6 @@ async def validate_contract_complete(
     Útil para validación frontend antes de envío.
     """
     try:
-        # Si llegamos aquí, la validación de Pydantic pasó
         validation_summary = {
             "contract_type": data.contract_type,
             "has_loan": data.loan is not None,
@@ -312,14 +276,14 @@ async def validate_contract_complete(
 
         return {
             "valid": True,
-            "message": "Contract data is valid",
+            "message": "Datos del contrato válidos",
             "summary": validation_summary,
             "total_participants": sum(validation_summary["participants_count"].values())
         }
     except Exception as e:
         return {
             "valid": False,
-            "message": f"Validation error: {str(e)}",
+            "message": f"Error de validación: {str(e)}",
             "errors": [str(e)]
         }
 
@@ -351,8 +315,6 @@ async def list_contracts(
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Error inesperado al recuperar contratos: {str(e)}"
@@ -366,7 +328,10 @@ async def get_contract_detail(
     request: Request,
 ) -> Dict[str, Any]:
     """
-    Obtener detalle completo de un contrato
+    Obtener detalle completo de un contrato por UUID o número de contrato
+    
+    Acepta tanto UUID como número de contrato. Si el parámetro es un UUID válido,
+    lo busca por UUID. Si no, lo trata como número de contrato.
     
     Devuelve toda la información del contrato incluyendo:
     - Datos básicos del contrato
@@ -376,44 +341,169 @@ async def get_contract_detail(
     - Cuentas bancarias
     """
     try:
-        # Validar que contract_id sea un UUID válido
-        uuid.UUID(contract_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail="contract_id debe ser un UUID válido"
-        )
-    
-    try:
         async with request.app.state.db_pool.acquire() as connection:
             try:
-                # Llamar a la función de base de datos
-                query = "SELECT fn_get_contract_detail($1)"
-                result = await connection.fetchval(query, contract_id)
+                try:
+                    uuid.UUID(contract_id)
+                    query = "SELECT fn_get_contract_detail($1)"
+                    result = await connection.fetchval(query, contract_id)
+                except ValueError:
+                    query = "SELECT fn_get_contract_detail($1, $2)"
+                    result = await connection.fetchval(query, None, contract_id)
                 
                 if result:
-                    # Si es un string JSON, parsearlo
                     if isinstance(result, str):
-                        import json
                         try:
                             result = json.loads(result)
                         except json.JSONDecodeError as json_err:
                             raise HTTPException(
                                 status_code=500,
-                                detail=f"Error al parsear respuesta JSON de la BD: {str(json_err)}. Respuesta recibida: {result[:200] if len(str(result)) > 200 else result}"
+                                detail=f"Error al parsear respuesta JSON de la BD: {str(json_err)}. Respuesta: {result[:200] if len(str(result)) > 200 else result}"
                             )
+                    elif not isinstance(result, dict):
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Tipo de resultado inesperado de la BD: {type(result)}. Se esperaba dict o string JSON."
+                        )
                     
-                    # Verificar si la función devolvió un error
                     if not result.get("success", False):
                         error_code = result.get("error", "UNKNOWN_ERROR")
                         error_message = result.get("message", "Error al obtener detalle del contrato")
-                        status_code = 404 if error_code == "CONTRACT_NOT_FOUND" else 500
+                        error_details = result.get("details", None)
+                        
+                        error_detail_message = error_message
+                        if error_details:
+                            error_detail_message = f"{error_message}. Detalles: {error_details}"
+                        
+                        if error_code == "CONTRACT_NOT_FOUND":
+                            status_code = 404
+                        elif error_code == "DATABASE_ERROR":
+                            status_code = 500
+                        else:
+                            status_code = 500
+                        
                         raise HTTPException(
                             status_code=status_code,
-                            detail=f"{error_message} (Código: {error_code})"
+                            detail=error_detail_message
                         )
                     
-                    return result
+                    def normalize_data_types(obj, parent_key=""):
+                        """Normalize data types: convert strings to numbers for numeric fields, numbers to strings for string fields"""
+                        numeric_fields = {
+                            "amount", "interest_rate", "term_months", "discount_rate", 
+                            "monthly_payment", "final_payment", "payment_qty_quotes",
+                            "total_paid", "loan_amount", "net_earnings", "total_earning",
+                            "total_pending", "total_payments", "total_amount_due", 
+                            "progress_percentage", "total_pending_interest", "contract_loan_id",
+                            "payments_made", "surface_area", "covered_area", "property_value",
+                            "contract_type_id", "company_id", "participation_percentage",
+                            "p_person_role_id"
+                        }
+                        
+                        string_fields = {
+                            "postal_code", "title_number", "cadastral_number", "document_number",
+                            "issuing_country_id"
+                        }
+                        
+                        if isinstance(obj, str):
+                            if parent_key in numeric_fields:
+                                try:
+                                    if '.' in obj:
+                                        return float(obj)
+                                    elif obj.isdigit() or (obj.startswith('-') and obj[1:].isdigit()):
+                                        return int(obj)
+                                except (ValueError, TypeError):
+                                    pass
+                            return obj
+                        elif isinstance(obj, (int, float)):
+                            if parent_key in string_fields:
+                                return str(obj)
+                            elif parent_key not in numeric_fields:
+                                return obj
+                            return obj
+                        elif isinstance(obj, dict):
+                            return {k: normalize_data_types(v, k) for k, v in obj.items()}
+                        elif isinstance(obj, list):
+                            return [normalize_data_types(item, parent_key) for item in obj]
+                        return obj
+                    
+                    def normalize_participant_structure(data_obj):
+                        """Flatten person.person nested structure if exists"""
+                        if isinstance(data_obj, dict):
+                            if "participants" in data_obj:
+                                participants = data_obj["participants"]
+                                for role_key in ["clients", "investors", "witnesses", "notaries", "referents", "notary"]:
+                                    if role_key in participants and isinstance(participants[role_key], list):
+                                        for p in participants[role_key]:
+                                            if isinstance(p, dict):
+                                                person = p.get("person")
+                                                if person and isinstance(person, dict) and "person" in person:
+                                                    nested_person = person.pop("person")
+                                                    person.update(nested_person)
+                            return {k: normalize_participant_structure(v) if isinstance(v, (dict, list)) else v 
+                                   for k, v in data_obj.items()}
+                        elif isinstance(data_obj, list):
+                            return [normalize_participant_structure(item) if isinstance(item, (dict, list)) else item 
+                                   for item in data_obj]
+                        return data_obj
+                    
+                    if result.get("data"):
+                        result["data"] = normalize_participant_structure(result["data"])
+                        result["data"] = normalize_data_types(result["data"])
+                        # Si la función de BD no devuelve contract_end_date, rellenar desde contract.end_date
+                        if result["data"].get("contract_end_date") is None:
+                            try:
+                                row = await connection.fetchrow(
+                                    "SELECT end_date FROM contract WHERE contract_id = $1",
+                                    uuid.UUID(contract_id),
+                                )
+                                if row and row.get("end_date") is not None:
+                                    result["data"]["contract_end_date"] = row["end_date"].strftime("%d/%m/%Y")
+                            except (ValueError, TypeError, Exception):
+                                pass
+
+                        # Si la función de BD no devuelve bank_account en loan, rellenar desde contract_bank_account
+                        try:
+                            loan_obj = result["data"].get("loan") or {}
+                            if loan_obj.get("bank_account") is None:
+                                ba_row = await connection.fetchrow(
+                                    """SELECT bank_name, account_number, account_type, currency,
+                                              bank_code, swift_code, iban, holder_name
+                                       FROM contract_bank_account
+                                       WHERE contract_id = $1
+                                       ORDER BY bank_account_id DESC LIMIT 1""",
+                                    uuid.UUID(contract_id),
+                                )
+                                if ba_row:
+                                    loan_obj["bank_account"] = {
+                                        "bank_name": ba_row["bank_name"],
+                                        "bank_account_number": ba_row["account_number"],
+                                        "bank_account_type": ba_row["account_type"],
+                                        "bank_account_currency": ba_row["currency"],
+                                    }
+                                    result["data"]["loan"] = loan_obj
+                        except Exception:
+                            pass
+                    
+                    from app.contracts.schemas import ContractDetailResponse
+                    from decimal import Decimal
+                    
+                    validated_response = ContractDetailResponse(**result)
+                    
+                    def convert_decimals_to_float(obj):
+                        """Convert Decimal to float recursively for JSON serialization"""
+                        if isinstance(obj, Decimal):
+                            return float(obj)
+                        elif isinstance(obj, dict):
+                            return {k: convert_decimals_to_float(v) for k, v in obj.items()}
+                        elif isinstance(obj, list):
+                            return [convert_decimals_to_float(item) for item in obj]
+                        return obj
+                    
+                    result_dict = validated_response.model_dump(mode='python')
+                    result_dict = convert_decimals_to_float(result_dict)
+                    
+                    return result_dict
                 else:
                     raise HTTPException(
                         status_code=500,
@@ -423,10 +513,6 @@ async def get_contract_detail(
             except HTTPException:
                 raise
             except Exception as e:
-                import traceback
-                error_trace = traceback.format_exc()
-                print(f"Error en get_contract_detail para contract_id={contract_id}:")
-                print(error_trace)
                 raise HTTPException(
                     status_code=500,
                     detail=f"Error inesperado al recuperar el detalle del contrato: {str(e)}"
@@ -434,67 +520,10 @@ async def get_contract_detail(
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
-        print(f"Error de conexión en get_contract_detail para contract_id={contract_id}:")
-        print(error_trace)
         raise HTTPException(
             status_code=500,
             detail=f"Error de conexión a la base de datos: {str(e)}"
         )
-
-
-@router.get("/number/{contract_number}/detail", response_model=ContractDetailResponse)
-async def get_contract_detail_by_number(
-    contract_number: str,
-    _: DepCurrentUser,
-    request: Request,
-) -> Dict[str, Any]:
-    """
-    Obtener detalle completo de un contrato por número
-    
-    Devuelve toda la información del contrato incluyendo:
-    - Datos básicos del contrato
-    - Participantes (personas, documentos, direcciones)
-    - Información del préstamo
-    - Propiedades asociadas
-    - Cuentas bancarias
-    """
-    async with request.app.state.db_pool.acquire() as connection:
-        try:
-            # Llamar a la función de base de datos con contract_number
-            query = "SELECT fn_get_contract_detail(NULL, $1)"
-            result = await connection.fetchval(query, contract_number)
-            
-            if result:
-                # Si es un string JSON, parsearlo
-                if isinstance(result, str):
-                    import json
-                    result = json.loads(result)
-                
-                # Verificar si la función devolvió un error
-                if not result.get("success", False):
-                    error_code = result.get("error", "UNKNOWN_ERROR")
-                    status_code = 404 if error_code == "CONTRACT_NOT_FOUND" else 500
-                    raise HTTPException(
-                        status_code=status_code,
-                        detail=result.get("message", "Error al obtener detalle del contrato")
-                    )
-                
-                return result
-            else:
-                raise HTTPException(
-                    status_code=500,
-                    detail="No se pudo obtener respuesta de la función de BD"
-                )
-                
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error de conexión: {str(e)}"
-            )
 @router.get("/{contract_id}/download")
 async def download_contract(
     contract_id: str,
@@ -514,7 +543,7 @@ async def download_contract(
     )
 
 
-@router.patch("/{contract_id}/update", response_model=UpdateResponse)
+@router.patch("/{contract_id}/update", response_model=UpdateResponse, response_model_exclude_none=True)
 async def update_contract(
     contract_id: str,
     updates: Dict[str, Any],
@@ -527,15 +556,37 @@ async def update_contract(
 
     Actualiza campos específicos y regenera el documento
     con nueva versión automáticamente.
+    Acepta contract_id como UUID (desde detalle) o como identificador de carpeta (contract_CNT-XXX).
+    Si el body tiene clave "data" (respuesta de GET detail), se usa body["data"] como datos a actualizar.
     """
+    # Si el body es la respuesta de detalle ({ "success", "data", ... }), usar data
+    if "data" in updates and isinstance(updates.get("data"), dict):
+        updates = updates["data"]
+    folder_id = contract_id
     try:
-        # Actualizar contrato usando el servicio
-        document_result = await service.update_contract(contract_id, updates, connection=db)
-        
-        # Actualizar información en la base de datos con URLs de Google Drive
+        uuid.UUID(contract_id)
+    except ValueError:
+        # No es UUID: asumir que ya es folder_id (ej. contract_CNT-000001-2026)
+        pass
+    else:
+        # Es UUID: resolver contract_number desde la BD para obtener folder_id (carpeta/metadatos)
+        row = await fetch_one(
+            select(contract_table.c.contract_number).where(contract_table.c.contract_id == uuid.UUID(contract_id)),
+            connection=db,
+        )
+        if row and row.get("contract_number"):
+            folder_id = f"contract_{row['contract_number']}"
+    try:
+        document_result = await service.update_contract(folder_id, updates, connection=db)
         await contract_creation_service.update_contract_with_document_info(contract_id, document_result, db)
-        
-        return document_result
+        await contract_creation_service.update_contract_data_in_db(contract_id, updates, db)
+        return {
+            "success": document_result.get("success", True),
+            "message": document_result.get("message", "Contrato actualizado exitosamente"),
+            "contract_id": document_result.get("contract_id"),
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Error actualizando contrato: {str(e)}")
 
@@ -555,7 +606,6 @@ async def delete_contract(
     if not contract_folder.exists():
         raise HTTPException(404, "Contrato no encontrado")
 
-    # Eliminar carpeta completa
     import shutil
     shutil.rmtree(contract_folder)
 

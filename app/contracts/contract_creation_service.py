@@ -1,9 +1,16 @@
 # contract_creation_service.py
+from decimal import Decimal
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, date
-from sqlalchemy import text
+from uuid import UUID
+from sqlalchemy import text, delete, select
 from app.database import fetch_one, execute
-from app.contracts.models import contract as contract_table, contract_participant as contract_participant_table
+from app.contracts.models import (
+    contract as contract_table,
+    contract_participant as contract_participant_table,
+    contract_loan as contract_loan_table,
+    contract_bank_account as contract_bank_account_table,
+)
 
 
 class ContractCreationService:
@@ -274,6 +281,18 @@ class ContractCreationService:
 
         return client_referrer_created, client_referrer_errors
 
+    async def delete_contract_cascade(self, contract_id: str | UUID, db) -> None:
+        """
+        Elimina el contrato y, por CASCADE en BD, sus participantes, loan y propiedades.
+        Usar para rollback cuando falla loan o properties después de crear el contrato.
+        """
+        uid = UUID(str(contract_id)) if isinstance(contract_id, str) else contract_id
+        await execute(
+            delete(contract_table).where(contract_table.c.contract_id == uid),
+            connection=db,
+            commit_after=True,
+        )
+
     async def update_contract_with_document_info(
         self,
         contract_id: str,
@@ -307,4 +326,166 @@ class ContractCreationService:
             )
 
             await db.execute(update_query)
+            await db.commit()
+
+    async def update_contract_data_in_db(
+        self,
+        contract_id: str,
+        updates: Dict[str, Any],
+        db,
+    ) -> None:
+        """
+        Persiste en la base de datos los datos actualizados del contrato y del préstamo.
+        Actualiza contract (description, end_date, title) y contract_loan (montos, tasa, plazo, etc.).
+        """
+        uid = UUID(contract_id) if isinstance(contract_id, str) else contract_id
+
+        # 1. Actualizar tabla contract (description, end_date, title)
+        contract_values = {}
+        if updates.get("description") is not None:
+            contract_values["description"] = updates["description"]
+        if updates.get("contract_end_date") is not None:
+            contract_values["end_date"] = self.parse_contract_date(updates["contract_end_date"])
+        if updates.get("title") is not None:
+            contract_values["title"] = updates["title"]
+        if contract_values:
+            contract_values["updated_at"] = datetime.now()
+            update_contract = contract_table.update().where(
+                contract_table.c.contract_id == uid
+            ).values(**contract_values)
+            await db.execute(update_contract)
+            await db.commit()
+
+        # 2. Actualizar contract_loan si viene loan en updates
+        loan_data = updates.get("loan")
+        if not loan_data or not isinstance(loan_data, dict):
+            return
+
+        def _to_decimal(v) -> Optional[Decimal]:
+            if v is None:
+                return None
+            if isinstance(v, (Decimal, int, float)):
+                return Decimal(str(v))
+            if isinstance(v, str) and v.strip():
+                try:
+                    return Decimal(v)
+                except Exception:
+                    return None
+            return None
+
+        def _to_int(v) -> Optional[int]:
+            if v is None:
+                return None
+            if isinstance(v, int):
+                return v
+            if isinstance(v, (float, Decimal)):
+                return int(v)
+            if isinstance(v, str) and v.strip():
+                try:
+                    return int(float(v))
+                except Exception:
+                    return None
+            return None
+
+        loan_values = {}
+        if "amount" in loan_data:
+            loan_values["loan_amount"] = _to_decimal(loan_data["amount"])
+        if "interest_rate" in loan_data:
+            loan_values["interest_rate"] = _to_decimal(loan_data["interest_rate"])
+        if "term_months" in loan_data:
+            loan_values["term_months"] = _to_int(loan_data["term_months"])
+        if "loan_type" in loan_data and loan_data["loan_type"]:
+            loan_values["loan_type"] = loan_data["loan_type"]
+        details = loan_data.get("loan_payments_details") or {}
+        if "monthly_payment" in details:
+            loan_values["monthly_payment"] = _to_decimal(details["monthly_payment"])
+        if "final_payment" in details:
+            loan_values["final_payment"] = _to_decimal(details["final_payment"])
+        if "discount_rate" in details:
+            loan_values["discount_rate"] = _to_decimal(details["discount_rate"])
+        if "payment_qty_quotes" in details:
+            loan_values["payment_qty_quotes"] = _to_int(details["payment_qty_quotes"])
+        if "payment_type" in details and details["payment_type"]:
+            loan_values["payment_type"] = details["payment_type"]
+        if "currency" in loan_data and loan_data["currency"]:
+            loan_values["currency"] = loan_data["currency"]
+
+        if not loan_values:
+            return
+        loan_values["updated_at"] = datetime.now()
+
+        update_loan = contract_loan_table.update().where(
+            contract_loan_table.c.contract_id == uid
+        ).values(**loan_values)
+        await db.execute(update_loan)
+        await db.commit()
+
+        # 3. Actualizar/insertar contract_bank_account si viene bank_account en loan
+        bank_data = loan_data.get("bank_account")
+        if bank_data and isinstance(bank_data, dict):
+            account_type_raw = (
+                bank_data.get("bank_account_type")
+                or bank_data.get("account_type")
+                or "corriente"
+            )
+            account_type_mapping = {
+                "ahorros": "ahorros",
+                "corriente": "corriente",
+                "inversion": "inversion",
+                "other": "other",
+                "savings": "ahorros",
+                "checking": "corriente",
+                "investment": "inversion",
+            }
+            account_type = account_type_mapping.get(
+                str(account_type_raw).strip().lower(), "corriente"
+            )
+            account_number = (
+                bank_data.get("bank_account_number")
+                or bank_data.get("account_number")
+                or ""
+            )
+            account_currency = (
+                bank_data.get("bank_account_currency")
+                or bank_data.get("currency")
+                or "USD"
+            )
+            bank_name = bank_data.get("bank_name") or ""
+
+            cursor = await db.execute(
+                select(contract_bank_account_table.c.bank_account_id).where(
+                    contract_bank_account_table.c.contract_id == uid
+                )
+            )
+            existing_row = cursor.first()
+
+            if existing_row is not None:
+                await db.execute(
+                    contract_bank_account_table.update().where(
+                        contract_bank_account_table.c.contract_id == uid
+                    ).values(
+                        bank_name=bank_name,
+                        account_number=account_number,
+                        account_type=account_type,
+                        currency=account_currency,
+                        bank_code=bank_data.get("bank_code"),
+                        swift_code=bank_data.get("swift_code"),
+                        iban=bank_data.get("iban"),
+                    )
+                )
+            else:
+                await db.execute(
+                    contract_bank_account_table.insert().values(
+                        contract_id=uid,
+                        client_person_id=None,
+                        holder_name="",
+                        bank_name=bank_name,
+                        account_number=account_number,
+                        account_type=account_type,
+                        currency=account_currency,
+                        bank_code=bank_data.get("bank_code"),
+                        swift_code=bank_data.get("swift_code"),
+                        iban=bank_data.get("iban"),
+                    )
+                )
             await db.commit()
