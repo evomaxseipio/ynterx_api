@@ -6,28 +6,7 @@
     "contract_date": "13/08/2025",
     "contract_end_date": "13/08/2026",
     "client_company": {
-        "company_name": "EMPRESA CONSTRUCTORA DEL CARIBE, S.A.",
-        "company_rnc": "1-30-12345-6",
-        "company_mercantil_number": "RM-2023-001234",
-        "company_phone": "(809) 555-1234",
-        "company_email": "info@constructora-caribe.com",
-        "company_type": "Construccion",
-        "company_address": {
-            "address_line1": "CALLE PRINCIPAL 456, EDIFICIO CORPORATIVO",
-            "city": "SANTO DOMINGO",
-            "postal_code": "10101",
-            "phone_number": "(809) 555-1234",
-            "email": "info@constructora-caribe.com"
-        },
-        "company_manager": [{
-            "name": "JUAN CARLOS PEREZ GARCIA",
-            "position": "Gerente General",
-            "document_number": "023-0012345-6",
-            "nationality": "Dominicana",
-            "marital_status": "Soltero",
-            "address": "CALLE PRINCIPAL 456, EDIFICIO CORPORATIVO, SANTO DOMINGO",
-            "is_main_manager": true
-        }]
+       
     },
     "investor_company": {
         "company_name": "BANCO DE INVERSIONES DEL CARIBE, S.A.",

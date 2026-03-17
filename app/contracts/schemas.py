@@ -172,8 +172,9 @@ class PersonAdditionalData(BaseModel):
     phone_number: Optional[str] = None
 
 
-class PersonDetail(BaseModel):
-    """Schema para persona completa en detalle de contrato"""
+class PersonNested(BaseModel):
+    """Schema para persona anidada dentro de person.person"""
+    p_person_id: Optional[str] = None
     p_gender: Optional[str] = None
     p_addresses: Optional[List[PersonAddressDetail]] = None
     p_documents: Optional[List[PersonDocumentDetail]] = None
@@ -183,14 +184,14 @@ class PersonDetail(BaseModel):
     p_middle_name: Optional[str] = None
     p_date_of_birth: Optional[str] = None
     p_marital_status: Optional[str] = None
-    p_person_role_id: Optional[int] = None
-    p_additional_data: Optional[PersonAdditionalData] = None
     p_nationality_country: Optional[str] = None
+    additional_data: Optional[Dict[str, Any]] = None
+    p_person_role_id: Optional[int] = None
 
 
 class ParticipantDetail(BaseModel):
-    """Schema para participante (cliente, inversionista, testigo) en detalle"""
-    person: Optional[PersonDetail] = None
+    """Schema para participante (cliente, inversionista, testigo, notario) en detalle"""
+    person: Optional[PersonNested] = None
 
 
 class DrivePathDetail(BaseModel):
@@ -200,12 +201,41 @@ class DrivePathDetail(BaseModel):
     file_folder: Optional[str] = None
 
 
+class CompanyManagerDetail(BaseModel):
+    """Schema para gerente de empresa"""
+    name: Optional[str] = None
+    address: Optional[str] = None
+    position: Optional[str] = None
+    nationality: Optional[str] = None
+    marital_status: Optional[str] = None
+    document_number: Optional[str] = None
+    is_main_manager: Optional[bool] = None
+
+
+class CompanyAddressDetail(BaseModel):
+    """Schema para dirección de empresa"""
+    address_line1: Optional[str] = None
+    city: Optional[str] = None
+    postal_code: Optional[str] = None
+    phone_number: Optional[str] = None
+    email: Optional[str] = None
+
+
 class CompanyDetail(BaseModel):
     """Schema para empresa (cliente o inversionista) en detalle"""
-    rm: Optional[str] = None
-    rnc: Optional[str] = None
-    name: Optional[str] = None
-    role: Optional[str] = None
+    company_id: Optional[Union[int, str]] = None
+    is_primary: Optional[bool] = None
+    company_rnc: Optional[str] = None
+    company_name: Optional[str] = None
+    company_type: Optional[str] = None
+    company_email: Optional[str] = None
+    company_phone: Optional[str] = None
+    contract_role: Optional[str] = None
+    company_address: Optional[CompanyAddressDetail] = None
+    company_managers: Optional[List[CompanyManagerDetail]] = None
+    contract_type_id: Optional[int] = None
+    company_mercantil_number: Optional[str] = None
+    participation_percentage: Optional[Union[int, float]] = None
 
 
 class PropertyDetail(BaseModel):
@@ -237,26 +267,53 @@ class ParagraphRequestDetail(BaseModel):
     contract_services: Optional[str] = None
 
 
-class ContractDetailData(BaseModel):
-    """Schema para el objeto data en ContractDetailResponse"""
-    loan: Optional[LoanDetail] = None
+class ParticipantsDetail(BaseModel):
+    """Schema para el objeto participants que agrupa todos los participantes"""
     notary: Optional[List[ParticipantDetail]] = None
     clients: Optional[List[ParticipantDetail]] = None
     investors: Optional[List[ParticipantDetail]] = None
     referents: Optional[List[ParticipantDetail]] = None
     witnesses: Optional[List[ParticipantDetail]] = None
-    drive_path: Optional[DrivePathDetail] = None
+
+
+class TotalDetail(BaseModel):
+    """Schema para información de totales del contrato"""
+    total_paid: Optional[Decimal] = None
+    contract_id: Optional[str] = None
+    loan_amount: Optional[Decimal] = None
+    loan_status: Optional[str] = None
+    net_earnings: Optional[Decimal] = None
+    payments_made: Optional[int] = None
+    total_earning: Optional[Decimal] = None
+    total_pending: Optional[Decimal] = None
+    total_payments: Optional[int] = None
+    contract_loan_id: Optional[int] = None
+    total_amount_due: Optional[Decimal] = None
+    progress_percentage: Optional[Decimal] = None
+    total_pending_interest: Optional[Decimal] = None
+
+
+class ContractDetailData(BaseModel):
+    """Schema for data object in ContractDetailResponse"""
+    loan: Optional[LoanDetail] = None
+    total: Optional[TotalDetail] = None
     properties: Optional[List[PropertyDetail]] = None
     contract_id: Optional[str] = None
     description: Optional[str] = None
+    participants: Optional[ParticipantsDetail] = None
     contract_date: Optional[str] = None
     contract_type: Optional[str] = None
+    contract_service: Optional[str] = None
     client_company: Optional[CompanyDetail] = None
     contract_number: Optional[str] = None
     contract_type_id: Optional[int] = None
     investor_company: Optional[CompanyDetail] = None
     contract_end_date: Optional[str] = None
     paragraph_request: Optional[List[ParagraphRequestDetail]] = None
+    drive_file_name: Optional[str] = None
+    drive_file_path: Optional[str] = None
+    drive_file_folder: Optional[str] = None
+    drive_path: Optional[DrivePathDetail] = None
 
 
 class ContractDetailResponse(BaseModel):
@@ -398,6 +455,33 @@ class ContractListResponse(BaseModel):
     success: bool
     contracts: List[Dict[str, Any]]
     total: int
+
+
+class ContractServiceItem(BaseModel):
+    """Un tipo de servicio / préstamo desde contract_service"""
+    contract_service_id: int
+    service_name: Optional[str] = None
+    service_description: Optional[str] = None
+    is_active: Optional[bool] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class ContractServicePaginationSchema(BaseModel):
+    """Paginación estándar para listados."""
+    total: int = Field(..., description="Total de registros")
+    per_page: int = Field(..., description="Registros por página")
+    page: int = Field(..., description="Página actual")
+    offset: int = Field(..., description="Offset usado")
+
+
+class ContractServiceListResponse(BaseModel):
+    """Respuesta estándar del listado de tipos de servicio (paginada)."""
+    success: bool = Field(..., description="Si la operación fue exitosa")
+    error: Optional[str] = Field(None, description="Código de error si aplica")
+    message: str = Field(..., description="Mensaje de respuesta")
+    data: List[ContractServiceItem] = Field(default_factory=list, description="Lista de tipos de servicio")
+    pagination: ContractServicePaginationSchema = Field(..., description="Información de paginación")
 
 
 class DeleteResponse(BaseModel):

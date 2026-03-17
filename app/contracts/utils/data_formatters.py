@@ -82,10 +82,23 @@ def format_dates(contract_date_str: Optional[str] = None, contract_end_date_str:
     return result
 
 
-def format_loan_amounts(loan_amount: float, loan_currency: str = "USD") -> dict:
+def _to_float(value, default: float = 0.0) -> float:
+    """Convierte valor a float; acepta int, float o string numérico."""
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        return float(value) if value.strip() else default
+    return default
+
+
+def format_loan_amounts(loan_amount, loan_currency: str = "USD") -> dict:
     """
     Formatea los montos del préstamo para uso en plantillas.
+    Acepta loan_amount como int, float o string numérico.
     """
+    loan_amount = _to_float(loan_amount)
     # Generar texto legal del monto (con formato numérico)
     loan_amount_text = numero_a_texto_con_monto(loan_amount, loan_currency)
     
@@ -101,10 +114,13 @@ def format_loan_amounts(loan_amount: float, loan_currency: str = "USD") -> dict:
     }
 
 
-def format_payment_amounts(monthly_payment: float, final_payment: float, currency: str = "USD") -> dict:
+def format_payment_amounts(monthly_payment, final_payment, currency: str = "USD") -> dict:
     """
     Formatea los montos de pago para uso en plantillas.
+    Acepta monthly_payment y final_payment como int, float o string numérico.
     """
+    monthly_payment = _to_float(monthly_payment)
+    final_payment = _to_float(final_payment)
     monthly_payment_text = numero_a_texto_con_monto(monthly_payment, currency)
     final_payment_text = numero_a_texto_con_monto(final_payment, currency)
     

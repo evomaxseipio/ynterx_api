@@ -52,14 +52,14 @@
     "loan": {
         "amount": 75000.0,
         "currency": "USD",
-        "interest_rate": 3.5,
-        "term_months": 24,
+        "interest_rate": 2.2,
+        "term_months": 12,
         "loan_type": "Hipotecario",
         "loan_payments_details": {
             "monthly_payment": 1850.0,
             "final_payment": 79400.0,
-            "discount_rate": 0.15,
-            "payment_qty_quotes": 23,
+            "discount_rate": 0.2,
+            "payment_qty_quotes": 11,
             "payment_type": "Mensual"
         },
         "bank_account": {

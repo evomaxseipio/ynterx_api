@@ -11,6 +11,31 @@ from app.contracts.models import (
     contract_loan as contract_loan_table,
     contract_bank_account as contract_bank_account_table,
 )
+from app.contracts.participant_service import ParticipantService
+from fastapi import Request
+
+# person_type_id: 1 = client, 2 = investor
+_COMPANY_ROLES = [("client_company", 1), ("investor_company", 2)]
+
+
+def _allowed_company_identifiers(data: Dict[str, Any], role_key: str) -> Tuple[List[str], List[str]]:
+    """RNCs y company_ids que el payload indica para un rol (client_company / investor_company)."""
+    rncs: List[str] = []
+    ids: List[str] = []
+    raw = data.get(role_key)
+    if not raw:
+        return rncs, ids
+    items = [raw] if isinstance(raw, dict) else (raw if isinstance(raw, list) else [])
+    for c in items:
+        if not isinstance(c, dict):
+            continue
+        rnc = (c.get("company_rnc") or "").strip()
+        if rnc:
+            rncs.append(rnc)
+        cid = c.get("company_id")
+        if cid is not None and str(cid).strip() and str(cid) != "0":
+            ids.append(str(cid).strip())
+    return rncs, ids
 
 
 class ContractCreationService:
@@ -410,15 +435,13 @@ class ContractCreationService:
         if "currency" in loan_data and loan_data["currency"]:
             loan_values["currency"] = loan_data["currency"]
 
-        if not loan_values:
-            return
-        loan_values["updated_at"] = datetime.now()
-
-        update_loan = contract_loan_table.update().where(
-            contract_loan_table.c.contract_id == uid
-        ).values(**loan_values)
-        await db.execute(update_loan)
-        await db.commit()
+        if loan_values:
+            loan_values["updated_at"] = datetime.now()
+            update_loan = contract_loan_table.update().where(
+                contract_loan_table.c.contract_id == uid
+            ).values(**loan_values)
+            await db.execute(update_loan)
+            await db.commit()
 
         # 3. Actualizar/insertar contract_bank_account si viene bank_account en loan
         bank_data = loan_data.get("bank_account")
@@ -489,3 +512,100 @@ class ContractCreationService:
                     )
                 )
             await db.commit()
+
+    async def upsert_contract_participants_from_payload(
+        self,
+        contract_id: str,
+        data: Dict[str, Any],
+        db,
+        request: Request,
+        participant_service: ParticipantService | None = None,
+    ) -> None:
+        """
+        En update, crea (si aplica) personas/empresas nuevas desde el payload y
+        asegura que estén asociadas al contrato en `contract_participant`.
+
+        - Reusa `ParticipantService.process_all_participants` (personas + empresas).
+        - Evita duplicar filas en `contract_participant`.
+        """
+        uid = UUID(contract_id) if isinstance(contract_id, str) else contract_id
+        ps = participant_service or ParticipantService()
+
+        # Aceptar payload tipo detail: `participants` anidado
+        participants = data.get("participants")
+        if isinstance(participants, dict):
+            for key, value in participants.items():
+                if data.get(key) in (None, [], {}, ""):
+                    data[key] = value
+
+        # Eliminar del contrato las compañías que ya no vienen en el payload (por RNC o company_id)
+        for role_key, person_type_id in _COMPANY_ROLES:
+            rncs, ids = _allowed_company_identifiers(data, role_key)
+            delete_sql = text("""
+                DELETE FROM contract_participant cp
+                USING company c
+                WHERE cp.contract_id = :uid
+                  AND cp.person_type_id = :person_type_id
+                  AND cp.company_id IS NOT NULL
+                  AND c.company_id = cp.company_id
+                  AND NOT (c.company_rnc = ANY(:rncs) OR c.company_id::text = ANY(:ids))
+            """)
+            await db.execute(
+                delete_sql,
+                {
+                    "uid": uid,
+                    "person_type_id": person_type_id,
+                    "rncs": rncs,
+                    "ids": ids,
+                },
+            )
+
+        participants_for_contract, participant_errors, _summary = await ps.process_all_participants(data, request)
+
+        # Si hay errores, no abortar el update completo: solo no insertamos esos participantes.
+        # (Los errores ya están capturados por ParticipantService.)
+        for p in participants_for_contract:
+            person_id = p.get("person_id")
+            company_id = p.get("company_id")
+            person_type_id = p.get("person_role_id")
+            is_primary = bool(p.get("is_primary"))
+
+            # Normalizar UUIDs
+            person_uuid = None
+            if person_id:
+                person_uuid = UUID(str(person_id))
+            company_uuid = None
+            if company_id:
+                company_uuid = UUID(str(company_id))
+
+            # Construir condición de existencia
+            where_clauses = [contract_participant_table.c.contract_id == uid]
+            if person_uuid is not None:
+                where_clauses.append(contract_participant_table.c.person_id == person_uuid)
+            elif company_uuid is not None:
+                where_clauses.append(contract_participant_table.c.company_id == company_uuid)
+            else:
+                continue
+            if person_type_id is not None:
+                where_clauses.append(contract_participant_table.c.person_type_id == person_type_id)
+
+            exists_cursor = await db.execute(
+                select(contract_participant_table.c.contract_participant_id).where(*where_clauses).limit(1)
+            )
+            exists_row = exists_cursor.first()
+            if exists_row is not None:
+                continue
+
+            participant_insert = contract_participant_table.insert().values(
+                contract_id=uid,
+                person_id=person_uuid,
+                company_id=company_uuid,
+                person_type_id=person_type_id,
+                is_primary=is_primary,
+                is_active=True,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+            await db.execute(participant_insert)
+
+        await db.commit()

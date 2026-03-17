@@ -53,7 +53,6 @@ async def get_partners(
             
             return result
         except HTTPException:
-            # Re-raise HTTPException as-is
             raise
         except ValueError as e:
             raise HTTPException(
@@ -63,7 +62,18 @@ async def get_partners(
         except RuntimeError as e:
             raise HTTPException(
                 status_code=500,
-                detail=str(e)
+                detail=f"Ocurrió un error al recuperar la lista de inversionistas: {str(e)}"
+            )
+        except Exception as e:
+            error_msg = str(e)
+            if "does not exist" in error_msg or "relation" in error_msg.lower():
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Error de base de datos: {error_msg}. Verifique que la vista 'vw_contract_participant_directory_base' y el stored procedure 'sp_get_partners_directory' existan."
+                )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error inesperado al recuperar la lista de inversionistas: {error_msg}"
             )
 
 

@@ -188,6 +188,14 @@ class ParticipantService:
             addresses = person_info.get("p_addresses", [])
             additional_data = person_info.get("p_additional_data", {})
             
+            # ✅ Asegurar que email y phone_number existen para notarios
+            # Copiar desde campos profesionales si no existen los campos básicos
+            if additional_data:
+                if not additional_data.get('email') and additional_data.get('professional_email'):
+                    additional_data['email'] = additional_data['professional_email']
+                if not additional_data.get('phone_number') and additional_data.get('professional_phone'):
+                    additional_data['phone_number'] = additional_data['professional_phone']
+            
             person_data = {
                 "p_first_name": person_info.get("p_first_name", ""),
                 "p_last_name": person_info.get("p_last_name", ""),

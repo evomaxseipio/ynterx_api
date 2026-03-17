@@ -24,12 +24,22 @@ class GoogleDriveUtils:
     def upload_contract(self, contract_id: str, file_path: Path, metadata: Dict[str, Any]) -> Dict[str, Any]:
         """Subir contrato a Google Drive"""
         if not self.use_google_drive or not self.gdrive_service:
-            return {"drive_link": None, "drive_warning": "Google Drive no disponible"}
+            return {
+                "drive_success": False,
+                "drive_link": None, 
+                "drive_warning": "Google Drive no disponible"
+            }
         
         try:
             return self.gdrive_service.upload_contract(contract_id, file_path, metadata)
         except Exception as e:
-            return {"drive_link": None, "drive_warning": f"Error subiendo a Google Drive: {str(e)}"}
+            # Importante: incluir drive_success: False para que el código pueda detectar el error
+            return {
+                "drive_success": False,
+                "drive_link": None, 
+                "drive_warning": f"Error subiendo a Google Drive: {str(e)}",
+                "drive_error": str(e)  # Incluir el error completo para debugging
+            }
     
     def is_available(self) -> bool:
         """Verificar si Google Drive está disponible"""

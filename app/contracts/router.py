@@ -1,7 +1,7 @@
 # router_clean.py
 from dotenv import load_dotenv
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Request, status
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Request, status, Query
 from fastapi.responses import FileResponse, JSONResponse
 from typing import Dict, Any, Optional, List
 from pathlib import Path
@@ -18,9 +18,9 @@ from .service import ContractService
 from .services import ContractListService
 from .schemas import *
 from .loan_property_schemas import *
-from app.database import DepDatabase, fetch_one, execute
-from sqlalchemy import select
-from app.contracts.models import contract as contract_table, contract_participant as contract_participant_table
+from app.database import DepDatabase, fetch_one, fetch_all, execute
+from sqlalchemy import select, func
+from app.contracts.models import contract as contract_table, contract_participant as contract_participant_table, contract_service
 from app.contracts.loan_property_service import ContractLoanPropertyService
 from app.contracts.participant_service import ParticipantService
 from app.contracts.contract_creation_service import ContractCreationService
@@ -321,6 +321,41 @@ async def list_contracts(
         )
 
 
+@router.get("/services", response_model=ContractServiceListResponse)
+async def list_contract_services(
+    _: DepCurrentUser,
+    db: DepDatabase,
+    is_active: Optional[bool] = Query(None, description="Filtrar por activos (true) o inactivos (false); si no se envía, devuelve todos"),
+    limit: int = Query(default=20, ge=1, le=100, description="Máximo de registros por página"),
+    offset: int = Query(default=0, ge=0, description="Registros a saltar"),
+) -> ContractServiceListResponse:
+    """
+    Listar tipos de servicio / préstamo desde contract_service (paginado).
+
+    Respuesta estándar: success, error, message, data, pagination.
+    """
+    base_filter = select(contract_service)
+    if is_active is not None:
+        base_filter = base_filter.where(contract_service.c.is_active == is_active)
+    count_query = select(func.count().label("total")).select_from(contract_service)
+    if is_active is not None:
+        count_query = count_query.where(contract_service.c.is_active == is_active)
+    total_row = await fetch_one(count_query, connection=db)
+    total = int(total_row["total"]) if total_row and total_row.get("total") is not None else 0
+    query = base_filter.limit(limit).offset(offset)
+    rows = await fetch_all(query, connection=db)
+    data = [ContractServiceItem(**r) for r in rows]
+    page = (offset // limit) + 1 if limit else 1
+    pagination = ContractServicePaginationSchema(total=total, per_page=limit, page=page, offset=offset)
+    return ContractServiceListResponse(
+        success=True,
+        error=None,
+        message="Tipos de servicio obtenidos correctamente",
+        data=data,
+        pagination=pagination,
+    )
+
+
 @router.get("/{contract_id}/detail", response_model=ContractDetailResponse)
 async def get_contract_detail(
     contract_id: str,
@@ -548,7 +583,9 @@ async def update_contract(
     contract_id: str,
     updates: Dict[str, Any],
     db: DepDatabase,
+    request: Request,
     service: ContractService = Depends(get_contract_service),
+    participant_service: ParticipantService = Depends(get_participant_service),
     contract_creation_service: ContractCreationService = Depends(get_contract_creation_service)
 ) -> Dict[str, Any]:
     """
@@ -562,6 +599,16 @@ async def update_contract(
     # Si el body es la respuesta de detalle ({ "success", "data", ... }), usar data
     if "data" in updates and isinstance(updates.get("data"), dict):
         updates = updates["data"]
+
+    # Normalizar estructura de participantes para compatibilidad:
+    # - El GET detail devuelve `participants` anidado.
+    # - El generador y ParticipantService esperan `clients`, `investors`, etc. en raíz.
+    participants = updates.get("participants")
+    if isinstance(participants, dict):
+        for key, value in participants.items():
+            # Solo copiar si no existe en raíz o está vacío
+            if updates.get(key) in (None, [], {}, ""):
+                updates[key] = value
     folder_id = contract_id
     try:
         uuid.UUID(contract_id)
@@ -580,6 +627,14 @@ async def update_contract(
         document_result = await service.update_contract(folder_id, updates, connection=db)
         await contract_creation_service.update_contract_with_document_info(contract_id, document_result, db)
         await contract_creation_service.update_contract_data_in_db(contract_id, updates, db)
+        # Persistir participantes (personas nuevas y empresas) en BD y vincularlos al contrato
+        await contract_creation_service.upsert_contract_participants_from_payload(
+            contract_id=contract_id,
+            data=updates,
+            db=db,
+            request=request,
+            participant_service=participant_service,
+        )
         return {
             "success": document_result.get("success", True),
             "message": document_result.get("message", "Contrato actualizado exitosamente"),
