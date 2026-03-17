@@ -1,6 +1,6 @@
 from typing import Dict, Any, List
 from datetime import datetime
-from app.contracts.utils.data_formatters import format_dates, format_loan_amounts, format_payment_amounts
+from app.contracts.utils.data_formatters import format_dates, format_loan_amounts, format_payment_amounts, _to_float
 from app.contracts.processors.participant_data_processor import ParticipantDataProcessor
 
 
@@ -81,6 +81,7 @@ class ContractDataProcessor:
             properties = data["properties"]
             prop = properties[0]
             
+            pv = _to_float(prop.get("property_value", 0))
             flattened.update({
                 "property_type": prop.get("property_type", ""),
                 "property_cadastral": prop.get("cadastral_number", ""),
@@ -88,8 +89,8 @@ class ContractDataProcessor:
                 "property_covered_area": prop.get("covered_area", ""),
                 "property_address": prop.get("address_line1", ""),
                 "property_address2": prop.get("address_line2", ""),
-                "property_value": f"{prop.get('property_value', 0):,.2f}",
-                "property_value_raw": prop.get('property_value', 0),
+                "property_value": f"{pv:,.2f}",
+                "property_value_raw": pv,
                 "property_currency": prop.get("currency", "USD"),
                 "property_owner": prop.get("property_owner", ""),
             })
@@ -209,10 +210,20 @@ class ContractDataProcessor:
         if "clients" in data and data["clients"]:
             clients_result = self.participant_processor.process_clients(data["clients"])
             flattened.update(clients_result)
+        else:
+            # Si no hay clients pero hay client_company, establecer valores por defecto
+            if "client_company" in data and data.get("client_company", {}).get("company_name"):
+                flattened["clients_count"] = 0
+                flattened["clients"] = []
 
         if "investors" in data and data["investors"]:
             investors_result = self.participant_processor.process_investors(data["investors"])
             flattened.update(investors_result)
+        else:
+            # Si no hay investors pero hay investor_company, establecer valores por defecto
+            if "investor_company" in data and data.get("investor_company", {}).get("company_name"):
+                flattened["investors_count"] = 0
+                flattened["investors"] = []
 
         if "witnesses" in data and data["witnesses"]:
             witnesses_result = self.participant_processor.process_witnesses(data["witnesses"])
@@ -244,9 +255,39 @@ class ContractDataProcessor:
         if "client_full_name" not in flattened or not flattened["client_full_name"]:
             if "client_manager_name" in flattened and flattened["client_manager_name"]:
                 flattened["client_full_name"] = flattened["client_manager_name"]
+            elif "client_company_name" in flattened and flattened["client_company_name"]:
+                flattened["client_full_name"] = flattened["client_company_name"]
         
         if "investor_full_name" not in flattened or not flattened["investor_full_name"]:
             if "investor_manager_name" in flattened and flattened["investor_manager_name"]:
                 flattened["investor_full_name"] = flattened["investor_manager_name"]
+            elif "investor_company_name" in flattened and flattened["investor_company_name"]:
+                flattened["investor_full_name"] = flattened["investor_company_name"]
+
+        # Asegurar valores por defecto para campos numéricos que podrían ser usados en la plantilla
+        numeric_defaults = {
+            "clients_count": flattened.get("clients_count", 0),
+            "investors_count": flattened.get("investors_count", 0),
+            "witnesses_count": flattened.get("witnesses_count", 0),
+            "notaries_count": flattened.get("notaries_count", 0),
+            "referrers_count": flattened.get("referrers_count", 0),
+            "loan_amount": flattened.get("loan_amount", 0),
+            "loan_amount_raw": flattened.get("loan_amount_raw", 0),
+            "monthly_payment": flattened.get("monthly_payment", 0),
+            "final_payment": flattened.get("final_payment", 0),
+            "interest_rate": flattened.get("interest_rate", 0),
+            "loan_term_months": flattened.get("loan_term_months", 0),
+            "payment_qty_quotes": flattened.get("payment_qty_quotes", 0),
+            "payment_qty_months": flattened.get("payment_qty_months", 0),
+            "discount_rate": flattened.get("discount_rate", 0),
+            "property_value_raw": flattened.get("property_value_raw", 0),
+            "property_surface_area": flattened.get("property_surface_area", 0),
+            "property_covered_area": flattened.get("property_covered_area", 0),
+        }
+        
+        # Solo agregar valores por defecto si no existen
+        for key, default_value in numeric_defaults.items():
+            if key not in flattened or flattened[key] is None or flattened[key] == "":
+                flattened[key] = default_value
 
         return flattened

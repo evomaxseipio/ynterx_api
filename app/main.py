@@ -105,6 +105,57 @@ async def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/health", tags=["Health"])
+async def health() -> dict:
+    """
+    Endpoint para verificar el estado de la API.
+    Retorna información detallada sobre el estado del servicio.
+    """
+    from app.config import settings
+    
+    health_info = {
+        "status": "healthy",
+        "service": "ynterx_api",
+        "environment": settings.ENVIRONMENT.value,
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat(),
+        "components": {
+            "api": {"status": "up", "message": "API is running"},
+            "database": {
+                "status": "unknown",
+                "message": "Database connection not checked"
+            },
+            "cache": {
+                "status": "up",
+                "message": "Cache backend is configured"
+            }
+        }
+    }
+    
+    # Verificar conexión a la base de datos
+    try:
+        if hasattr(app.state, "db_pool") and app.state.db_pool:
+            async with app.state.db_pool.acquire() as conn:
+                await conn.fetchval("SELECT 1")
+            health_info["components"]["database"] = {
+                "status": "up",
+                "message": "Database connection is healthy"
+            }
+        else:
+            health_info["components"]["database"] = {
+                "status": "down",
+                "message": "Database pool not initialized"
+            }
+    except Exception as e:
+        health_info["components"]["database"] = {
+            "status": "down",
+            "message": f"Database connection failed: {str(e)}"
+        }
+        health_info["status"] = "unhealthy"
+    
+    return health_info
+
+
 @app.get("/debug", include_in_schema=False)
 async def debug_endpoint(request: Request) -> dict[str, str]:
     """Endpoint de debug para diagnosticar problemas de conectividad"""

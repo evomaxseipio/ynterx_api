@@ -63,7 +63,27 @@ class ContractTemplateService:
             
             # Crear entorno Jinja2 con filtros personalizados
             # No usar trim_blocks/lstrip_blocks para preservar espacios en blanco en Word
-            jinja_env = Environment(trim_blocks=False, lstrip_blocks=False)
+            from jinja2 import Undefined
+            
+            class SafeUndefined(Undefined):
+                """Clase para manejar valores undefined de forma segura"""
+                def __int__(self):
+                    return 0
+                
+                def __float__(self):
+                    return 0.0
+                
+                def __str__(self):
+                    return ""
+                
+                def __repr__(self):
+                    return ""
+            
+            jinja_env = Environment(
+                trim_blocks=False, 
+                lstrip_blocks=False,
+                undefined=SafeUndefined
+            )
             jinja_env.filters['pad'] = pad_filter
             jinja_env.filters['center'] = center_filter
             

@@ -27,7 +27,12 @@ class ContractGenerationService:
         self.template_service = ContractTemplateService(template_dir)
         self.file_service = ContractFileService(contracts_dir)
         self.metadata_service = ContractMetadataService(contracts_dir)
-        self.gdrive_utils = GoogleDriveUtils(use_google_drive)
+        
+        try:
+            self.gdrive_utils = GoogleDriveUtils(use_google_drive)
+        except Exception as e:
+            # Si hay error y use_google_drive es True, esto es un problema serio
+            self.gdrive_utils = None
     
     async def generate_contract(self, data: Dict[str, Any], connection: Any = None) -> Dict[str, Any]:
         """Generar contrato completo"""
@@ -98,30 +103,44 @@ class ContractGenerationService:
 
             # Upload to Google Drive if enabled
             if self.use_google_drive:
-                # Crear archivo temporal solo para subir a Drive
-                import tempfile
-                import os
+                if not self.gdrive_utils:
+                    response.update({
+                        "drive_success": False,
+                        "drive_error": "GoogleDriveUtils no inicializado correctamente",
+                        "drive_warning": "Google Drive está habilitado pero el servicio no está disponible"
+                    })
+                else:
+                    # Crear archivo temporal solo para subir a Drive
+                    import tempfile
+                    import os
 
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_file:
-                    temp_file.write(doc_content)
-                    temp_file_path = temp_file.name
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_file:
+                        temp_file.write(doc_content)
+                        temp_file_path = temp_file.name
 
-                try:
-                    drive_result = self.gdrive_utils.upload_contract(contract_id, temp_file_path, processed_data)
-                    response.update(drive_result)
+                    try:
+                        drive_result = self.gdrive_utils.upload_contract(contract_id, temp_file_path, processed_data)
+                        response.update(drive_result)
 
-                    # Si la subida a Drive fue exitosa, actualizar path y folder_path con las URLs de Drive
-                    if drive_result.get("drive_success") and drive_result.get("drive_link"):
-                        response["path"] = drive_result.get("drive_view_link")
-                        response["folder_path"] = drive_result.get("drive_link")
+                        # Si la subida a Drive fue exitosa, actualizar path y folder_path con las URLs de Drive
+                        if drive_result.get("drive_success") and drive_result.get("drive_link"):
+                            response["path"] = drive_result.get("drive_view_link")
+                            response["folder_path"] = drive_result.get("drive_link")
+                        elif not drive_result.get("drive_success"):
+                            # Incluir el error en la respuesta para debugging
+                            error_msg = drive_result.get("drive_error") or drive_result.get("drive_warning", "Error desconocido")
+                            response["drive_error"] = error_msg
 
-                    # Enviar email si hay enlace de Drive
-                    #if drive_result.get("drive_link"):
-                    #    await self._send_contract_email(contract_id, processed_data, drive_result['drive_link'])
-                finally:
-                    # Limpiar archivo temporal
-                    if os.path.exists(temp_file_path):
-                        os.unlink(temp_file_path)
+                        # Enviar email si hay enlace de Drive
+                        #if drive_result.get("drive_link"):
+                        #    await self._send_contract_email(contract_id, processed_data, drive_result['drive_link'])
+                    except Exception as e:
+                        response["drive_success"] = False
+                        response["drive_error"] = str(e)
+                    finally:
+                        # Limpiar archivo temporal
+                        if os.path.exists(temp_file_path):
+                            os.unlink(temp_file_path)
 
             return response
 
@@ -175,32 +194,21 @@ class ContractGenerationService:
 
         # Si NO se usa Google Drive, guardar localmente
         if not self.use_google_drive:
-            # Generar nombre descriptivo del archivo
             contract_number = contract_id.replace("contract_", "")
             output_filename = f"{contract_number}.docx"
-            
-            # Guardar archivo localmente
             output_path = contract_folder / output_filename
             with open(output_path, 'wb') as f:
                 f.write(doc_content)
-                # Generar nombre descriptivo del archivo
-                contract_number = contract_id.replace("contract_", "")
-                output_filename = f"{contract_number}.docx"
-                output_path = contract_folder / output_filename
-                
-                with open(output_path, 'wb') as f:
-                    f.write(doc_content)
 
-                # Actualizar metadatos
-                new_version = self.metadata_service.increment_version(contract_id)
-                self.metadata_service.save_contract_metadata(contract_id, processed_data, new_version)
-                
-                response.update({
-                    "version": new_version,
-                    "path": str(output_path),
-                    "folder_path": str(contract_folder),
-                    "filename": output_filename
-                })
+            new_version = self.metadata_service.increment_version(contract_id)
+            self.metadata_service.save_contract_metadata(contract_id, processed_data, new_version)
+
+            response.update({
+                "version": new_version,
+                "path": str(output_path),
+                "folder_path": str(contract_folder),
+                "filename": output_filename
+            })
         else:
             # Si se usa Google Drive, NO guardar localmente
             response.update({
@@ -210,9 +218,8 @@ class ContractGenerationService:
                 "storage_type": "google_drive_only"
             })
 
-        # Upload to Google Drive if enabled
-        if self.use_google_drive:
-            # Crear archivo temporal solo para subir a Drive
+        # Upload to Google Drive si está habilitado y el cliente se inicializó correctamente
+        if self.use_google_drive and self.gdrive_utils is not None:
             import tempfile
             import os
 
@@ -224,12 +231,10 @@ class ContractGenerationService:
                 drive_result = self.gdrive_utils.upload_contract(contract_id, temp_file_path, processed_data)
                 response.update(drive_result)
 
-                # Si la subida a Drive fue exitosa, actualizar path y folder_path con las URLs de Drive
                 if drive_result.get("drive_success") and drive_result.get("drive_link"):
                     response["path"] = drive_result.get("drive_view_link")
                     response["folder_path"] = drive_result.get("drive_link")
             finally:
-                # Limpiar archivo temporal
                 if os.path.exists(temp_file_path):
                     os.unlink(temp_file_path)
 

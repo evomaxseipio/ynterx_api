@@ -1,8 +1,33 @@
+# Git
+.git
+.gitignore
+
 # Python
 __pycache__
-app.egg-info
 *.pyc
+*.pyo
+*.pyd
+*.log
+app.egg-info
 .mypy_cache
 .coverage
 htmlcov
 .venv
+
+# Environment
+.env
+
+# Keys (CRÍTICO)
+keys/
+credentials.json
+
+# Logs
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+
+
+

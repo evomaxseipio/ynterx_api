@@ -7,6 +7,7 @@ from typing import Annotated, Any
 from fastapi import Depends
 from sqlalchemy import (
     CursorResult,
+    Delete,
     Insert,
     MetaData,
     Select,
@@ -128,7 +129,7 @@ async def fetch_all(
 
 
 async def execute(
-    query: Insert | Update,
+    query: Insert | Update | Delete,
     connection: AsyncConnection | None = None,
     commit_after: bool = False,
     compile_query: bool = False,
@@ -142,7 +143,7 @@ async def execute(
 
 
 async def _execute_query(
-    query: Select | Insert | Update,
+    query: Select | Insert | Update | Delete,
     connection: AsyncConnection,
     commit_after: bool = False,
     compile_query: bool = False,

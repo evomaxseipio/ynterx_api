@@ -77,6 +77,18 @@ contract_loan = Table(
     Column("updated_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
 )
 
+# Tabla contract_service (tipos de servicio / préstamo)
+contract_service = Table(
+    "contract_service",
+    metadata,
+    Column("contract_service_id", Integer, primary_key=True),
+    Column("service_name", String(200), nullable=True),
+    Column("service_description", Text, nullable=True),
+    Column("is_active", Boolean, server_default=text("true")),
+    Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+    Column("updated_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+)
+
 # Adjust this import according to your database setup
 # from app.database import Base  # Replace with your actual Base import
 

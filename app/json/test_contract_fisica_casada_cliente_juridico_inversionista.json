@@ -1,54 +1,26 @@
 {
-    "contract_number": "HIP-000029-2025",
-    "contract_type": "Contrato de préstamo con garantía real",
+   
+    "contract_type": "mortage",
     "contract_type_id": 1,
     "description": null,
-    "contract_date": "13/08/2025",
-    "contract_end_date": "13/08/2026",
+    "contract_date": "13/02/2025",
+    "contract_end_date": "13/02/2026",
     "client_company": {
-        "company_name": "",
-        "company_rnc": "",
-        "company_mercantil_number": "",
-        "company_phone": "",
-        "company_email": "",
-        "company_type": "",
-        "company_address": {
-            "address_line1": "",
-            "city": "",
-            "postal_code": "",
-            "phone_number": "",
-            "email": ""
-        },
-        "company_manager": []
+        "name": "",
+        "rnc": "",
+        "rm": "",
+        "role": "client"
     },
     "investor_company": {
-        "company_name": "FONDO DE INVERSIONES INMOBILIARIAS DEL CARIBE, S.A.",
-        "company_rnc": "1-30-55555-5",
-        "company_mercantil_number": "RM-2021-005555",
-        "company_phone": "(809) 555-7777",
-        "company_email": "inversiones@fondo-caribe.com",
-        "company_type": "Inmobiliario",
-        "company_address": {
-            "address_line1": "AVENIDA FINANCIERA 999, TORRE CORPORATIVA",
-            "city": "SANTO DOMINGO",
-            "postal_code": "10105",
-            "phone_number": "(809) 555-7777",
-            "email": "inversiones@fondo-caribe.com"
-        },
-        "company_manager": [{
-            "name": "DIEGO ALEJANDRO RAMIREZ LOPEZ",
-            "position": "Director Ejecutivo",
-            "document_number": "023-0077777-7",
-            "nationality": "Dominicana",
-            "marital_status": "Casado",
-            "address": "AVENIDA FINANCIERA 999, TORRE CORPORATIVA, SANTO DOMINGO",
-            "is_main_manager": true
-        }]
+        "name": "",
+        "rnc": "",
+        "rm": "",
+        "role": "investor"
     },
     "paragraph_request": [
         {
             "person_role": "investor",
-            "contract_type": "juridica",
+            "contract_type": "juridica_soltera",
             "section": "identification",
             "contract_services": "mortgage"
         },
@@ -178,7 +150,46 @@
             }
         }
     ],
-    "investors": [],
+    "investors": [
+        {
+            "person": {
+                "p_gender": "Masculino",
+                "p_addresses": [
+                    {
+                        "city_id": "1",
+                        "postal_code": "10210",
+                        "address_type": "Casa",
+                        "is_principal": true,
+                        "address_line1": "CALLE DUARTE #456",
+                        "address_line2": "EDIFICIO LOS PRADOS, APT 3B"
+                    }
+                ],
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "023-0093859-0",
+                        "issuing_country_id": "1",
+                        "document_issue_date": "2018-05-18",
+                        "document_expiry_date": "2028-05-18"
+                    }
+                ],
+                "p_last_name": "MARTINS",
+                "p_person_id": "8927f5af-ddbb-4481-b6c3-16e80e2da88e",
+                "p_first_name": "MAXIMILIANO",
+                "p_occupation": "Ingeniero de Software",
+                "p_middle_name": "SEIPIO",
+                "additional_data": {
+                    "email": null,
+                    "phone_number": null
+                },
+                "p_date_of_birth": "1976-05-18",
+                "p_marital_status": "Soltero",
+                "p_person_role_id": 2,
+                "p_nationality_country": "República Dominicana"
+            }
+        }
+    ],
     "witnesses": [
         {
             "person": {
@@ -219,7 +230,46 @@
             }
         }
     ],
-    "referents": [],
+    "referents": [
+        {
+            "person": {
+                "p_gender": "Femenino",
+                "p_addresses": [
+                    {
+                        "city_id": "1",
+                        "postal_code": "21008",
+                        "address_type": "Casa",
+                        "is_principal": true,
+                        "address_line1": "HERMANAS MIRABAL CASA 37, VILLA PROVIDENCIA, SAN PEDRO DE MACORIS",
+                        "address_line2": "SAN PEDRO DE MACORIS"
+                    }
+                ],
+                "p_documents": [
+                    {
+                        "is_primary": true,
+                        "document_type": "Cédula",
+                        "document_number": "402-5631933-2",
+                        "issuing_country_id": "1",
+                        "document_issue_date": null,
+                        "document_expiry_date": null
+                    }
+                ],
+                "p_last_name": "POLANCO ALVAREZ",
+                "p_person_id": "867e8f6b-c285-4f63-a25a-49b428be62dc",
+                "p_first_name": "SHELOSKY YANIRE",
+                "p_occupation": "",
+                "p_middle_name": "",
+                "additional_data": {
+                    "email": null,
+                    "phone_number": "8095292589"
+                },
+                "p_date_of_birth": "1900-01-01",
+                "p_marital_status": "Soltero",
+                "p_person_role_id": 3,
+                "p_nationality_country": "Republica Dominicana"
+            }
+        }
+    ],
     "notary": [
         {
             "person": {

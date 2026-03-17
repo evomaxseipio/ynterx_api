@@ -7,18 +7,20 @@ from num2words import num2words
 from typing import Union
 
 
-def numero_a_texto_con_monto(monto: Union[float, int], moneda: str = "USD") -> str:
+def numero_a_texto_con_monto(monto: Union[float, int, str], moneda: str = "USD") -> str:
     """
     Convierte una cantidad numérica a texto legal, por ejemplo:
     30000.00 → TREINTA MIL DÓLARES ESTADOUNIDENSES (USD 30,000.00)
     
     Args:
-        monto: Cantidad numérica a convertir
+        monto: Cantidad numérica a convertir (int, float o string numérico)
         moneda: Código de moneda (USD, DOP, etc.)
     
     Returns:
         str: Texto legal formateado en mayúsculas
     """
+    if isinstance(monto, str):
+        monto = float(monto) if monto else 0.0
     # Convertimos la parte entera a palabras
     parte_entera = int(monto)
     texto = num2words(parte_entera, lang='es').upper()
@@ -40,18 +42,20 @@ def numero_a_texto_con_monto(monto: Union[float, int], moneda: str = "USD") -> s
     return f"{texto} {moneda_texto} ({simbolo} {monto_formateado})"
 
 
-def numero_a_texto_simple(monto: Union[float, int], moneda: str = "USD") -> str:
+def numero_a_texto_simple(monto: Union[float, int, str], moneda: str = "USD") -> str:
     """
     Convierte una cantidad numérica a texto simple, por ejemplo:
     30000.00 → TREINTA MIL DÓLARES ESTADOUNIDENSES
     
     Args:
-        monto: Cantidad numérica a convertir
+        monto: Cantidad numérica a convertir (int, float o string numérico)
         moneda: Código de moneda (USD, DOP, etc.)
     
     Returns:
         str: Texto simple sin formato numérico
     """
+    if isinstance(monto, str):
+        monto = float(monto) if monto else 0.0
     # Convertimos la parte entera a palabras
     parte_entera = int(monto)
     texto = num2words(parte_entera, lang='es').upper()
