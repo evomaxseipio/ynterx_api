@@ -111,3 +111,4 @@ async def create_item(data: ItemCreate, db: DepDatabase):
 - `CORS_HEADERS`: Headers CORS.
 - `CORS_ORIGINS`: Orígenes CORS.
 - `AUTH_SESSION_TTL_SECONDS`: Tiempo de vida de la sesión de autenticación.
+# QA Deploy Test
