@@ -269,4 +269,17 @@ test/
 tests/
 temp/
 *.md
-app/generated_contracts
+app/generated_contracts.env copy
+keys/
+contracts/
+nginx/
+docker-compose.yml
+Dockerfile
+contratos_export.xlsx
+*.xlsx
+app/exports/
+query_reformulada.sql
+test_multiple_clients.py
+test_query_reformulada.py
+test_payment_upload.py
+test_register_payment.py
