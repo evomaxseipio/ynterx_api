@@ -186,7 +186,8 @@ class ParticipantService:
             person_info = participant["person"]
             documents = person_info.get("p_documents", [])
             addresses = person_info.get("p_addresses", [])
-            additional_data = person_info.get("p_additional_data", {})
+            # Aceptar tanto p_additional_data como additional_data (el detalle puede devolver uno u otro)
+            additional_data = person_info.get("p_additional_data") or person_info.get("additional_data") or {}
             
             # ✅ Asegurar que email y phone_number existen para notarios
             # Copiar desde campos profesionales si no existen los campos básicos
@@ -244,7 +245,8 @@ class ParticipantService:
             person_info = participant["person"]
             documents = person_info.get("p_documents", [])
             addresses = person_info.get("p_addresses", [])
-            additional_data = person_info.get("p_additional_data", {})
+            # Aceptar tanto p_additional_data como additional_data
+            additional_data = person_info.get("p_additional_data") or person_info.get("additional_data") or {}
             
             person_data = {
                 "p_first_name": person_info.get("p_first_name", ""),
