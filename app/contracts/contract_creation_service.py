@@ -12,10 +12,19 @@ from app.contracts.models import (
     contract_bank_account as contract_bank_account_table,
 )
 from app.contracts.participant_service import ParticipantService
-from fastapi import Request
+from fastapi import Request, HTTPException
 
 # person_type_id: 1 = client, 2 = investor
 _COMPANY_ROLES = [("client_company", 1), ("investor_company", 2)]
+
+_PERSON_ROLE_KEYS: List[Tuple[str, int]] = [
+    ("clients", 1),
+    ("investors", 2),
+    ("witnesses", 3),
+    ("notary", 7),
+    ("notaries", 7),
+    ("referents", 8),
+]
 
 
 def _allowed_company_identifiers(data: Dict[str, Any], role_key: str) -> Tuple[List[str], List[str]]:
@@ -36,6 +45,41 @@ def _allowed_company_identifiers(data: Dict[str, Any], role_key: str) -> Tuple[L
         if cid is not None and str(cid).strip() and str(cid) != "0":
             ids.append(str(cid).strip())
     return rncs, ids
+
+
+def _allowed_person_ids_for_role(data: Dict[str, Any], role_key: str) -> Optional[List[str]]:
+    """
+    Devuelve la lista de person_ids que el payload indica para un rol (clients/investors/etc).
+
+    - Si el rol NO está presente en el payload: retorna None (no sincronizar ese rol).
+    - Si el rol está presente pero vacío: retorna [] (sincronizar y borrar todos los existentes).
+    """
+    if role_key not in data:
+        return None
+    raw = data.get(role_key)
+    if raw in (None, "", {}):
+        return []
+    items = raw if isinstance(raw, list) else []
+    allowed: List[str] = []
+    for p in items:
+        if not isinstance(p, dict):
+            continue
+        person = p.get("person") if isinstance(p.get("person"), dict) else {}
+        pid = person.get("p_person_id") or person.get("person_id")
+        if pid is None:
+            continue
+        pid_str = str(pid).strip()
+        if pid_str:
+            allowed.append(pid_str)
+    # De-dup preservando orden
+    seen = set()
+    deduped: List[str] = []
+    for pid in allowed:
+        if pid in seen:
+            continue
+        seen.add(pid)
+        deduped.append(pid)
+    return deduped
 
 
 class ContractCreationService:
@@ -538,32 +582,86 @@ class ContractCreationService:
                 if data.get(key) in (None, [], {}, ""):
                     data[key] = value
 
-        # Eliminar del contrato las compañías que ya no vienen en el payload (por RNC o company_id)
+        # Eliminar del contrato las PERSONAS que ya no vienen en el payload (sin borrar el registro de Person).
+        # Regla: si un rol está presente en el payload (aunque sea lista vacía), se sincroniza a EXACTAMENTE esos IDs.
+        for role_key, person_type_id in _PERSON_ROLE_KEYS:
+            allowed_ids = _allowed_person_ids_for_role(data, role_key)
+            if allowed_ids is None:
+                continue  # no tocar este rol
+            try:
+                if allowed_ids:
+                    delete_people_sql = text("""
+                        DELETE FROM contract_participant
+                        WHERE contract_id = :uid
+                          AND person_type_id = :person_type_id
+                          AND company_id IS NULL
+                          AND person_id IS NOT NULL
+                          AND person_id::text <> ALL(:allowed_ids)
+                    """)
+                    await db.execute(
+                        delete_people_sql,
+                        {
+                            "uid": uid,
+                            "person_type_id": person_type_id,
+                            "allowed_ids": allowed_ids,
+                        },
+                    )
+                else:
+                    # Payload trajo lista vacía: borrar todos los participantes de ese tipo
+                    delete_all_people_sql = text("""
+                        DELETE FROM contract_participant
+                        WHERE contract_id = :uid
+                          AND person_type_id = :person_type_id
+                          AND company_id IS NULL
+                          AND person_id IS NOT NULL
+                    """)
+                    await db.execute(
+                        delete_all_people_sql,
+                        {"uid": uid, "person_type_id": person_type_id},
+                    )
+            except Exception:
+                # No abortar el update por el borrado; el upsert de participantes debe seguir
+                pass
+
+        # Eliminar del contrato las compañías que ya no vienen en el payload (por RNC o company_id).
+        # Si falla (p. ej. tipo company_id distinto entre company y contract_participant), no abortar el update.
         for role_key, person_type_id in _COMPANY_ROLES:
             rncs, ids = _allowed_company_identifiers(data, role_key)
-            delete_sql = text("""
-                DELETE FROM contract_participant cp
-                USING company c
-                WHERE cp.contract_id = :uid
-                  AND cp.person_type_id = :person_type_id
-                  AND cp.company_id IS NOT NULL
-                  AND c.company_id = cp.company_id
-                  AND NOT (c.company_rnc = ANY(:rncs) OR c.company_id::text = ANY(:ids))
-            """)
-            await db.execute(
-                delete_sql,
-                {
-                    "uid": uid,
-                    "person_type_id": person_type_id,
-                    "rncs": rncs,
-                    "ids": ids,
-                },
-            )
+            try:
+                delete_sql = text("""
+                    DELETE FROM contract_participant cp
+                    USING company c
+                    WHERE cp.contract_id = :uid
+                      AND cp.person_type_id = :person_type_id
+                      AND cp.company_id IS NOT NULL
+                      AND c.company_id::text = cp.company_id::text
+                      AND NOT (c.company_rnc = ANY(:rncs) OR c.company_id::text = ANY(:ids))
+                """)
+                await db.execute(
+                    delete_sql,
+                    {
+                        "uid": uid,
+                        "person_type_id": person_type_id,
+                        "rncs": rncs,
+                        "ids": ids,
+                    },
+                )
+            except Exception:
+                # No bloquear el flujo de personas; el borrado de compañías se puede revisar después
+                pass
 
         participants_for_contract, participant_errors, _summary = await ps.process_all_participants(data, request)
 
-        # Si hay errores, no abortar el update completo: solo no insertamos esos participantes.
-        # (Los errores ya están capturados por ParticipantService.)
+        if participant_errors:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "Errores en el procesamiento de participantes. Corrija los datos e intente de nuevo.",
+                    "errors": participant_errors,
+                    "summary": _summary,
+                },
+            )
+
         for p in participants_for_contract:
             person_id = p.get("person_id")
             company_id = p.get("company_id")

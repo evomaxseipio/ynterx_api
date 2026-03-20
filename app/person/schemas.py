@@ -104,7 +104,7 @@ class PersonDocumentCreate(BaseModel):
     is_primary: bool = False
     document_type: constr(min_length=1, max_length=50)
     document_number: constr(min_length=1, max_length=50)
-    issuing_country_id: str
+    issuing_country_id: str = Field(default="1", max_length=50, description="Si no se envía, se usa '1'")
     document_issue_date: date | None = None
     document_expiry_date: date | None = None
 
@@ -113,7 +113,7 @@ class PersonAddressCreate(BaseModel):
     """Schema para direcciones de persona"""
     address_line1: constr(min_length=1, max_length=255)
     address_line2: str | None = Field(None, max_length=255)
-    city_id: str
+    city_id: str = Field(default="1", max_length=50, description="Si no se envía, se usa '1'")
     postal_code: str | None = Field(None, max_length=20)
     address_type: constr(min_length=1, max_length=50)
     is_principal: bool = False
