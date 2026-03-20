@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import asyncpg
@@ -75,7 +76,13 @@ async def login(request: Request, login_data: AuthLoginRequest) -> Any:
         # Create JWT tokens
         access_token = jwt_service.create_access_token(user_data)
         refresh_token = jwt_service.create_refresh_token(user_data)
-        
+
+        # Compute expiry fields derived from the same TTL used to sign the JWT
+        _access_ttl = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+        _expires_at = datetime.now(timezone.utc) + _access_ttl
+        expires_in = int(_access_ttl.total_seconds())
+        expires_at = _expires_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+
         # Create a session in the cache as backup
         await create_session(session.session_token, user.user_id)
 
@@ -88,7 +95,8 @@ async def login(request: Request, login_data: AuthLoginRequest) -> Any:
                     "access_token": access_token,
                     "refresh_token": refresh_token,
                     "token_type": "Bearer",
-                    "expires_in": settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+                    "expires_in": expires_in,
+                    "expires_at": expires_at,
                     "user": user_data,
                     "api_config": user_query_result.api_config,
                 },
@@ -197,11 +205,15 @@ async def refresh_token(request: Request, refresh_data: RefreshTokenRequest) -> 
                     }
         
         new_access_token = jwt_service.create_access_token(user_data)
-        
+
+        _access_ttl = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+        _expires_at = datetime.now(timezone.utc) + _access_ttl
+
         return RefreshTokenResponse(
             access_token=new_access_token,
             token_type="Bearer",
-            expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            expires_in=int(_access_ttl.total_seconds()),
+            expires_at=_expires_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
         )
         
     except ValueError as e:
