@@ -18,6 +18,8 @@ class _AuthLoginDataResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    expires_in: int
+    expires_at: str
     user: Any
     api_config: dict[str, Any] | None = None
 

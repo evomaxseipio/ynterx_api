@@ -20,7 +20,8 @@ class RefreshTokenResponse(BaseModel):
     """Respuesta de refresh token."""
     access_token: str = Field(..., description="Nuevo token de acceso")
     token_type: str = Field(default="Bearer", description="Tipo de token")
-    expires_in: int = Field(..., description="Tiempo de expiración en segundos")
+    expires_in: int = Field(..., description="Segundos de vida del access token desde su emisión (RFC 6749)")
+    expires_at: str = Field(..., description="Instante absoluto de expiración del access token en UTC (ISO 8601)")
 
 
 class TokenPayload(BaseModel):
